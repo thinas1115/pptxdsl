@@ -123,13 +123,15 @@
 
 ```powershell
 python slidegen/validate_content.py content.json
-python slidegen/generate_from_json.py content.json out\deck_from_json.pptx
-python slidegen\check_layout.py out\deck_from_json.pptx
-powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out\deck_from_json.pptx -OutDir out\png_from_json
-python contact_sheet.py out\png_from_json
+python slidegen/generate_from_json.py content.json out/deck_from_json.pptx
+python slidegen/check_layout.py out/deck_from_json.pptx
+powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out/deck_from_json.pptx -OutDir out/png_from_json
+python contact_sheet.py out/png_from_json
 ```
 
 1行目の検証は `generate_from_json.py` も生成前に自動実行する(NGなら生成されない)。
 検証エラーが出たら、エラーメッセージ(`slides[番号] (type=種別): 内容` 形式)をそのままAIに渡して `content.json` を直させる。
 
-`out\png_from_json\sheet.png` を確認し、内容がテーマから逸れていないか、既存サンプルの題材が混ざっていないか、文字溢れや重なりがないかを見る。
+macOSではPowerPoint for Macを使い、[macOSでの生成・検証](docs/macos.md)の手順でPNG化する。
+
+`out/png_from_json/sheet.png` を確認し、内容がテーマから逸れていないか、既存サンプルの題材が混ざっていないか、文字溢れや重なりがないかを見る。

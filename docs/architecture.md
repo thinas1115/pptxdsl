@@ -20,7 +20,8 @@
 3. `generate_from_json.py`がtypeに対応するrendererを選択する。
 4. rendererまたは専用レイアウタが、座標・余白・フォント・描画順を決定してPPTXを生成する。
 5. `check_layout.py`が、重なり・枠線貫通・スライド外へのはみ出しを機械検査する。
-6. `render.ps1`がPowerPointでPNG化し、機械検査では判定できない見た目を確認する。
+6. Windowsでは`render.ps1`、macOSではPowerPoint for MacのエクスポートでPNG化し、
+   機械検査では判定できない見た目を確認する。
 7. 不合格の場合は、内容の問題なら`content.json`、表現力の問題ならrendererまたはレイアウタへ戻す。
 
 ## 設計目標
@@ -60,7 +61,7 @@
 | L0 測定・描画部品 | 文字計測、収容候補の選択、矩形、線、矢印、アイコン、ラベル | `textfit.py`、`layout_fit.py`、`generate.py`、`diagrams.py` | 全type |
 | L1 レイアウト計算 | ジャンル固有の位置・サイズ・配線計算 | `diagram_layout.py`、`org_layout.py`、`timeline_layout.py`、`image_slide.py`、`diagrams2.py`、各renderer | 同一ジャンル内 |
 | L2 入力境界 | schema、入力検証、renderer選択 | `CONTENT_SCHEMA.md`、`validate_content.py`、`generate_from_json.py` | 全type |
-| L3 品質保証 | PPTX検査、PNG化、一覧確認 | `check_layout.py`、`render.ps1`、`contact_sheet.py` | 全type |
+| L3 品質保証 | PPTX検査、PNG化、一覧確認 | `check_layout.py`、`render.ps1`、`docs/macos.md`、`contact_sheet.py` | 全type |
 
 共通化の中心はL0、L2、L3である。L1はグリッド、ガント、散布、縦詰め、ツリー、放射など、
 制約の種類ごとに異なるため、ジャンルを越えて無理に統合しない。
@@ -95,7 +96,10 @@
 
 ### 配置前のテキスト実測
 
-`textfit.py`は游ゴシックの実寸をPillowで測り、指定幅での折り返し行数と必要高さを計算する。
+`platform_support.py`はOSごとのPowerPointフォント名と実測ファイルを解決する。Windowsでは
+游ゴシック、macOSではHiragino Sansを選び、`textfit.py`が同じフォントの実寸をPillowで測る。
+検出できない場合は代替へ黙って切り替えず、環境変数による明示設定を案内して停止する。
+rendererはOSを判定せず、解決済みのフォント名と実測値だけを使用する。
 rendererは計測結果を使ってフォントサイズまたは配置領域を決めてからテキストを置く。
 
 表紙以外の共通ヘッダーは任意の`lead`を受け取り、`ContentArea`として本文の上端・下端をrendererへ返す。

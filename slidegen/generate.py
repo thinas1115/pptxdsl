@@ -17,6 +17,7 @@ from pptx.util import Emu, Inches, Pt
 from content import DECK
 from cover_footer import load_cover_footer_config, render_cover, render_footer
 from layout_fit import FitError, fit_text_or_raise, select_fit, stepped
+from platform_support import POWERPOINT_FONT_NAME
 from textfit import line_height_in, text_width_in, wrap_text
 
 # ---- テーマ ----
@@ -30,7 +31,7 @@ WHITE = RGBColor(0xFF, 0xFF, 0xFC)
 ZEBRA = RGBColor(0xEC, 0xEA, 0xE4)
 CANVAS = RGBColor(0xF7, 0xF5, 0xEF)
 RULE = RGBColor(0xD1, 0xCF, 0xC8)
-FONT = "Yu Gothic"
+FONT = POWERPOINT_FONT_NAME
 SLIDE_W, SLIDE_H = 13.333, 7.5
 MARGIN = 0.55
 BODY_W = SLIDE_W - MARGIN * 2

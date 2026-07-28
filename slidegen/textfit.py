@@ -1,23 +1,14 @@
 """日本語テキストの実測折り返し・自動フィットエンジン。
 
-PowerPointに置く前にPillowで游ゴシックの実寸を測り、
+PowerPointに置く前にOS対応の日本語フォントをPillowで測り、
 「テキストボックスから溢れない」ことを生成時点で保証する。
 """
-import os
 import re
 from functools import lru_cache
-from pathlib import Path
 
 from PIL import ImageFont
 
-if "WINDIR" not in os.environ:
-    raise RuntimeError("游ゴシックの検出にはWindows環境が必要です")
-FONT_DIR = Path(os.environ["WINDIR"]) / "Fonts"
-FONT_PATHS = {
-    "regular": str(FONT_DIR / "YuGothR.ttc"),
-    "medium": str(FONT_DIR / "YuGothM.ttc"),
-    "bold": str(FONT_DIR / "YuGothB.ttc"),
-}
+from platform_support import FONT_PATHS
 
 # pt -> px (96dpi)。PowerPoint実測はPillow計測より僅かに広く出ることが
 # あるため安全係数を掛ける。

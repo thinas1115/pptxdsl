@@ -30,7 +30,8 @@ rendererと共通部品の範囲に閉じ込めやすい。
 |---|---|---|
 | 基本配色 | `slidegen/generate.py` の `NAVY`〜`RULE` | 背景、本文、アクセント、罫線、薄色面のカラートークン |
 | 基本フォント | `slidegen/generate.py` の `FONT` / `set_run()` | PowerPointに設定する日本語フォント、言語、太字、文字色 |
-| フォント実測 | `slidegen/textfit.py` の `_font()` | `FONT` を変える場合に、Pillowが同じフォントファイルを測るよう変更 |
+| OS別フォント解決 | `slidegen/platform_support.py` | PowerPoint名とPillow実測ファイルを同時に変更 |
+| フォント実測 | `slidegen/textfit.py` の `_font()` | 解決済みフォントを同じウェイトで測定 |
 | スライド寸法・本文領域 | `generate.py` の `SLIDE_W` / `SLIDE_H` / `MARGIN` / `BODY_*` | 画面比率、余白、本文の使用可能領域。変更影響が大きいため全rendererを再検証 |
 | 表紙・フッター | `slidegen/cover_footer.py` / `--cover-footer-config` | 表紙、ページ番号、フッター文言。利用者別設定はコード変更不要 |
 | 共通ヘッダー・注記 | `generate.py` の `header()` / `note_line()` | 全本文スライドの背景、見出し、注記 |
@@ -62,12 +63,14 @@ rendererと共通部品の範囲に閉じ込めやすい。
 
 ### フォントを変える
 
-1. `generate.py` の `FONT` を変更する。
-2. `textfit.py` のフォントファイル参照を同じ書体へ変更する。
+1. `platform_support.py`の対象OSプロファイルで、PowerPoint上のフォント名と実測ファイルを同時に変更する。
+2. 利用者固有のフォントはコードへ書かず、`PPTXDSL_FONT_FAMILY`と
+   `PPTXDSL_FONT_REGULAR/MEDIUM/BOLD`で指定する。
 3. グラフの `chart.font.name` も `FONT` を参照していることを確認する。
 4. 全パターンを再生成し、折り返し・禁則・表の行高を再検証する。
 
-PowerPoint側だけフォントを変え、`textfit.py` を変えない状態は禁止。測定値と実描画がずれて溢れの原因になる。
+PowerPoint側だけフォントを変え、Pillowの実測ファイルを変えない状態は禁止。
+測定値と実描画がずれて溢れの原因になる。
 
 ### 表紙とフッターだけ変える
 
@@ -118,7 +121,7 @@ renderer内部の配置を変えなければ、本文パターンへの影響は
 ```powershell
 python slidegen/generate_patterns.py out\pattern_gallery.pptx
 python slidegen/check_layout.py out\pattern_gallery.pptx
-powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out\pattern_gallery.pptx -OutDir out\png_pg
+powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out/pattern_gallery.pptx -OutDir out/png_pg
 python contact_sheet.py out\png_pg
 
 python slidegen/generate_from_json.py content.json out\content_deck.pptx
