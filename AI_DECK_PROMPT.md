@@ -75,7 +75,7 @@
    存在する相対パスだけを書く。必要な画像が未準備なら架空のパスを作らず、作業手順1の事前確認で停止する。
    画像の説明は必要な場合だけ`lead`へ書き、`caption`と`source`は使わない。Web画像は取得元・権利者・
    利用条件を確認し、リポジトリへ含める場合は`slidegen/assets/CREDITS.md`へ記録する。
-9. `type` は `CONTENT_SCHEMA.md` に載っているものだけ使う。件数制約も `validate_content.py` が機械検証する。フェーズ単位の計画は `roadmap`、複数テーマ内の並行作業は `program_roadmap` を使い分ける。`program_roadmap`で月途中の開始・終了が必要な場合は、数値の`start / end`を0.25刻みの期間境界indexで指定する。
+9. `type` は `CONTENT_SCHEMA.md` に載っているものだけ使う。件数制約も `validate_content.py` が機械検証する。フェーズ単位の計画は `roadmap`、複数テーマ内の並行作業は `program_roadmap` を使い分ける。`roadmap`は`name / start / end`だけを必須とし、説明が必要な場合だけ`goal`または`bar`、判定点が必要な場合だけ`milestones`を追加する。`program_roadmap`で月途中の開始・終了が必要な場合は、数値の`start / end`を0.25刻みの期間境界indexで指定する。
 10. 体制図は`org.nodes / org.levels / org.edges`で記述し、階層と関係だけを入力する。座標や箱のサイズは書かない。
 11. 表の列幅はrendererが自動計算するため`col_widths`を書かない。2軸図のラベル位置も自動計算するため`lx / ly`を書かない。
     構成図の線ラベル幅・配置区間も自動計算するため`label_w / label_seg`を書かない。

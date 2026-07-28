@@ -91,6 +91,39 @@ def main():
     assert any("0.25刻み" in error
                for error in validate(invalid_quarter))
 
+    roadmap = {
+        "meta": {"title": "検証"},
+        "slides": [{
+            "type": "roadmap", "kicker": "検証", "title": "段階計画",
+            "months": periods,
+            "phases": [
+                {"name": "要件整理", "start": "4月", "end": "5月"},
+                {"name": "実装", "bar": "機能を整備",
+                 "start": "6月", "end": "7月"},
+            ],
+        }],
+    }
+    assert not validate(roadmap)
+    invalid_goal = deepcopy(roadmap)
+    invalid_goal["slides"][0]["phases"][0]["goal"] = ""
+    assert any("goal は空でない文字列" in error
+               for error in validate(invalid_goal))
+
+    duplicate_milestone = deepcopy(roadmap)
+    duplicate_milestone["slides"][0]["milestones"] = [
+        {"at": "4月", "row": 0, "label": "確認1"},
+        {"at": "5月", "row": 0, "label": "確認2"},
+    ]
+    assert any("1フェーズにつき1件" in error
+               for error in validate(duplicate_milestone))
+
+    outside_milestone = deepcopy(roadmap)
+    outside_milestone["slides"][0]["milestones"] = [
+        {"at": "7月", "row": 0, "label": "範囲外"},
+    ]
+    assert any("対応フェーズのstart〜end内" in error
+               for error in validate(outside_milestone))
+
     print("timeline layout tests passed")
 
 

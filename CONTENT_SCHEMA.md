@@ -437,35 +437,38 @@ python slidegen/validate_content.py content.json
 - `months`: string の配列
 - `phases`: object の配列
 - `phases[*].name`: string
-- `phases[*].goal`: string
-- `phases[*].bar`: string
 - `phases[*].start`: number または `months` 内の期間ラベル
 - `phases[*].end`: number または `months` 内の期間ラベル
-- `milestones`: object の配列
+
+任意:
+
+- `phases[*].goal`: フェーズの狙い
+- `phases[*].bar`: 期間中の主な作業。`goal`と両方指定した場合は同じ説明行へまとめて表示
+- `milestones`: object の配列。省略時は表示しない
 - `milestones[*].at`: number または `months` 内の期間ラベル
-- `milestones[*].row`: number
+- `milestones[*].row`: 対象フェーズの0始まりindex
 - `milestones[*].label`: string
 
 制約:
 
 - `months` は重複しない3〜12件。月以外に四半期、週、工程名なども使える。
 - `phases` は1〜6件。4件以上ではrendererが余白・行高・文字を段階的に縮小する。
+- フェーズ名は期間線の開始位置へ表示する。固定の左見出し欄は持たない。
+- `name / start / end`だけで生成できる。説明が必要な場合だけ`goal`または`bar`を追加する。
 - 数値の `start`, `end`, `at` は期間列の境界index。12期間なら `0` から `12` の範囲。
 - 期間ラベルの `start` は該当列の開始、`end` は該当列を含む終了、`at` は該当列の中央として扱う。
 - 数値indexと期間ラベルは混在できるが、AI生成では読みやすい期間ラベル指定を推奨する。
-- `milestones[*].row` は対応する `phases` の0始まりindex。不要なら `"milestones": []`。
+- `milestones[*].row` は対応する `phases` の0始まりindex。1フェーズにつき1件までで、
+  `at`は対応フェーズの期間内に置く。
 
 ```json
 {
   "type": "roadmap",
   "kicker": "分類",
   "title": "タイトル",
-  "months": ["4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月", "1月", "2月", "3月"],
+  "months": ["4月", "5月", "6月"],
   "phases": [
-    {"name": "Phase 1", "goal": "目的", "bar": "バー内文言", "start": "4月", "end": "6月"}
-  ],
-  "milestones": [
-    {"at": "6月", "row": 0, "label": "判定"}
+    {"name": "要件整理", "bar": "対象業務を確定", "start": "4月", "end": "5月"}
   ]
 }
 ```

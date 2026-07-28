@@ -202,8 +202,7 @@ ROADMAP_STRESS = {
     "months": ["4月", "5月", "6月", "7月", "8月", "9月",
                "10月", "11月", "12月", "1月", "2月", "3月"],
     "phases": [
-        {"name": f"Phase {i + 1}  検証工程{i + 1}", "goal": "判定条件を確認",
-         "bar": f"工程{i + 1}を実施", "start": i * 2, "end": i * 2 + 2}
+        {"name": f"検証工程{i + 1}", "start": i * 2, "end": i * 2 + 2}
         for i in range(6)
     ],
     "milestones": [

@@ -367,12 +367,14 @@ def _v_roadmap(s):
     phases = s.req_list("phases", 1, 6, "フェーズ")
     for i, ph in enumerate(phases or []):
         if not (isinstance(ph, dict) and _is_str(ph.get("name"))
-                and _is_str(ph.get("goal")) and _is_str(ph.get("bar"))
                 and (_is_num(ph.get("start")) or _is_str(ph.get("start")))
                 and (_is_num(ph.get("end")) or _is_str(ph.get("end")))):
-            s.err(f"phases[{i}] には name / goal / bar (文字列) と "
+            s.err(f"phases[{i}] には name (文字列) と "
                   f"start / end (数値または期間ラベル) が必要です")
             continue
+        for field in ("goal", "bar"):
+            if field in ph and not _is_str(ph.get(field)):
+                s.err(f"phases[{i}].{field} は空でない文字列にしてください")
         s.allow_keys(ph, {"name", "goal", "bar", "start", "end"},
                      f"phases[{i}]")
         if months:
@@ -380,10 +382,11 @@ def _v_roadmap(s):
                 resolve_span(ph, months)
             except ValueError as exc:
                 s.err(f"phases[{i}] の{exc}")
-    ms = s.spec.get("milestones")
+    ms = s.spec.get("milestones", [])
     if not isinstance(ms, list):
-        s.err('"milestones" (配列。不要なら []) が必要です')
+        s.err('"milestones" は配列にしてください')
         return
+    milestone_rows = set()
     for i, m in enumerate(ms):
         if not (isinstance(m, dict)
                 and (_is_num(m.get("at")) or _is_str(m.get("at")))
@@ -392,11 +395,29 @@ def _v_roadmap(s):
                   f"row (整数) / label (文字列) が必要です")
             continue
         s.allow_keys(m, {"at", "row", "label"}, f"milestones[{i}]")
+        if isinstance(m.get("row"), int):
+            if m["row"] in milestone_rows:
+                s.err(
+                    f"milestones[{i}].row={m['row']} は重複しています。"
+                    "1フェーズにつき1件にしてください")
+            milestone_rows.add(m["row"])
         if months:
             try:
-                resolve_marker(m["at"], months)
+                marker = resolve_marker(m["at"], months)
             except ValueError as exc:
                 s.err(f"milestones[{i}] の{exc}")
+            else:
+                if (phases and isinstance(m.get("row"), int)
+                        and 0 <= m["row"] < len(phases)):
+                    try:
+                        start, end = resolve_span(phases[m["row"]], months)
+                    except (AttributeError, ValueError):
+                        pass
+                    else:
+                        if not start <= marker <= end:
+                            s.err(
+                                f"milestones[{i}].at は対応フェーズの"
+                                "start〜end内にしてください")
         if phases and not 0 <= m["row"] < len(phases):
             s.err(f"milestones[{i}] の row={m['row']} は 0〜{len(phases) - 1} "
                   f"(phasesのindex) にしてください")
