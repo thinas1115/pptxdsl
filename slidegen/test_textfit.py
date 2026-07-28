@@ -10,6 +10,9 @@ from textfit import (
     fits,
     text_width_in,
     title_lines_are_natural,
+    wrap_body,
+    wrap_compact,
+    wrap_natural,
     wrap_text,
     wrap_title,
 )
@@ -35,6 +38,11 @@ balanced = balance_last_line(
     8.05, 42, "bold")
 assert balanced[-1] != "3選", balanced
 assert all(text_width_in(line, 42, "bold") <= 8.05 for line in balanced)
+
+explicit_break = wrap_title(
+    "プライベート接続でハマった落とし穴\n3選", 8.05, 42, "bold")
+assert "ハマった" not in explicit_break, explicit_break
+assert explicit_break[-1].endswith("落とし穴3選"), explicit_break
 
 english = balance_last_line(
     ["Site-to-Site VPN over Direct Connect ", "3選"],
@@ -63,6 +71,14 @@ assert len(flines[-1]) > 1, flines
 
 private = wrap_text("プライベート接続を構成する", 1.7, 16)
 assert not any("プライベー" in line and "ト" not in line for line in private), private
+for wrapper in (wrap_natural, wrap_body, wrap_compact):
+    protected = wrapper("プライベート接続", 0.8, 16)
+    assert not any(line in {"プライベー", "ト"} for line in protected), protected
+    assert any("プライベート" in line for line in protected), protected
+
+japanese = wrap_compact("運用監視改善計画", 0.8, 16)
+assert len(japanese) > 1
+assert all(text_width_in(line, 16) <= 0.81 for line in japanese), japanese
 
 out.append("ALL OK")
 print("\n".join(out))

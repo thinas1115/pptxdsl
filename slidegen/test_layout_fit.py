@@ -46,6 +46,21 @@ def main():
     else:
         raise AssertionError("過密テキストを拒否しませんでした")
 
+    size, lines = fit_text_or_raise(
+        "sample", "heading", "プライベート接続", 1.2, 0.7, 18,
+        min_pt=10, weight="bold", spacing=1.1, role="natural")
+    assert size < 18
+    assert "プライベー\nト" not in "\n".join(lines)
+
+    try:
+        fit_text_or_raise(
+            "sample", "heading", "Site-to-Site", 0.35, 0.7, 12,
+            min_pt=10, weight="bold", spacing=1.1, role="natural")
+    except FitError as e:
+        assert "語を分断せず横方向に収まりません" in str(e), e
+    else:
+        raise AssertionError("横方向に収まらない見出しを拒否しませんでした")
+
     print("layout fit tests passed")
 
 
