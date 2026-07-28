@@ -50,10 +50,16 @@ class ContentArea:
     top: float = BODY_TOP
     bottom: float = BODY_BOTTOM
     shifted: bool = False
+    left: float = MARGIN
+    right: float = MARGIN + BODY_W
 
     @property
     def height(self):
         return self.bottom - self.top
+
+    @property
+    def width(self):
+        return self.right - self.left
 
     def map_y(self, y):
         """固定構図の従来Y座標を、lead指定時の本文領域へ写像する。"""

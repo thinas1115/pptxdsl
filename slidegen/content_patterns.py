@@ -455,5 +455,103 @@ PATTERN_DECK = {
                 ],
             },
         },
+        {
+            "type": "split",
+            "kicker": "複合レイアウト",
+            "title": "処理経路と設計上の要点を、同じ視野で対応付ける",
+            "left": {
+                "type": "diagram",
+                "heading": "処理経路",
+                "diagram": {
+                    "cols": ["entry", "service", "data"],
+                    "rows": ["main"],
+                    "nodes": {
+                        "user": {
+                            "col": "entry", "row": "main",
+                            "icon": "icons/fluent/person.png",
+                            "title": "利用者",
+                        },
+                        "api": {
+                            "col": "service", "row": "main",
+                            "icon": "icons/fluent/globe.png",
+                            "title": "業務API",
+                        },
+                        "db": {
+                            "col": "data", "row": "main",
+                            "icon": "icons/fluent/database.png",
+                            "title": "データベース",
+                        },
+                    },
+                    "containers": [],
+                    "channels": {},
+                    "edges": [
+                        {"from": "user", "to": "api", "label": "HTTPS"},
+                        {"from": "api", "to": "db", "label": "SQL"},
+                    ],
+                },
+            },
+            "right": {
+                "type": "cards",
+                "heading": "設計上の要点",
+                "cards": [
+                    {
+                        "heading": "境界",
+                        "body": "公開領域とデータ領域を分離する。",
+                    },
+                    {
+                        "heading": "監視",
+                        "body": "主要な接続点で状態を確認する。",
+                    },
+                    {
+                        "heading": "復旧",
+                        "body": "障害時の切替手順を事前に定める。",
+                    },
+                ],
+            },
+        },
+        {
+            "type": "split",
+            "kicker": "画面レビュー",
+            "title": "対象画面と確認事項を並べ、指摘の根拠を明確にする",
+            "left": {
+                "type": "image",
+                "heading": "対象画面",
+                "image": "images/pptxdsl-repository.png",
+                "fit": "contain",
+            },
+            "right": {
+                "type": "bullets",
+                "heading": "確認事項",
+                "bullets": [
+                    ["操作の起点が迷わず見つかるか", None],
+                    ["主要な導線を少ない手順で追えるか", None],
+                    ["権限境界と実行結果を確認できるか", None],
+                ],
+            },
+        },
+        {
+            "type": "split",
+            "kicker": "実績レビュー",
+            "title": "推移と判断基準を並べ、数値の意味まで読み取れるようにする",
+            "left": {
+                "type": "chart",
+                "heading": "月別推移",
+                "chart": {
+                    "kind": "line",
+                    "categories": ["4月", "5月", "6月", "7月"],
+                    "series": [["実績", [12, 18, 27, 35]]],
+                },
+            },
+            "right": {
+                "type": "table",
+                "heading": "判断基準",
+                "columns": ["指標", "基準"],
+                "rows": [
+                    ["品質", "95%以上"],
+                    ["処理時間", "8時間以内"],
+                    ["継続条件", "重大障害なし"],
+                ],
+            },
+        },
     ],
 }

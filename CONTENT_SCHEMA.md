@@ -73,7 +73,7 @@ python slidegen/validate_content.py content.json
 - `type: "title"` 以外は `lead` (string) を任意指定できる。タイトル直下に要旨を置き、指定時だけ本文開始位置が下がる。未指定時の本文位置は変わらない。
 - `lead` は本文を読む前に伝える結論・前提・読み方を1〜2行で書く。単なるタイトルの言い換えや本文項目の列挙には使わない。文字数の固定上限はないが、最小フォントでも領域へ収まらない場合は生成を停止する。
 - JSONなので、Pythonのタプルではなく配列を使う。
-- `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `roadmap` / `program_roadmap` / `matrix` / `hub` / `org` / `diagram` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
+- `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `roadmap` / `program_roadmap` / `matrix` / `hub` / `org` / `diagram` / `split` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
 - 構成図は `diagram` type で書く(グリッド仕様のみ、座標の数値は書かない)。
 
 ```json
@@ -256,6 +256,59 @@ python slidegen/validate_content.py content.json
     "label": "目標状態",
     "heading": "右見出し",
     "bullets": ["本文", "本文"]
+  }
+}
+```
+
+### split
+
+用途: 同じ結論を支える異なる情報構造を、左右で対応させて読む。例は構成図と要点、画面と確認事項、
+グラフと明細表。単純な2案比較は`twocol`を使う。
+
+必須:
+
+- `type`: `"split"`
+- `kicker`: string
+- `title`: string
+- `left.type` / `right.type`: `"bullets"` / `"cards"` / `"table"` / `"chart"` / `"image"` / `"diagram"`
+- `left.heading` / `right.heading`: 各領域の役割を示す見出し
+- 各子領域の本文フィールド: 対応する通常typeと同じ構造
+
+任意:
+
+- `lead`: string
+- `note`: string
+
+制約:
+
+- 左右は50:50で固定し、比率・座標・余白は入力しない。
+- `split`の入れ子は不可。対応外typeを近い見た目へ置き換えて押し込まない。
+- 左右は独立して収容判定し、片側がもう片側の領域へ侵入することはない。
+- `bullets`は1〜4件、`cards`は2〜4件、`table`は2〜4列かつ1〜6行、
+  `chart`は1〜8カテゴリかつ1〜3系列。
+- `diagram`は2〜3列、1〜3行、2〜6ノード。通常の`diagram`と同じグリッド仕様を使う。
+- `cards`は編集型の縦リストとして描画する。KPIカードを左右へ詰め込む用途には使わない。
+- 同一ページで対応関係を読む必要がなければ、情報量を減らすか2枚へ分ける。
+
+```json
+{
+  "type": "split",
+  "kicker": "利用状況",
+  "title": "利用経路と確認事項を対応させる",
+  "left": {
+    "type": "image",
+    "heading": "操作画面",
+    "image": "images/product-screen.png",
+    "fit": "contain",
+    "shadow": true
+  },
+  "right": {
+    "type": "bullets",
+    "heading": "確認事項",
+    "bullets": [
+      "入力内容が申請条件を満たしている",
+      "送信前に確認画面で差分を見直す"
+    ]
   }
 }
 ```

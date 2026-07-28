@@ -23,7 +23,7 @@ from timeline_layout import resolve_marker, resolve_program_span, resolve_span
 
 # noteを実際に描画するtype。それ以外への指定はエラーにする。
 NOTE_TYPES = {"table", "chart", "process", "roadmap", "program_roadmap",
-              "matrix", "hub", "org", "diagram"}
+              "matrix", "hub", "org", "diagram", "split"}
 _PLACEHOLDER = re.compile(r"^<[^<>]+>$")
 _UNRESOLVED = re.compile(r"^(?:TBD|TODO|要確認|未定|仮入力|仮文言)$", re.IGNORECASE)
 
@@ -47,6 +47,16 @@ _TYPE_KEYS = {
     "hub": _BASE_SLIDE_KEYS | {"hub", "ring", "note"},
     "org": _BASE_SLIDE_KEYS | {"org", "note"},
     "diagram": _BASE_SLIDE_KEYS | {"diagram", "note"},
+    "split": _BASE_SLIDE_KEYS | {"left", "right", "note"},
+}
+
+_SPLIT_CHILD_KEYS = {
+    "bullets": {"type", "heading", "bullets"},
+    "cards": {"type", "heading", "cards"},
+    "table": {"type", "heading", "columns", "rows"},
+    "chart": {"type", "heading", "chart"},
+    "image": {"type", "heading", "image", "fit", "shadow", "alt"},
+    "diagram": {"type", "heading", "diagram"},
 }
 
 
@@ -763,6 +773,77 @@ def _v_diagram(s):
             s.err(f"edges[{i}].from_row はfromが@コンテナ名の場合だけ指定できます")
 
 
+def _v_split(s):
+    """半幅対応した子typeだけを、左右それぞれ独立して検証する。"""
+    child_validators = {
+        "bullets": _v_bullets,
+        "cards": _v_cards,
+        "table": _v_table,
+        "chart": _v_chart,
+        "image": _v_image,
+        "diagram": _v_diagram,
+    }
+    for side in ("left", "right"):
+        child = s.spec.get(side)
+        if not isinstance(child, dict):
+            s.err(f"{side} は子コンテンツのオブジェクトにしてください")
+            continue
+        child_type = child.get("type")
+        if child_type not in child_validators:
+            supported = ", ".join(sorted(child_validators))
+            s.err(
+                f"{side}.type={child_type!r} は半幅未対応です。"
+                f"使用可能: {supported}")
+            continue
+        for key in _unknown_keys(child, _SPLIT_CHILD_KEYS[child_type]):
+            s.err(
+                f"{side}.{key}: 未対応のフィールドです。"
+                "半幅子コンテンツのschemaだけを使用してください")
+        if not _is_str(child.get("heading")):
+            s.err(f"{side}.heading (文字列) が必要です")
+
+        nested_errors = []
+        child_validators[child_type](_Slide(s.idx, child, nested_errors))
+        for error in nested_errors:
+            detail = error.split(": ", 1)[-1]
+            s.err(f"{side}.{detail}")
+
+        if child_type == "bullets":
+            bullets = child.get("bullets")
+            if isinstance(bullets, list) and len(bullets) > 4:
+                s.err(f"{side}.bullets は半幅では1〜4件にしてください")
+        elif child_type == "cards":
+            cards = child.get("cards")
+            if isinstance(cards, list) and len(cards) > 4:
+                s.err(f"{side}.cards は半幅では2〜4件にしてください")
+        elif child_type == "table":
+            columns, rows = child.get("columns"), child.get("rows")
+            if isinstance(columns, list) and len(columns) > 4:
+                s.err(f"{side}.columns は半幅では2〜4列にしてください")
+            if isinstance(rows, list) and len(rows) > 6:
+                s.err(f"{side}.rows は半幅では1〜6行にしてください")
+        elif child_type == "chart":
+            chart = child.get("chart")
+            if isinstance(chart, dict):
+                categories = chart.get("categories")
+                series = chart.get("series")
+                if isinstance(categories, list) and len(categories) > 8:
+                    s.err(f"{side}.chart.categories は半幅では1〜8件にしてください")
+                if isinstance(series, list) and len(series) > 3:
+                    s.err(f"{side}.chart.series は半幅では1〜3件にしてください")
+        elif child_type == "diagram":
+            diagram = child.get("diagram")
+            if isinstance(diagram, dict):
+                cols, rows = diagram.get("cols"), diagram.get("rows")
+                nodes = diagram.get("nodes")
+                if isinstance(cols, list) and len(cols) > 3:
+                    s.err(f"{side}.diagram.cols は半幅では2〜3件にしてください")
+                if isinstance(rows, list) and len(rows) > 3:
+                    s.err(f"{side}.diagram.rows は半幅では1〜3件にしてください")
+                if isinstance(nodes, dict) and len(nodes) > 6:
+                    s.err(f"{side}.diagram.nodes は半幅では2〜6件にしてください")
+
+
 VALIDATORS = {
     "title": _v_title, "bullets": _v_bullets, "cards": _v_cards,
     "table": _v_table, "twocol": _v_twocol, "chart": _v_chart,
@@ -770,6 +851,7 @@ VALIDATORS = {
     "process": _v_process, "roadmap": _v_roadmap,
     "program_roadmap": _v_program_roadmap, "matrix": _v_matrix,
     "hub": _v_hub, "org": _v_org, "diagram": _v_diagram,
+    "split": _v_split,
 }
 
 

@@ -57,7 +57,7 @@ class Layout:
         if content_area is None:
             x0, y0, x1, y1 = DENSE_AREA if self.dense else AREA
         else:
-            x0, x1 = AREA[0], AREA[2]
+            x0, x1 = content_area.left + 0.15, content_area.right - 0.15
             if self.dense:
                 y0, y1 = content_area.top - 0.12, content_area.bottom
             else:

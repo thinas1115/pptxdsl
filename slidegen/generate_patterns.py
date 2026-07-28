@@ -12,6 +12,7 @@ from org_layout import s_org
 from diagrams2 import s_matrix, s_process, s_program_roadmap, s_roadmap
 from diagram_layout import render_diagram
 from image_slide import s_image
+from split_layout import s_split
 from validate_content import validate
 
 
@@ -27,7 +28,7 @@ RENDER = dict(generate.RENDER,
               hub=s_hub, org=s_org,
               process=s_process, roadmap=s_roadmap,
               program_roadmap=s_program_roadmap, matrix=s_matrix,
-              diagram=s_diagram, image=s_image)
+              diagram=s_diagram, image=s_image, split=s_split)
 
 
 def main(out_path, cover_footer_config=None):

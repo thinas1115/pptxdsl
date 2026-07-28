@@ -56,6 +56,7 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/diagrams2.py` | process/roadmap/program_roadmap/matrix renderer |
 | `slidegen/timeline_layout.py` | 期間ラベル解決、重複作業の自動レーン割当、roadmap系の段階的収容 |
 | `slidegen/image_slide.py` | 大判画像の比率維持・中央トリミング・右下影・段階的収容 |
+| `slidegen/split_layout.py` | 左右50:50の合成領域と、対応済み子typeの独立収容 |
 | `slidegen/diagrams3.py` | route() 直角配線 |
 | `slidegen/diagram_layout.py` | 宣言的レイアウトエンジン (グリッド仕様→座標。diagram type の本体) |
 | `slidegen/diagram_specs.py` | 公開diagramスキーマだけで書いた構成図の回帰試験用サンプル |
@@ -105,6 +106,10 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 15. **カタログ網羅を資料構成の目的にしない**: AIが新しい資料を作るときは、意味に合う最小限の
    typeだけを使う。既存typeに意味を損なわず収まらない場合は、簡略化する案と新rendererを追加する案を
    利用者へ示し、後者が選ばれた場合だけ拡張する。見た目の変化だけを理由にtypeを追加しない。
+16. **split子typeは半幅で独立検証する**: `split`へ子typeを追加するときは、既存の全幅rendererを
+   そのまま縮小呼び出ししない。割り当てられた`ContentArea`だけを使う半幅レイアウタを用意し、
+   標準配置、余白圧縮、要素縮小、`FitError`の全段階をテストする。反対側への侵入、入れ子、
+   未対応typeはvalidatorで生成前に拒否する。
 
 ## 共通部品カタログ(車輪の再発明をしない)
 
