@@ -4,7 +4,7 @@
 テキスト実測、明示停止の契約だけを共有する。
 """
 from dataclasses import dataclass
-from typing import Iterable, Mapping
+from typing import Callable, Iterable, Mapping, Sequence
 
 from textfit import fit_font_size, line_height_in
 
@@ -20,6 +20,18 @@ class FitError(ValueError):
 class FitResult:
     stage: str
     values: Mapping[str, float]
+    used: float
+    available: float
+
+
+@dataclass(frozen=True)
+class VerticalPackResult:
+    """自然高さで縦に詰めた複数stackの収容結果。"""
+
+    stage: str
+    size: float
+    gap: float
+    stacks: Sequence[Sequence[float]]
     used: float
     available: float
 
@@ -47,6 +59,57 @@ def select_fit(renderer, available, candidates: Iterable, *, guidance):
         f"(必要{last.used:.2f}in / 利用可能{available:.2f}in / "
         f"不足{shortage:.2f}in)。{guidance}"
     )
+
+
+def fit_vertical_stacks(
+        renderer,
+        available,
+        stacks,
+        measure_item: Callable[[object, float], float],
+        *,
+        standard_size,
+        min_size,
+        font_step,
+        standard_gap,
+        min_gap,
+        gap_step,
+        fixed_height=0.0,
+        guidance):
+    """自然高さのstackを、gap圧縮後に文字縮小して収容する。"""
+    if not stacks or any(not stack for stack in stacks):
+        raise ValueError("縦詰め対象は空でないstackにしてください")
+
+    def measure(size, gap):
+        measured = [
+            [measure_item(item, size) for item in stack]
+            for stack in stacks
+        ]
+        used = max(
+            fixed_height + sum(heights)
+            + gap * max(0, len(heights) - 1)
+            for heights in measured
+        )
+        return measured, used
+
+    def candidates():
+        for gap in stepped(standard_gap, min_gap, gap_step):
+            _measured, used = measure(standard_size, gap)
+            yield (
+                "standard" if gap == standard_gap else "gap",
+                {"size": standard_size, "gap": gap},
+                used,
+            )
+        for size in stepped(
+                standard_size - font_step, min_size, font_step):
+            _measured, used = measure(size, min_gap)
+            yield "font", {"size": size, "gap": min_gap}, used
+
+    fitted = select_fit(
+        renderer, available, candidates(), guidance=guidance)
+    size, gap = fitted.values["size"], fitted.values["gap"]
+    measured, used = measure(size, gap)
+    return VerticalPackResult(
+        fitted.stage, size, gap, measured, used, available)
 
 
 def ensure_within(renderer, used, available, *, guidance):

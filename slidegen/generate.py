@@ -16,7 +16,13 @@ from pptx.util import Emu, Inches, Pt
 
 from content import DECK
 from cover_footer import load_cover_footer_config, render_cover, render_footer
-from layout_fit import FitError, fit_text_or_raise, select_fit, stepped
+from layout_fit import (
+    FitError,
+    fit_text_or_raise,
+    fit_vertical_stacks,
+    select_fit,
+    stepped,
+)
 from textfit import line_height_in, text_width_in, wrap_text
 
 # ---- テーマ ----
@@ -182,28 +188,23 @@ def s_bullets(slide, spec, page):
     area_h = area.height - 0.22
     tx = 1.68
     tw = 10.15
-    def measure(size, gap):
-        heights = [len(wrap_text(t, tw, size)) * line_height_in(size, 1.22)
-                   for t, _ in bullets]
-        total = sum(heights) + gap * (len(bullets) - 1)
-        return heights, total
-
-    def candidates():
-        for gap in stepped(0.48, 0.30, 0.03):
-            _heights, total = measure(18, gap)
-            yield ("standard" if gap == 0.48 else "gap",
-                   {"size": 18, "gap": gap}, total)
-        for size in stepped(17.5, 12, 0.5):
-            _heights, total = measure(size, 0.30)
-            yield "font", {"size": size, "gap": 0.30}, total
-
-    fitted = select_fit(
-        "bullets", area_h, candidates(),
+    fitted = fit_vertical_stacks(
+        "bullets", area_h, [bullets],
+        lambda item, size: (
+            len(wrap_text(item[0], tw, size))
+            * line_height_in(size, 1.22)
+        ),
+        standard_size=18,
+        min_size=12,
+        font_step=0.5,
+        standard_gap=0.48,
+        min_gap=0.30,
+        gap_step=0.03,
         guidance="箇条書きを減らすか各項目を短くしてください。",
     )
-    size, gap = fitted.values["size"], fitted.values["gap"]
-    heights, total = measure(size, gap)
-    y = area.top + 0.38 + max(0.0, (area_h - total) * 0.22)
+    size, gap = fitted.size, fitted.gap
+    heights = fitted.stacks[0]
+    y = area.top + 0.38 + max(0.0, (area_h - fitted.used) * 0.22)
     for i, ((text, _), bh) in enumerate(zip(bullets, heights), 1):
         add_text(slide, 0.78, y - 0.07, 0.62, 0.45, f"{i:02d}", 15,
                  bold=True, color=GRAY, align=PP_ALIGN.RIGHT)
@@ -314,34 +315,29 @@ def s_cards(slide, spec, page):
     area_h = area.height - 0.62
     fit_available = area_h if rows == 2 else min(3.32, area_h)
 
-    def measure(size, candidate_gap):
-        row_needs = []
-        for row in range(rows):
-            row_cards = cards[row * cols:(row + 1) * cols]
-            body_need = max(
+    row_cards = [
+        cards[row * cols:(row + 1) * cols]
+        for row in range(rows)
+    ]
+    fitted = fit_vertical_stacks(
+        "cards", fit_available, [row_cards],
+        lambda cards_in_row, size: (
+            0.72 + max(
                 len(wrap_text(card["body"], cw - 0.92, size))
                 * line_height_in(size, 1.2)
-                for card in row_cards)
-            row_needs.append(0.72 + body_need)
-        return sum(row_needs) + candidate_gap * (rows - 1)
-
-    def candidates():
-        gaps = stepped(gap_y, 0.28, 0.04) if rows == 2 else [gap_y]
-        for candidate_gap in gaps:
-            used = measure(14, candidate_gap)
-            yield ("standard" if candidate_gap == gap_y else "gap",
-                   {"size": 14, "gap": candidate_gap}, used)
-        for size in stepped(13.5, 11, 0.5):
-            used = measure(size, 0.28 if rows == 2 else gap_y)
-            yield "font", {"size": size,
-                            "gap": 0.28 if rows == 2 else gap_y}, used
-
-    fitted = select_fit(
-        "cards", fit_available, candidates(),
+                for card in cards_in_row
+            )
+        ),
+        standard_size=14,
+        min_size=11,
+        font_step=0.5,
+        standard_gap=gap_y,
+        min_gap=0.28 if rows == 2 else gap_y,
+        gap_step=0.04,
         guidance="カード本文を短くするかカード数を減らしてください。",
     )
-    body_size = fitted.values["size"]
-    gap_y = fitted.values["gap"]
+    body_size = fitted.size
+    gap_y = fitted.gap
     ch = ((area_h - gap_y * (rows - 1)) / rows
           if rows > 1 else min(3.32, area_h))
     top = area.top + (0.42 if rows == 2 else 0.72)
@@ -517,38 +513,26 @@ def s_twocol(slide, spec, page):
     panels = [spec["left"], spec["right"]]
     text_w = cw - 1.10
 
-    def measure(size, row_gap):
-        rows = []
-        for panel in panels:
-            heights = [
-                max(0.42, len(wrap_text(b, text_w, size))
-                    * line_height_in(size, 1.18) + 0.06)
-                for b in panel["bullets"]
-            ]
-            rows.append(heights)
-        used = max(
-            1.35 + sum(heights) + row_gap * max(0, len(heights) - 1)
-            + 0.28
-            for heights in rows
-        )
-        return rows, used
-
-    def candidates():
-        for row_gap in stepped(0.18, 0.10, 0.02):
-            _rows, used = measure(14, row_gap)
-            yield ("standard" if row_gap == 0.18 else "gap",
-                   {"size": 14, "gap": row_gap}, used)
-        for size in stepped(13.5, 11, 0.5):
-            _rows, used = measure(size, 0.10)
-            yield "font", {"size": size, "gap": 0.10}, used
-
-    fitted = select_fit(
-        "twocol", area.height - 0.42, candidates(),
+    fitted = fit_vertical_stacks(
+        "twocol", area.height - 0.42,
+        [panel["bullets"] for panel in panels],
+        lambda bullet, size: max(
+            0.42,
+            len(wrap_text(bullet, text_w, size))
+            * line_height_in(size, 1.18) + 0.06,
+        ),
+        standard_size=14,
+        min_size=11,
+        font_step=0.5,
+        standard_gap=0.18,
+        min_gap=0.10,
+        gap_step=0.02,
+        fixed_height=1.63,
         guidance="左右の箇条書きを減らすか文言を短くしてください。",
     )
-    size, row_gap = fitted.values["size"], fitted.values["gap"]
-    rows, natural_h = measure(size, row_gap)
-    panel_h = max(2.72, natural_h)
+    size, row_gap = fitted.size, fitted.gap
+    rows = fitted.stacks
+    panel_h = max(2.72, fitted.used)
     top = area.top + 0.30
     for i, p in enumerate(panels):
         x = left + i * (cw + gap)
