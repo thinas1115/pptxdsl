@@ -24,10 +24,14 @@ cd pptxdsl
 python -m pip install -r requirements.txt
 ```
 
-- Python 3.10以上、Windows、游ゴシックを前提とします。
+- Python 3.10以上のWindowsまたはmacOSに対応します。
+- Windowsは游ゴシック、macOSはHiragino Sansを文字実測とPowerPoint描画へ使用します。
 - 生成結果を再現できるよう、直接・間接依存のバージョンを`requirements.txt`へ固定しています。
 - PPTXの生成にPowerPointは不要です。PNG化と目視確認にだけ使用します。
 - AWS・Fluentアイコンは`slidegen/assets/icons/`へ同梱済みです。
+
+macOSのセットアップ、フォント上書き、PowerPointでのPNG書き出しは
+[macOSでの生成・検証](docs/macos.md)を参照してください。
 
 アイコンの出典とライセンスは[クレジット](slidegen/assets/CREDITS.md)を参照してください。
 
@@ -56,20 +60,21 @@ typeごとのフィールド、件数、構成図、画像、`lead`の指定方�
 ### 2. 生成・検証する
 
 ```powershell
-python slidegen/generate_from_json.py content.json out\deck.pptx
-python slidegen/check_layout.py out\deck.pptx
-powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out\deck.pptx -OutDir out\png
-python contact_sheet.py out\png
+python slidegen/generate_from_json.py content.json out/deck.pptx
+python slidegen/check_layout.py out/deck.pptx
+powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out/deck.pptx -OutDir out/png
+python contact_sheet.py out/png
 ```
 
 `generate_from_json.py`は生成前にschemaを検証し、不正な入力ではPPTXを生成しません。
 エラーが出た場合は、表示された`slides[番号] (type=種別)`の内容を修正して再実行します。
 
-PowerPointを利用できる場合は、`out\png\sheet.png`の一覧と各ページの原寸画像を確認してください。
+PowerPointを利用できる場合は、`out/png/sheet.png`の一覧と各ページの原寸画像を確認してください。
 機械検証だけでは、文字の読みやすさ、内容の正確性、余白や配線の印象までは判断できません。
 
-Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テスト、主要デッキ生成、
-`check_layout.py`を実行します。PowerPointによるPNG化と目視確認はCIで代替せず、提出前に実施します。
+Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13、macOS CIがPython 3.13で
+全テスト、主要デッキ生成、`check_layout.py`を実行します。PowerPointによるPNG化と目視確認は
+CIで代替せず、提出前に各OSで実施します。
 
 ## 目的別ガイド
 
@@ -82,6 +87,7 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 | 新しいtypeやレイアウタを追加する | [EXTENDING.md](EXTENDING.md) |
 | 配色・フォント・表紙デザインを変更する | [DESIGN_CUSTOMIZATION.md](DESIGN_CUSTOMIZATION.md) |
 | 表紙・フッターだけを利用者別に変更する | [docs/cover-footer-customization.md](docs/cover-footer-customization.md) |
+| macOSで生成・検証する | [docs/macos.md](docs/macos.md) |
 | rendererと品質ゲートの設計を確認する | [docs/architecture.md](docs/architecture.md) |
 
 ## 主なディレクトリ

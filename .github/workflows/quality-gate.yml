@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  verify:
-    name: Python ${{ matrix.python-version }}
+  verify-windows:
+    name: Windows / Python ${{ matrix.python-version }}
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -67,6 +67,47 @@ jobs:
             python slidegen\check_layout.py $_.FullName
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+
+      - name: 差分の空白エラーを確認
+        run: git diff --check
+
+  verify-macos:
+    name: macOS / Python 3.13
+    runs-on: macos-latest
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v7
+
+      - name: Pythonを準備
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: 依存ライブラリを導入
+        run: python -m pip install -r requirements.txt
+
+      - name: 全テストを実行
+        run: |
+          export PYTHONIOENCODING=utf-8
+          python -m compileall -q slidegen
+          for test_file in $(find slidegen -maxdepth 1 -name 'test_*.py' | sort); do
+            echo "==> $(basename "$test_file")"
+            python "$test_file"
+          done
+
+      - name: 主要デッキを生成して機械検証
+        run: |
+          export PYTHONIOENCODING=utf-8
+          python slidegen/generate.py out/basic.pptx
+          python slidegen/generate2.py out/extended.pptx
+          python slidegen/generate_patterns.py out/pattern_gallery.pptx
+          python slidegen/generate_lead_patterns.py out/lead_gallery.pptx
+          python slidegen/generate_stress_patterns.py out/stress_gallery.pptx
+          for deck in out/*.pptx; do
+            python slidegen/check_layout.py "$deck"
+          done
 
       - name: 差分の空白エラーを確認
         run: git diff --check

@@ -118,7 +118,7 @@ AWS_MULTIAZ_EXAMPLE = {
         # ループと近接する。専用レーンで両者の間を通し、Fargate右辺から
         # S3左辺へ垂直に接続する。
         {"from": "fg_c", "to": "s3", "exit": "right", "enter": "left",
-         "via": ["s3_lane"], "label": "成果物"},
+         "via": ["s3_lane"]},
         {"from": "@vpc", "to": "cw", "from_row": "rds", "dash": "dash"},
     ],
 }

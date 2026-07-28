@@ -20,7 +20,7 @@
 | L0 測定・描画プリミティブ | textfit(実測) / layout_fit(収容候補・停止) / add_text / add_rect / icon_node / add_arrow / arrow_label / container / route | ◎ 全typeで共有 |
 | L1 レイアウト計算 | diagram_layout(グリッド図解) / org_layout(階層DAG) / timeline_layout(フェーズ・マルチトラック工程表) / image_slide(大判画像の比率維持・トリミング) / matrix(散布) / bullets・cards・twocol(縦詰め) / hub(放射) | **△ ジャンル内のみ** |
 | L2 AI境界 | content.jsonスキーマ + validate_content + AI_DECK_PROMPT | ◎ typeが増えても同じ仕組み |
-| L3 品質ゲート | check_layout + render.ps1 + contact_sheet + 目視ループ | ◎ 何を作っても同じゲート |
+| L3 品質ゲート | check_layout + OS別PowerPoint PNG化 + contact_sheet + 目視ループ | ◎ 何を作っても同じゲート |
 
 **L1に関する鉄則: レイアウトは1つの問題ではない。** グリッド配置・ツリー・放射・ガント・縦詰めは
 別々の制約システムであり(graphviz/ELK/d3がジャンル別アルゴリズムの集合体なのと同じ理由)、
@@ -43,7 +43,7 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
  (AIが作る)      (schema機械検証)          RENDER[type] で分岐         │
                                               │                        ▼
                  diagram type のみ:            │              check_layout.py (機械検知)
-                 diagram_layout.py エンジン ←──┘              render.ps1 (PNG化)
+                 diagram_layout.py エンジン ←──┘              OS別PowerPoint PNG化
                  (座標計算+自己検証)                          contact_sheet.py (俯瞰)
                                                               → 人間/AIの目視
 ```
@@ -63,7 +63,8 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/generate_from_json.py` | content.json→PPTX。**新規資料の正式経路** |
 | `slidegen/generate_patterns.py` + `content_patterns.py` | 全typeの検証ギャラリー |
 | `slidegen/check_layout.py` | 生成済みPPTXの重なり・はみ出し機械検知 |
-| `slidegen/textfit.py` | フォント実測 (游ゴシックをPillowで測る) |
+| `slidegen/platform_support.py` | OS別のPowerPointフォント名とPillow実測ファイルを解決 |
+| `slidegen/textfit.py` | 解決済み日本語フォントをPillowで実測 |
 | `slidegen/layout_fit.py` | 標準→裁量余白圧縮→要素縮小→明示停止の共通契約 |
 | `slidegen/fetch_fluent_icons.py` / `extract_aws_icons.py` | アイコン素材の追加取得 (`slidegen/assets/icons/fluent/`・`slidegen/assets/icons/aws/` に同梱済み。条件は `slidegen/assets/CREDITS.md`。Fluentは要 svglib+reportlab+rlPyCairo) |
 
@@ -237,14 +238,15 @@ python slidegen/generate_stress_patterns.py out\stress_gallery.pptx    # 段階�
 python slidegen\check_layout.py out\pattern_gallery.pptx               # exit 0 必須
 python slidegen\check_layout.py out\lead_gallery.pptx                  # exit 0 必須
 python slidegen\check_layout.py out\stress_gallery.pptx                # exit 0 必須
-powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out\pattern_gallery.pptx -OutDir out\png_pg
-python contact_sheet.py out\png_pg                                      # → sheet.png を目視
+powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out/pattern_gallery.pptx -OutDir out/png_pg
+python contact_sheet.py out/png_pg                                      # → sheet.png を目視
 ```
 
 - チェッカーの限界: グラフ内部のラベル衝突、白マスクラベルの枠線またぎ、線同士の交差、色/Z順は検知できない。
-  **PNG目視は省略不可**。全ページを一覧とフル解像度(`render.ps1` 既定1600px)の両方で確認する。
-- Pull RequestではWindows CIが全テストと主要デッキの生成・機械検査を実行する。CIが失敗した変更は
-  マージせず、PowerPointでのPNG目視結果もPull Requestへ記録する。
+  **PNG目視は省略不可**。Windowsは`render.ps1`、macOSは[macOSでの生成・検証](docs/macos.md)に従い、
+  全ページを一覧とフル解像度の両方で確認する。
+- Pull RequestではWindowsとmacOSのCIが全テストと主要デッキの生成・機械検査を実行する。
+  CIが失敗した変更はマージせず、PowerPointでのPNG目視結果もPull Requestへ記録する。
 - 出力先pptxをPowerPointで開いたままだと PermissionError。閉じてから実行。
 - コンソールの日本語はcp932で文字化けすることがある。判定に使う出力は
   ファイルにリダイレクトしてから読む(**読めない出力を根拠に成功と報告しない**)。

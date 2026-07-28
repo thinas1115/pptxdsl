@@ -81,7 +81,8 @@ git status --short
 1. `python slidegen/validate_content.py content.json`
 2. 対象generatorでPPTXを`out/`へ生成する。
 3. `python slidegen/check_layout.py <生成したPPTX>`を実行する。
-4. PowerPointを利用できる場合は`render.ps1`でPNG化する。
+4. PowerPointを利用できる場合は、Windowsでは`render.ps1`、macOSでは
+   [docs/macos.md](docs/macos.md)の手順でPNG化する。
 5. 全ページを一覧と原寸の両方で目視確認する。
 
 新しいrendererまたは収容処理を変更した場合は、通常入力の回帰テストに加え、余白圧縮、要素縮小、
