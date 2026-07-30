@@ -1,6 +1,6 @@
 """左右50:50の本文領域へ、対応済み子レイアウタを組み合わせる。"""
-import math
 
+from PIL import Image
 from pptx.chart.data import CategoryChartData
 from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
 from pptx.enum.text import PP_ALIGN
@@ -17,10 +17,10 @@ from textfit import line_height_in, wrap_text
 SUPPORTED_CHILD_TYPES = {
     "bullets", "cards", "table", "chart", "image", "diagram",
 }
-SPLIT_GAP = 0.46
+SPLIT_GAP = 0.72
 SPLIT_LEFT = 0.72
 SPLIT_RIGHT = 12.61
-CHILD_HEADING_H = 0.52
+CHILD_HEADING_H = 0.68
 
 
 def _regions(area, reserve_note):
@@ -35,20 +35,29 @@ def _regions(area, reserve_note):
 
 
 def _content_region(slide, side, child):
+    region = child["_region"]
+    inset = 0.04 if side == "left" else 0.28
+    left = region.left + inset
+    right = region.right - inset
+    width = right - left
+    number = "01" if side == "left" else "02"
+    generate.add_text(
+        slide, left, region.top + 0.04, 0.34, 0.24, number, 9.5,
+        bold=True, color=generate.ACCENT, align=PP_ALIGN.LEFT)
     heading_size, heading_lines = fit_text_or_raise(
         "split", f"{side}.heading", child["heading"],
-        child["_region"].width, 0.38, 16.5,
+        width - 0.44, 0.38, 16.5,
         min_pt=13, weight="bold", spacing=1.08)
     generate.add_text(
-        slide, child["_region"].left, child["_region"].top + 0.02,
-        child["_region"].width, 0.38, "\n".join(heading_lines),
+        slide, left + 0.44, region.top + 0.01,
+        width - 0.44, 0.38, "\n".join(heading_lines),
         heading_size, bold=True, color=generate.NAVY, spacing=1.08)
     return generate.ContentArea(
-        child["_region"].top + CHILD_HEADING_H,
-        child["_region"].bottom,
-        child["_region"].shifted,
-        child["_region"].left,
-        child["_region"].right,
+        region.top + CHILD_HEADING_H,
+        region.bottom - 0.12,
+        region.shifted,
+        left,
+        right,
     )
 
 
@@ -78,7 +87,7 @@ def _render_bullets(slide, side, child, area):
         guidance="箇条書きを減らすか各項目を短くしてください。")
     size, gap = fitted.values["size"], fitted.values["gap"]
     heights, used = measure(size, gap)
-    y = area.top + 0.08 + max(0.0, (area.height - used) * 0.10)
+    y = area.top + 0.08
     for index, (item, height) in enumerate(zip(bullets, heights), 1):
         generate.add_text(
             slide, area.left, y - 0.02, 0.34, 0.26, f"{index:02d}", 10,
@@ -117,7 +126,7 @@ def _render_cards(slide, side, child, area):
         guidance="カード本文を短くするかカード数を減らしてください。")
     size, gap = fitted.values["size"], fitted.values["gap"]
     row_heights, used = measure(size, gap)
-    y = area.top + 0.06 + max(0.0, (area.height - used) * 0.08)
+    y = area.top + 0.06
     for index, (card, row_h) in enumerate(zip(cards, row_heights), 1):
         color = generate.CORAL if card["emphasis"] else generate.ACCENT
         generate.add_text(
@@ -155,10 +164,15 @@ def _render_image(slide, side, child, area):
         raise FitError(
             f"split.{side}.image: 最小画像高2.40inを確保できません。"
             "leadを短くするか画像を単独スライドへ移してください。")
+    fit = child.get("fit", "contain")
+    picture_h = area.height - 0.10
+    if fit == "contain":
+        with Image.open(path) as image:
+            ratio = image.width / image.height
+        picture_h = min(picture_h, area.width / ratio)
     _add_picture(
         slide, path, area.left, area.top + 0.05, area.width,
-        area.height - 0.10, child.get("fit", "contain"),
-        child.get("alt"), child.get("shadow", False))
+        picture_h, fit, child.get("alt"), child.get("shadow", False))
 
 
 def _render_table(slide, side, child, area):
@@ -274,7 +288,12 @@ def _render_chart(slide, side, child, area):
 
 
 def _render_diagram(slide, side, child, area):
-    render_diagram(slide, child["diagram"], content_area=area)
+    row_count = len(child["diagram"]["rows"])
+    natural_h = min(area.height, 1.65 + row_count * 0.72)
+    top_area = generate.ContentArea(
+        area.top, area.top + natural_h, area.shifted,
+        area.left, area.right)
+    render_diagram(slide, child["diagram"], content_area=top_area)
 
 
 _CHILD_RENDERERS = {
@@ -292,10 +311,10 @@ def s_split(slide, spec, page):
     area = generate.header(
         slide, spec["kicker"], spec["title"], spec.get("lead"))
     regions = _regions(area, bool(spec.get("note")))
-    divider_x = (regions[0].right + regions[1].left) / 2
+    right = regions[1]
     generate.add_rect(
-        slide, divider_x, area.top + 0.06, 0.008,
-        regions[0].bottom - area.top - 0.10, generate.RULE)
+        slide, right.left, right.top - 0.02, right.width,
+        right.height - 0.02, generate.ZEBRA)
     for side, child, region in zip(
             ("left", "right"), (spec["left"], spec["right"]), regions):
         child = dict(child, _region=region)
