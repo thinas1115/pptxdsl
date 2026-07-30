@@ -443,7 +443,7 @@ python slidegen/validate_content.py content.json
 任意:
 
 - `phases[*].goal`: フェーズの狙い
-- `phases[*].bar`: 期間中の主な作業。`goal`と両方指定した場合は同じ説明行へまとめて表示
+- `phases[*].bar`: 期間中の主な作業。指定時は期間バー内へ表示
 - `milestones`: object の配列。省略時は表示しない
 - `milestones[*].at`: number または `months` 内の期間ラベル
 - `milestones[*].row`: 対象フェーズの0始まりindex
@@ -453,7 +453,7 @@ python slidegen/validate_content.py content.json
 
 - `months` は重複しない3〜12件。月以外に四半期、週、工程名なども使える。
 - `phases` は1〜6件。4件以上ではrendererが余白・行高・文字を段階的に縮小する。
-- フェーズ名は期間線の開始位置へ表示する。固定の左見出し欄は持たない。
+- フェーズ名と`goal`は左側の見出し欄へ表示する。
 - `name / start / end`だけで生成できる。説明が必要な場合だけ`goal`または`bar`を追加する。
 - 数値の `start`, `end`, `at` は期間列の境界index。12期間なら `0` から `12` の範囲。
 - 期間ラベルの `start` は該当列の開始、`end` は該当列を含む終了、`at` は該当列の中央として扱う。

@@ -1,5 +1,7 @@
 """図解系スライド第2弾: プロセスタイムライン・ロードマップ・2軸マップ。"""
 
+import re
+
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
@@ -353,7 +355,8 @@ def s_roadmap(slide, spec, page):
     if not 3 <= len(months) <= 12:
         raise FitError(
             "roadmap: 期間は3〜12件までです。期間をまとめるか分割してください。")
-    grid_x, grid_w = 0.72, 11.89
+    label_x, label_w = 0.72, 2.65
+    grid_x, grid_w = label_x + label_w, 9.22
     mw = grid_w / len(months)
     rows = spec["phases"]
     if not 1 <= len(rows) <= 6:
@@ -364,6 +367,9 @@ def s_roadmap(slide, spec, page):
     top = area.top + values["top_gap"]
     hdr_h, row_h = values["header_h"], values["row_h"]
     grid_h = hdr_h + len(rows) * row_h
+    add_rect(slide, label_x, top, label_w, hdr_h, NAVY)
+    add_text(slide, label_x + 0.18, top + 0.08, label_w - 0.36, 0.28,
+             "フェーズ", values["period_pt"], bold=True, color=WHITE)
     add_rect(slide, grid_x, top, grid_w, hdr_h, NAVY)
     for j, m in enumerate(months):
         month_size, _ = fit_text_or_raise(
@@ -376,96 +382,84 @@ def s_roadmap(slide, spec, page):
             add_rect(slide, grid_x + j * mw, top + 0.08, 0.01, hdr_h - 0.16, GRAY)
     for i in range(len(rows)):
         ry = top + hdr_h + i * row_h
-        add_rect(slide, grid_x, ry, grid_w, row_h,
+        add_rect(slide, label_x, ry, label_w + grid_w, row_h,
                  WHITE if i % 2 == 0 else ZEBRA)
+    for j in range(len(months) + 1):
+        _grid_line(slide, grid_x + j * mw, top + hdr_h,
+                   grid_x + j * mw, top + grid_h)
     for i in range(len(rows) + 1):
-        _grid_line(slide, grid_x, top + hdr_h + i * row_h,
-                   grid_x + grid_w, top + hdr_h + i * row_h)
-    milestones_by_row = {
-        milestone["row"]: milestone
-        for milestone in spec.get("milestones", [])
-    }
+        _grid_line(slide, label_x, top + hdr_h + i * row_h,
+                   label_x + label_w + grid_w, top + hdr_h + i * row_h)
     for i, ph in enumerate(rows):
         ry = top + hdr_h + i * row_h
+        phase_name = re.sub(r"^Phase\s*\d+\s*", "", ph["name"], flags=re.I)
+        phase_name = phase_name or ph["name"]
+        name_h = min(0.27, row_h * 0.42)
+        goal_h = min(0.20, row_h * 0.30)
+        has_goal = bool(ph.get("goal"))
+        name_y = ry + row_h * (0.12 if has_goal else 0.30)
+        add_text(slide, label_x + 0.12, name_y + row_h * 0.06,
+                 0.34, name_h, f"{i + 1:02d}", values["name_pt"],
+                 bold=True, color=ACCENT)
+        phase_size, _ = fit_text_or_raise(
+            "roadmap", f"phases[{i}].name", phase_name,
+            label_w - 0.62, name_h, values["name_pt"], min_pt=8.5,
+            weight="bold", spacing=1.1)
+        add_text(slide, label_x + 0.52, name_y,
+                 label_w - 0.64, name_h,
+                 phase_name, phase_size, bold=True, color=NAVY)
+        if has_goal:
+            goal_size, _ = fit_text_or_raise(
+                "roadmap", f"phases[{i}].goal", ph["goal"],
+                label_w - 0.64, goal_h, values["goal_pt"],
+                min_pt=7.0, spacing=1.05)
+            add_text(slide, label_x + 0.52, ry + row_h * 0.56,
+                     label_w - 0.64, goal_h,
+                     ph["goal"], goal_size, color=GRAY)
         start, end = resolve_span(ph, months)
         x1 = grid_x + start * mw + 0.05
         x2 = grid_x + end * mw - 0.05
-        name_h = min(0.24, row_h * 0.34)
-        goal_h = min(0.20, row_h * 0.34)
-        text_w = grid_x + grid_w - x1 - 0.08
-        add_text(slide, x1, ry + row_h * 0.08, 0.28, name_h,
-                 f"{i + 1:02d}", min(values["name_pt"], 10.5),
-                 bold=True, color=ACCENT)
-        phase_size, _ = fit_text_or_raise(
-            "roadmap", f"phases[{i}].name", ph["name"],
-            text_w - 0.34, name_h, values["name_pt"], min_pt=8.5,
-            weight="bold", spacing=1.1)
-        add_text(slide, x1 + 0.34, ry + row_h * 0.06,
-                 text_w - 0.34, name_h,
-                 ph["name"], phase_size, bold=True, color=NAVY)
-        milestone = milestones_by_row.get(i)
-        milestone_box = None
-        if milestone:
-            marker_x = grid_x + resolve_marker(milestone["at"], months) * mw
-            label_w = min(
-                1.5,
-                max(
-                    0.72,
-                    text_width_in(
-                        milestone["label"],
-                        values["milestone_pt"],
-                    ) + 0.18,
-                ),
-            )
-            if marker_x + 0.10 + label_w <= grid_x + grid_w:
-                label_x = marker_x + 0.10
-            else:
-                label_x = max(x1 + 0.34, marker_x - label_w - 0.10)
-            milestone_box = (marker_x, label_x, label_w)
-        description = " / ".join(
-            value for value in (ph.get("goal"), ph.get("bar")) if value
-        )
-        if description:
-            goal_w = text_w - 0.34
-            if milestone_box:
-                _marker_x, label_x, _label_w = milestone_box
-                goal_w = label_x - (x1 + 0.34) - 0.10
-                if goal_w < 0.80:
-                    raise FitError(
-                        f"roadmap.phases[{i}]: goalとマイルストーンの"
-                        "表示幅が不足しています。文言を短くするか"
-                        "マイルストーン位置を後ろへ移してください。")
-            goal_size, _ = fit_text_or_raise(
-                "roadmap", f"phases[{i}].description", description,
-                goal_w, goal_h, values["goal_pt"],
-                min_pt=7.0, spacing=1.05)
-            add_text(slide, x1 + 0.34, ry + row_h * 0.35,
-                     goal_w, goal_h,
-                     description, goal_size, color=GRAY)
-        if milestone_box:
-            _marker_x, label_x, label_w = milestone_box
-            label_size, _ = fit_text_or_raise(
-                "roadmap", "milestones.label", milestone["label"], label_w,
-                goal_h, values["milestone_pt"], min_pt=6.8,
-                weight="bold", spacing=1.0)
-            add_text(
-                slide, label_x, ry + row_h * 0.34, label_w, goal_h,
-                milestone["label"], label_size, bold=True, color=CORAL,
-                align=PP_ALIGN.CENTER, spacing=1.0)
-        bar_y = ry + row_h * 0.78
-        add_rect(slide, x1, bar_y, x2 - x1, 0.035,
-                 ACCENT if i != 1 else NAVY)
+        bar_y = ry + row_h * 0.24
+        if ph.get("bar"):
+            add_rect(slide, x1, bar_y, x2 - x1, values["bar_h"],
+                     ACCENT if i != 1 else NAVY)
+            bar_size, _ = fit_text_or_raise(
+                "roadmap", f"phases[{i}].bar", ph["bar"],
+                x2 - x1 - 0.18, values["bar_h"] - 0.04,
+                values["bar_pt"], min_pt=7.5, weight="bold", spacing=1.05)
+            add_text(slide, x1 + 0.09, bar_y + 0.035, x2 - x1 - 0.18,
+                     values["bar_h"] - 0.04,
+                     ph["bar"], bar_size,
+                     bold=True, color=WHITE)
+        else:
+            add_rect(slide, x1, ry + row_h * 0.50,
+                     x2 - x1, 0.035, ACCENT if i != 1 else NAVY)
     for ms in spec.get("milestones", []):
         mx = grid_x + resolve_marker(ms["at"], months) * mw
         ry = top + hdr_h + ms["row"] * row_h
-        my = ry + row_h * 0.78 + 0.0175
-        d = 0.12
+        my = ry + min(0.09, row_h * 0.14)
+        d = min(0.15, values["bar_h"] * 0.58)
         sp = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, Inches(mx - d / 2),
                                     Inches(my - d / 2), Inches(d), Inches(d))
         sp.fill.solid()
         sp.fill.fore_color.rgb = CORAL
         sp.line.fill.background()
         sp.shadow.inherit = False
+        milestone_w = min(1.5, max(0.72, mw * 1.6))
+        lcx = min(
+            max(mx, grid_x + milestone_w / 2),
+            grid_x + grid_w - milestone_w / 2,
+        )
+        label_size, _ = fit_text_or_raise(
+            "roadmap", "milestones.label", ms["label"], milestone_w,
+            min(0.18, row_h * 0.28), values["milestone_pt"],
+            min_pt=6.8, spacing=1.0)
+        label = add_text(
+            slide, lcx - milestone_w / 2, ry + row_h * 0.68,
+            milestone_w, min(0.18, row_h * 0.28), ms["label"],
+            label_size, color=TEXT, align=PP_ALIGN.CENTER, spacing=1.0)
+        label.fill.solid()
+        label.fill.fore_color.rgb = WHITE if ms["row"] % 2 == 0 else ZEBRA
     if spec.get("note"):
         note_line(slide, spec["note"])
 
