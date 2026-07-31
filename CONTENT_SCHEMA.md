@@ -118,29 +118,38 @@ python slidegen/validate_content.py content.json
 
 ### bullets
 
-用途: 箇条書き、目次、要点整理。
+用途: 順序付きの説明、順序を持たない要点列挙、タスク一覧。
 
 必須:
 
 - `type`: `"bullets"`
 - `kicker`: string
 - `title`: string
-- `bullets`: `[text, null]` の配列
+- `bullets`: object の配列
+- `bullets[*].text`: string
+
+任意:
+
+- `style`: `"numbered"` / `"bullet"` / `"checklist"`。省略時は`"numbered"`
+- `bullets[*].checked`: boolean。`style: "checklist"`の場合だけ指定可能。省略時は`false`
 
 制約:
 
 - `bullets` は3〜5件程度が安全(validatorの上限は6件)。
-- 各要素は `["本文", null]` の2要素配列。2要素目は描画されないため`null`固定にする。
-  文字列だけを直接並べるとエラーになる。
+- 手順・優先順位・読み順がある場合は`numbered`、順序を持たない要点は`bullet`、
+  実施項目と完了状態は`checklist`を使う。
+- `checklist`の完了項目はチェック済み、未完了項目は空のチェックボックスで描画する。
+- 各項目を単なる文字列で直接並べるとエラーになる。
 
 ```json
 {
   "type": "bullets",
+  "style": "checklist",
   "kicker": "分類",
   "title": "タイトル",
   "bullets": [
-    ["箇条書き本文", null],
-    ["箇条書き本文", null]
+    {"text": "完了した項目", "checked": true},
+    {"text": "これから実施する項目", "checked": false}
   ]
 }
 ```

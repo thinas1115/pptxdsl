@@ -176,15 +176,24 @@ def s_title(slide, spec, page):
                  add_text=add_text, add_rect=add_rect)
 
 
+def _normalize_bullet(item):
+    """公開object形式と既存の2要素配列を同じ描画入力へ揃える。"""
+    if isinstance(item, dict):
+        return item["text"], bool(item.get("checked", False))
+    return item[0], False
+
+
 def s_bullets(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    bullets = spec["bullets"]
+    style = spec.get("style", "numbered")
+    bullets = [_normalize_bullet(item) for item in spec["bullets"]]
     area_h = area.height - 0.22
-    tx = 1.68
-    tw = 10.15
+    tx = 1.68 if style == "numbered" else 1.38
+    tw = 10.15 if style == "numbered" else 10.45
+
     def measure(size, gap):
         heights = [len(wrap_text(t, tw, size)) * line_height_in(size, 1.22)
-                   for t, _ in bullets]
+                   for t, _checked in bullets]
         total = sum(heights) + gap * (len(bullets) - 1)
         return heights, total
 
@@ -204,11 +213,32 @@ def s_bullets(slide, spec, page):
     size, gap = fitted.values["size"], fitted.values["gap"]
     heights, total = measure(size, gap)
     y = area.top + 0.38 + max(0.0, (area_h - total) * 0.22)
-    for i, ((text, _), bh) in enumerate(zip(bullets, heights), 1):
-        add_text(slide, 0.78, y - 0.07, 0.62, 0.45, f"{i:02d}", 15,
-                 bold=True, color=GRAY, align=PP_ALIGN.RIGHT)
-        add_text(slide, tx, y, tw, bh + 0.08, text, size, spacing=1.22)
-        if i < len(bullets):
+    for i, ((text, checked), bh) in enumerate(zip(bullets, heights), 1):
+        if style == "numbered":
+            add_text(slide, 0.78, y - 0.07, 0.62, 0.45, f"{i:02d}", 15,
+                     bold=True, color=GRAY, align=PP_ALIGN.RIGHT)
+        elif style == "bullet":
+            marker = slide.shapes.add_shape(
+                MSO_SHAPE.OVAL, Inches(1.03), Inches(y + 0.10),
+                Inches(0.11), Inches(0.11))
+            marker.fill.solid()
+            marker.fill.fore_color.rgb = ACCENT
+            marker.line.fill.background()
+            marker.shadow.inherit = False
+        else:
+            add_rect(
+                slide, 0.98, y + 0.045, 0.22, 0.22,
+                ACCENT if checked else CANVAS,
+                line=ACCENT if checked else GRAY,
+            )
+            if checked:
+                add_text(slide, 0.98, y + 0.015, 0.22, 0.25, "✓", 11.5,
+                         bold=True, color=WHITE, align=PP_ALIGN.CENTER,
+                         anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, wrap=False)
+        add_text(slide, tx, y, tw, bh + 0.08, text, size,
+                 color=GRAY if style == "checklist" and checked else TEXT,
+                 spacing=1.22)
+        if style == "numbered" and i < len(bullets):
             add_rect(slide, tx, y + bh + 0.15, tw, 0.012, RULE)
         y += bh + gap
 

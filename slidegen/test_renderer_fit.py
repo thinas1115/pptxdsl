@@ -44,6 +44,13 @@ def main():
     else:
         raise AssertionError("rendererエラーにスライド位置が付与されませんでした")
 
+    checklist = _base("bullets")
+    checklist.update(
+        style="checklist",
+        bullets=[{"text": LONG, "checked": i % 2 == 0} for i in range(6)],
+    )
+    _must_fail(generate.s_bullets, checklist, "不足")
+
     spec = _base("cards")
     spec.update(style="editorial", cards=[[f"項目{i}", LONG] for i in range(7)])
     _must_fail(generate.s_cards, spec, "カード本文")

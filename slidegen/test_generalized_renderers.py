@@ -63,6 +63,23 @@ def main():
     errors = validate(deepcopy(PATTERN_DECK), allow_sample_content=True)
     assert not errors, "\n".join(errors)
 
+    bullet_specs = {
+        "numbered": [{"text": "順序付き項目"}],
+        "bullet": [{"text": "通常箇条書き"}],
+        "checklist": [{"text": "完了項目", "checked": True},
+                      {"text": "未完了項目", "checked": False}],
+    }
+    bullet_slides = {}
+    for style, items in bullet_specs.items():
+        spec = dict(_base("bullets"), style=style, bullets=items)
+        bullet_slides[style] = _slide()
+        generate.s_bullets(bullet_slides[style], spec, 1)
+    assert _text_shape(bullet_slides["numbered"], "01")
+    assert any(shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+               and shape.auto_shape_type == generate.MSO_SHAPE.OVAL
+               for shape in bullet_slides["bullet"].shapes)
+    assert _text_shape(bullet_slides["checklist"], "✓")
+
     columns = ["区分", "短い値", "詳細説明"]
     rows = [["A", "可", "利用部門と運用条件を文章で説明する"]]
     widths = generate._auto_table_widths(columns, rows)

@@ -32,7 +32,7 @@ _META_KEYS = {"title", "footer", "date", "organization", "author"}
 _BASE_SLIDE_KEYS = {"type", "kicker", "title", "lead"}
 _TYPE_KEYS = {
     "title": {"type", "title", "subtitle"},
-    "bullets": _BASE_SLIDE_KEYS | {"bullets"},
+    "bullets": _BASE_SLIDE_KEYS | {"style", "bullets"},
     "cards": _BASE_SLIDE_KEYS | {"style", "cards"},
     "table": _BASE_SLIDE_KEYS | {"columns", "rows", "note"},
     "twocol": _BASE_SLIDE_KEYS | {"left", "right"},
@@ -125,11 +125,24 @@ def _v_title(s):
 
 
 def _v_bullets(s):
-    items = s.req_list("bullets", 1, 6, "[本文, null]")
-    for i, b in enumerate(items or []):
-        if not (isinstance(b, list) and len(b) == 2
-                and _is_str(b[0]) and b[1] is None):
-            s.err(f'bullets[{i}] は ["本文", null] の2要素配列にしてください')
+    style = s.spec.get("style", "numbered")
+    if style not in {"numbered", "bullet", "checklist"}:
+        s.err('bullets.style は "numbered" / "bullet" / "checklist" にしてください')
+    items = s.req_list("bullets", 1, 6, "項目")
+    for i, item in enumerate(items or []):
+        if isinstance(item, list):
+            if not (len(item) == 2 and _is_str(item[0]) and item[1] is None):
+                s.err(f"bullets[{i}] は text を持つオブジェクトにしてください")
+            continue
+        if not (isinstance(item, dict) and _is_str(item.get("text"))):
+            s.err(f"bullets[{i}] は text を持つオブジェクトにしてください")
+            continue
+        s.allow_keys(item, {"text", "checked"}, f"bullets[{i}]")
+        if "checked" in item:
+            if style != "checklist":
+                s.err(f"bullets[{i}].checked はstyle=checklistの場合だけ指定できます")
+            elif not isinstance(item["checked"], bool):
+                s.err(f"bullets[{i}].checked は真偽値にしてください")
 
 
 def _v_cards(s):
