@@ -53,8 +53,8 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/generate.py` | 基本renderer (title/bullets/cards/table/twocol/chart) + 共通ヘルパー + ページ定数 |
 | `slidegen/diagrams.py` | hub renderer + 図解部品 (icon_node/add_arrow/arrow_label/container) |
 | `slidegen/org_layout.py` | 体制図の階層DAG配置、直角配線、段階的収容 |
-| `slidegen/diagrams2.py` | process/roadmap/program_roadmap/matrix renderer |
-| `slidegen/timeline_layout.py` | 期間ラベル解決、重複作業の自動レーン割当、roadmap系の段階的収容 |
+| `slidegen/diagrams2.py` | process/program_roadmap/matrix renderer |
+| `slidegen/timeline_layout.py` | 期間ラベル解決、重複作業の自動レーン割当、工程表の段階的収容 |
 | `slidegen/image_slide.py` | 大判画像の比率維持・中央トリミング・右下影・段階的収容 |
 | `slidegen/diagrams3.py` | route() 直角配線 |
 | `slidegen/diagram_layout.py` | 宣言的レイアウトエンジン (グリッド仕様→座標。diagram type の本体) |

@@ -19,10 +19,10 @@ from PIL import Image
 
 from asset_paths import resolve_icon_path, resolve_image_path
 from sample_content_guard import sample_reuse_paths
-from timeline_layout import resolve_marker, resolve_program_span, resolve_span
+from timeline_layout import resolve_marker, resolve_program_span
 
 # noteを実際に描画するtype。それ以外への指定はエラーにする。
-NOTE_TYPES = {"table", "chart", "process", "roadmap", "program_roadmap",
+NOTE_TYPES = {"table", "chart", "process", "program_roadmap",
               "matrix", "hub", "org", "diagram"}
 _PLACEHOLDER = re.compile(r"^<[^<>]+>$")
 _UNRESOLVED = re.compile(r"^(?:TBD|TODO|要確認|未定|仮入力|仮文言)$", re.IGNORECASE)
@@ -39,7 +39,6 @@ _TYPE_KEYS = {
     "chart": _BASE_SLIDE_KEYS | {"chart", "note"},
     "image": _BASE_SLIDE_KEYS | {"image", "fit", "shadow", "alt"},
     "process": _BASE_SLIDE_KEYS | {"steps", "emph", "flow", "note"},
-    "roadmap": _BASE_SLIDE_KEYS | {"months", "phases", "milestones", "note"},
     "program_roadmap": _BASE_SLIDE_KEYS | {"periods", "tracks", "note"},
     "matrix": _BASE_SLIDE_KEYS | {
         "x_axis", "y_axis", "points", "quadrants", "target_label", "note",
@@ -358,71 +357,6 @@ def _v_process_flow(s, flow):
             s.err(f"process.flow.edges[{edge_index}] の戻り接続にはkind=feedbackを指定してください")
 
 
-def _v_roadmap(s):
-    months = s.req_list("months", 3, 12, "期間ラベル")
-    if months and (not all(_is_str(month) for month in months)
-                   or len(set(months)) != len(months)):
-        s.err("months は重複しない空でない文字列の配列にしてください")
-        months = None
-    phases = s.req_list("phases", 1, 6, "フェーズ")
-    for i, ph in enumerate(phases or []):
-        if not (isinstance(ph, dict) and _is_str(ph.get("name"))
-                and (_is_num(ph.get("start")) or _is_str(ph.get("start")))
-                and (_is_num(ph.get("end")) or _is_str(ph.get("end")))):
-            s.err(f"phases[{i}] には name (文字列) と "
-                  f"start / end (数値または期間ラベル) が必要です")
-            continue
-        for field in ("goal", "bar"):
-            if field in ph and not _is_str(ph.get(field)):
-                s.err(f"phases[{i}].{field} は空でない文字列にしてください")
-        s.allow_keys(ph, {"name", "goal", "bar", "start", "end"},
-                     f"phases[{i}]")
-        if months:
-            try:
-                resolve_span(ph, months)
-            except ValueError as exc:
-                s.err(f"phases[{i}] の{exc}")
-    ms = s.spec.get("milestones", [])
-    if not isinstance(ms, list):
-        s.err('"milestones" は配列にしてください')
-        return
-    milestone_rows = set()
-    for i, m in enumerate(ms):
-        if not (isinstance(m, dict)
-                and (_is_num(m.get("at")) or _is_str(m.get("at")))
-                and isinstance(m.get("row"), int) and _is_str(m.get("label"))):
-            s.err(f"milestones[{i}] には at (数値または期間ラベル) / "
-                  f"row (整数) / label (文字列) が必要です")
-            continue
-        s.allow_keys(m, {"at", "row", "label"}, f"milestones[{i}]")
-        if isinstance(m.get("row"), int):
-            if m["row"] in milestone_rows:
-                s.err(
-                    f"milestones[{i}].row={m['row']} は重複しています。"
-                    "1フェーズにつき1件にしてください")
-            milestone_rows.add(m["row"])
-        if months:
-            try:
-                marker = resolve_marker(m["at"], months)
-            except ValueError as exc:
-                s.err(f"milestones[{i}] の{exc}")
-            else:
-                if (phases and isinstance(m.get("row"), int)
-                        and 0 <= m["row"] < len(phases)):
-                    try:
-                        start, end = resolve_span(phases[m["row"]], months)
-                    except (AttributeError, ValueError):
-                        pass
-                    else:
-                        if not start <= marker <= end:
-                            s.err(
-                                f"milestones[{i}].at は対応フェーズの"
-                                "start〜end内にしてください")
-        if phases and not 0 <= m["row"] < len(phases):
-            s.err(f"milestones[{i}] の row={m['row']} は 0〜{len(phases) - 1} "
-                  f"(phasesのindex) にしてください")
-
-
 def _v_program_roadmap(s):
     periods = s.req_list("periods", 3, 12, "期間ラベル")
     if periods and (not all(_is_str(period) for period in periods)
@@ -435,7 +369,10 @@ def _v_program_roadmap(s):
         if not isinstance(track, dict) or not _is_str(track.get("name")):
             s.err(f"tracks[{i}] には name (文字列) が必要です")
             continue
-        s.allow_keys(track, {"name", "activities"}, f"tracks[{i}]")
+        s.allow_keys(track, {"name", "goal", "activities", "milestone"},
+                     f"tracks[{i}]")
+        if "goal" in track and not _is_str(track.get("goal")):
+            s.err(f"tracks[{i}].goal は空でない文字列にしてください")
         activities = track.get("activities")
         if not isinstance(activities, list) or not 1 <= len(activities) <= 8:
             s.err(f"tracks[{i}].activities は作業の配列 (1〜8件) にしてください")
@@ -461,6 +398,37 @@ def _v_program_roadmap(s):
                     resolve_program_span(activity, periods)
                 except ValueError as exc:
                     s.err(f"tracks[{i}].activities[{j}] の{exc}")
+        milestone = track.get("milestone")
+        if milestone is not None:
+            if not (isinstance(milestone, dict)
+                    and (_is_num(milestone.get("at"))
+                         or _is_str(milestone.get("at")))
+                    and _is_str(milestone.get("label"))):
+                s.err(f"tracks[{i}].milestone には at (数値または期間ラベル) と "
+                      "label (文字列) が必要です")
+                continue
+            s.allow_keys(milestone, {"at", "label"},
+                         f"tracks[{i}].milestone")
+            if periods:
+                try:
+                    marker = resolve_marker(milestone["at"], periods)
+                except ValueError as exc:
+                    s.err(f"tracks[{i}].milestone の{exc}")
+                else:
+                    steps = marker / 0.25
+                    if abs(steps - round(steps)) > 1e-8:
+                        s.err(f"tracks[{i}].milestone.at は0.25刻みの期間位置で"
+                              "指定してください")
+                    spans = []
+                    for activity in activities:
+                        try:
+                            spans.append(resolve_program_span(activity, periods))
+                        except (AttributeError, ValueError):
+                            pass
+                    if spans and not any(start <= marker <= end
+                                         for start, end in spans):
+                        s.err(f"tracks[{i}].milestone.at は同じテーマ内のいずれかの"
+                              "作業期間内にしてください")
     if activity_count > 24:
         s.err(f"activities は全テーマ合計24件までです (現在: {activity_count}件)。"
               "工程表を複数スライドへ分割してください")
@@ -788,8 +756,8 @@ VALIDATORS = {
     "title": _v_title, "bullets": _v_bullets, "cards": _v_cards,
     "table": _v_table, "twocol": _v_twocol, "chart": _v_chart,
     "image": _v_image,
-    "process": _v_process, "roadmap": _v_roadmap,
-    "program_roadmap": _v_program_roadmap, "matrix": _v_matrix,
+    "process": _v_process, "program_roadmap": _v_program_roadmap,
+    "matrix": _v_matrix,
     "hub": _v_hub, "org": _v_org, "diagram": _v_diagram,
 }
 

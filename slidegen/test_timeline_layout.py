@@ -1,9 +1,9 @@
-"""roadmap系の期間解決・自動レーン・段階的収容を検証する。"""
+"""工程表の期間解決・自動レーン・段階的収容を検証する。"""
 from copy import deepcopy
 
 from layout_fit import FitError
 from timeline_layout import (centered_label_box, fit_program_roadmap,
-                             fit_roadmap, pack_activities, resolve_marker,
+                             pack_activities, resolve_marker,
                              resolve_program_span, resolve_span)
 from validate_content import validate
 
@@ -56,11 +56,6 @@ def main():
     assert abs((label_x + label_w / 2) - 4.5) < 1e-9
     assert abs(label_w - 0.75) < 1e-9
 
-    assert fit_roadmap(5.27, 3).stage == "standard"
-    assert fit_roadmap(5.27, 6).stage == "gap"
-    assert fit_roadmap(4.57, 6).stage == "element"
-    _must_fail(lambda: fit_roadmap(3.70, 6), "最小設定")
-
     assert fit_program_roadmap(5.27, [1, 2, 1]).stage == "standard"
     assert fit_program_roadmap(4.40, [2, 2, 4, 1, 1]).stage == "gap"
     assert fit_program_roadmap(4.80, [3, 3, 3, 3, 3]).stage == "element"
@@ -91,37 +86,27 @@ def main():
     assert any("0.25刻み" in error
                for error in validate(invalid_quarter))
 
-    roadmap = {
-        "meta": {"title": "検証"},
-        "slides": [{
-            "type": "roadmap", "kicker": "検証", "title": "段階計画",
-            "months": periods,
-            "phases": [
-                {"name": "要件整理", "start": "4月", "end": "5月"},
-                {"name": "実装", "bar": "機能を整備",
-                 "start": "6月", "end": "7月"},
-            ],
-        }],
-    }
-    assert not validate(roadmap)
-    invalid_goal = deepcopy(roadmap)
-    invalid_goal["slides"][0]["phases"][0]["goal"] = ""
+    annotated = deepcopy(deck)
+    annotated_track = annotated["slides"][0]["tracks"][0]
+    annotated_track["goal"] = "判断に必要な材料を揃える"
+    annotated_track["milestone"] = {"at": "5月", "label": "方針決定"}
+    assert not validate(annotated)
+
+    invalid_goal = deepcopy(annotated)
+    invalid_goal["slides"][0]["tracks"][0]["goal"] = ""
     assert any("goal は空でない文字列" in error
                for error in validate(invalid_goal))
 
-    duplicate_milestone = deepcopy(roadmap)
-    duplicate_milestone["slides"][0]["milestones"] = [
-        {"at": "4月", "row": 0, "label": "確認1"},
-        {"at": "5月", "row": 0, "label": "確認2"},
-    ]
-    assert any("1フェーズにつき1件" in error
-               for error in validate(duplicate_milestone))
+    invalid_milestone_step = deepcopy(annotated)
+    invalid_milestone_step["slides"][0]["tracks"][0]["milestone"] = {
+        "at": 0.2, "label": "方針決定"}
+    assert any("0.25刻み" in error
+               for error in validate(invalid_milestone_step))
 
-    outside_milestone = deepcopy(roadmap)
-    outside_milestone["slides"][0]["milestones"] = [
-        {"at": "7月", "row": 0, "label": "範囲外"},
-    ]
-    assert any("対応フェーズのstart〜end内" in error
+    outside_milestone = deepcopy(annotated)
+    outside_milestone["slides"][0]["tracks"][0]["milestone"] = {
+        "at": "7月", "label": "範囲外"}
+    assert any("同じテーマ内のいずれかの作業期間内" in error
                for error in validate(outside_milestone))
 
     print("timeline layout tests passed")
