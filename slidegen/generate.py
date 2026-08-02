@@ -26,6 +26,7 @@ CORAL = RGBColor(0xC7, 0x58, 0x3E)
 LIGHT = RGBColor(0xDF, 0xEB, 0xE8)
 TEXT = RGBColor(0x20, 0x27, 0x29)
 GRAY = RGBColor(0x66, 0x6E, 0x70)
+DONE_TEXT = RGBColor(0x56, 0x60, 0x62)
 WHITE = RGBColor(0xFF, 0xFF, 0xFC)
 ZEBRA = RGBColor(0xEC, 0xEA, 0xE4)
 CANVAS = RGBColor(0xF7, 0xF5, 0xEF)
@@ -187,9 +188,10 @@ def s_bullets(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     style = spec.get("style", "numbered")
     bullets = [_normalize_bullet(item) for item in spec["bullets"]]
-    area_h = area.height - 0.22
-    tx = 1.68 if style == "numbered" else 1.38
-    tw = 10.15 if style == "numbered" else 10.45
+    top_gap = 0.27 if area.shifted else 0.32
+    area_h = area.height - top_gap - 0.28
+    tx, tw = 1.48, 9.65
+    preferred_size = 22 if len(bullets) <= 2 else 20 if len(bullets) <= 4 else 18
 
     def measure(size, gap):
         heights = [len(wrap_text(t, tw, size)) * line_height_in(size, 1.22)
@@ -198,13 +200,13 @@ def s_bullets(slide, spec, page):
         return heights, total
 
     def candidates():
-        for gap in stepped(0.48, 0.30, 0.03):
-            _heights, total = measure(18, gap)
-            yield ("standard" if gap == 0.48 else "gap",
-                   {"size": 18, "gap": gap}, total)
-        for size in stepped(17.5, 12, 0.5):
-            _heights, total = measure(size, 0.30)
-            yield "font", {"size": size, "gap": 0.30}, total
+        for gap in stepped(0.52, 0.34, 0.03):
+            _heights, total = measure(preferred_size, gap)
+            yield ("standard" if gap == 0.52 else "gap",
+                   {"size": preferred_size, "gap": gap}, total)
+        for size in stepped(preferred_size - 0.5, 12, 0.5):
+            _heights, total = measure(size, 0.34)
+            yield "font", {"size": size, "gap": 0.34}, total
 
     fitted = select_fit(
         "bullets", area_h, candidates(),
@@ -212,34 +214,38 @@ def s_bullets(slide, spec, page):
     )
     size, gap = fitted.values["size"], fitted.values["gap"]
     heights, total = measure(size, gap)
-    y = area.top + 0.38 + max(0.0, (area_h - total) * 0.22)
+    rule_w = min(9.05, max(
+        6.30,
+        max(text_width_in(text, size) for text, _checked in bullets) + 0.30,
+    ))
+    y = area.top + top_gap
     for i, ((text, checked), bh) in enumerate(zip(bullets, heights), 1):
         if style == "numbered":
-            add_text(slide, 0.78, y - 0.07, 0.62, 0.45, f"{i:02d}", 15,
-                     bold=True, color=GRAY, align=PP_ALIGN.RIGHT)
+            add_text(slide, 0.80, y - 0.055, 0.46, 0.45, f"{i:02d}", 15.5,
+                     bold=True, color=ACCENT, align=PP_ALIGN.RIGHT)
         elif style == "bullet":
             marker = slide.shapes.add_shape(
-                MSO_SHAPE.OVAL, Inches(1.03), Inches(y + 0.10),
-                Inches(0.11), Inches(0.11))
+                MSO_SHAPE.OVAL, Inches(1.04), Inches(y + 0.105),
+                Inches(0.14), Inches(0.14))
             marker.fill.solid()
             marker.fill.fore_color.rgb = ACCENT
             marker.line.fill.background()
             marker.shadow.inherit = False
         else:
             add_rect(
-                slide, 0.98, y + 0.045, 0.22, 0.22,
+                slide, 0.99, y + 0.045, 0.24, 0.24,
                 ACCENT if checked else CANVAS,
                 line=ACCENT if checked else GRAY,
             )
             if checked:
-                add_text(slide, 0.98, y + 0.015, 0.22, 0.25, "✓", 11.5,
+                add_text(slide, 0.99, y + 0.017, 0.24, 0.25, "✓", 12,
                          bold=True, color=WHITE, align=PP_ALIGN.CENTER,
                          anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, wrap=False)
         add_text(slide, tx, y, tw, bh + 0.08, text, size,
-                 color=GRAY if style == "checklist" and checked else TEXT,
+                 color=DONE_TEXT if style == "checklist" and checked else TEXT,
                  spacing=1.22)
         if style == "numbered" and i < len(bullets):
-            add_rect(slide, tx, y + bh + 0.15, tw, 0.012, RULE)
+            add_rect(slide, tx, y + bh + 0.16, rule_w, 0.01, RULE)
         y += bh + gap
 
 
