@@ -84,6 +84,40 @@ def main():
                for shape in bullet_slides["bullet"].shapes)
     assert _text_shape(bullet_slides["checklist"], "✓")
 
+    # Marker alignment must follow every font size selected by item density.
+    expected_sizes = {2: 22, 4: 20, 6: 18}
+    for style in ("numbered", "bullet", "checklist"):
+        for count, expected_size in expected_sizes.items():
+            items = [
+                {"text": f"配置基準を確認する項目{i + 1}",
+                 "checked": style == "checklist" and i % 2 == 0}
+                for i in range(count)
+            ]
+            slide = _slide()
+            generate.s_bullets(
+                slide,
+                dict(_base("bullets"), style=style, bullets=items),
+                1,
+            )
+            body = _text_shape(slide, items[0]["text"])
+            body_top = body.top / Inches(1)
+            size = body.text_frame.paragraphs[0].runs[0].font.size.pt
+            assert size == expected_size
+            expected_center = generate._bullet_first_line_center(body_top, size)
+            if style == "numbered":
+                marker = _text_shape(slide, "01")
+                expected_center -= 0.012
+            else:
+                marker = next(
+                    shape for shape in slide.shapes
+                    if shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+                    and 0.9 <= shape.left / Inches(1) <= 1.1
+                    and 0.13 <= shape.width / Inches(1) <= 0.25
+                    and 0.13 <= shape.height / Inches(1) <= 0.25
+                )
+            marker_center = (marker.top + marker.height / 2) / Inches(1)
+            assert abs(marker_center - expected_center) < 0.01
+
     numbered = dict(
         _base("bullets"), style="numbered",
         bullets=[{"text": f"判断項目{i}"} for i in range(3)],

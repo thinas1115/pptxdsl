@@ -184,6 +184,11 @@ def _normalize_bullet(item):
     return item[0], False
 
 
+def _bullet_first_line_center(y, size):
+    """Return the visual center of the first body-text line in inches."""
+    return y + size / 108 + 0.012
+
+
 def s_bullets(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     style = spec.get("style", "numbered")
@@ -220,25 +225,30 @@ def s_bullets(slide, spec, page):
     ))
     y = area.top + top_gap
     for i, ((text, checked), bh) in enumerate(zip(bullets, heights), 1):
+        marker_center = _bullet_first_line_center(y, size)
         if style == "numbered":
-            add_text(slide, 0.80, y - 0.055, 0.46, 0.45, f"{i:02d}", 15.5,
-                     bold=True, color=ACCENT, align=PP_ALIGN.RIGHT)
+            # Latin numerals sit slightly below the geometric center when
+            # vertically anchored, so keep the text box 0.012in higher.
+            add_text(slide, 0.80, marker_center - 0.162, 0.46, 0.30,
+                     f"{i:02d}", 15.5, bold=True, color=ACCENT,
+                     align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE)
         elif style == "bullet":
             marker = slide.shapes.add_shape(
-                MSO_SHAPE.OVAL, Inches(1.04), Inches(y + 0.105),
+                MSO_SHAPE.OVAL, Inches(1.04), Inches(marker_center - 0.07),
                 Inches(0.14), Inches(0.14))
             marker.fill.solid()
             marker.fill.fore_color.rgb = ACCENT
             marker.line.fill.background()
             marker.shadow.inherit = False
         else:
+            checkbox_top = marker_center - 0.12
             add_rect(
-                slide, 0.99, y + 0.045, 0.24, 0.24,
+                slide, 0.99, checkbox_top, 0.24, 0.24,
                 ACCENT if checked else CANVAS,
                 line=ACCENT if checked else GRAY,
             )
             if checked:
-                add_text(slide, 0.99, y + 0.017, 0.24, 0.25, "✓", 12,
+                add_text(slide, 0.99, checkbox_top - 0.028, 0.24, 0.25, "✓", 12,
                          bold=True, color=WHITE, align=PP_ALIGN.CENTER,
                          anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, wrap=False)
         add_text(slide, tx, y, tw, bh + 0.08, text, size,
