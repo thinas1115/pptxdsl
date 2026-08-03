@@ -18,7 +18,7 @@
 | レイヤー | 中身 | 再利用性 |
 |---|---|---|
 | L0 測定・描画プリミティブ | textfit(実測) / layout_fit(収容候補・停止) / add_text / add_rect / icon_node / add_arrow / arrow_label / container / route | ◎ 全typeで共有 |
-| L1 レイアウト計算 | diagram_layout(グリッド図解) / org_layout(階層DAG) / timeline_layout(フェーズ・マルチトラック工程表) / image_slide(大判画像の比率維持・トリミング) / matrix(散布) / bullets・cards・twocol(縦詰め) / hub(放射) | **△ ジャンル内のみ** |
+| L1 レイアウト計算 | diagram_layout(グリッド図解) / org_layout(階層DAG) / timeline_layout(フェーズ・マルチトラック工程表) / image_slide(大判画像の比率維持・トリミング) / matrix(散布) / bullets・cards・twocol(縦詰め) | **△ ジャンル内のみ** |
 | L2 AI境界 | content.jsonスキーマ + validate_content + AI_DECK_PROMPT | ◎ typeが増えても同じ仕組み |
 | L3 品質ゲート | check_layout + render.ps1 + contact_sheet + 目視ループ | ◎ 何を作っても同じゲート |
 
@@ -32,7 +32,7 @@
 - **やらないこと**: 既存レイアウタに別ジャンルを混ぜる拡張。例えば diagram_layout の機構
   (ポート計算・行間のラベル深さ・コンテナ外接)は「正方形アイコン+下ラベルのノードを
   グリッドに置く」前提に張り付いており、幅広ボックスや放射配置を入れるのは汎用化ではなく
-  前提破壊になる(体制図・ハブ図をdiagram_layoutに統合しない判断の理由。#8参照)。
+  前提破壊になる(体制図をdiagram_layoutに統合しない判断の理由。#8参照)。
 - **判断に迷ったら**: そのジャンルのレイアウトを2〜3枚、既存レイアウタの仕様語彙だけで
   書けるか小規模に実証する。書けないものが多ければ別レイアウタに分ける。
 
@@ -51,7 +51,7 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | ファイル | 役割 |
 |---|---|
 | `slidegen/generate.py` | 基本renderer (title/bullets/cards/table/twocol/chart) + 共通ヘルパー + ページ定数 |
-| `slidegen/diagrams.py` | hub renderer + 図解部品 (icon_node/add_arrow/arrow_label/container) |
+| `slidegen/diagrams.py` | 図解部品 (icon_node/add_arrow/arrow_label/container) |
 | `slidegen/org_layout.py` | 体制図の階層DAG配置、直角配線、段階的収容 |
 | `slidegen/diagrams2.py` | process/roadmap/program_roadmap/matrix renderer |
 | `slidegen/timeline_layout.py` | 期間ラベル解決、重複作業の自動レーン割当、roadmap系の段階的収容 |

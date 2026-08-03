@@ -73,7 +73,7 @@ python slidegen/validate_content.py content.json
 - `type: "title"` 以外は `lead` (string) を任意指定できる。タイトル直下に要旨を置き、指定時だけ本文開始位置が下がる。未指定時の本文位置は変わらない。
 - `lead` は本文を読む前に伝える結論・前提・読み方を1〜2行で書く。単なるタイトルの言い換えや本文項目の列挙には使わない。文字数の固定上限はないが、最小フォントでも領域へ収まらない場合は生成を停止する。
 - JSONなので、Pythonのタプルではなく配列を使う。
-- `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `roadmap` / `program_roadmap` / `matrix` / `hub` / `org` / `diagram` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
+- `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `roadmap` / `program_roadmap` / `matrix` / `org` / `diagram` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
 - 構成図は `diagram` type で書く(グリッド仕様のみ、座標の数値は書かない)。
 
 ```json
@@ -584,46 +584,6 @@ python slidegen/validate_content.py content.json
     {"name": "点ラベル", "x": 0.5, "y": 0.5, "emph": true}
   ],
   "note": "任意の注記"
-}
-```
-
-### hub
-
-用途: 単一の窓口・基盤・責任者と、複数の周辺主体との直接関係を示す放射図。
-
-必須:
-
-- `type`: `"hub"`
-- `kicker`: string
-- `title`: string
-- `hub`: string
-- `ring`: object の配列
-- `ring[*].name`: string
-- `ring[*].label`: string
-- `ring[*].icon`: string。`icons/fluent/〜.png` を指定する
-
-任意:
-
-- `ring[*].sub`: string
-- `note`: string
-
-制約:
-
-- `ring` は3〜8件。件数に応じて楕円周上へ均等配置する。
-- 周辺主体がすべて中心へ直接つながる場合に使う。周辺同士の接続、複数中心、階層を示す場合は`diagram`または`org`を使う。
-- 本文高さが不足する場合は放射間隔、アイコンの順に縮小し、最小値でも収まらなければ生成を停止する。
-
-```json
-{
-  "type": "hub",
-  "kicker": "分類",
-  "title": "タイトル",
-  "hub": "中央ラベル",
-  "ring": [
-    {"name": "周辺ノードA", "sub": "補足A", "label": "関係A", "icon": "icons/fluent/team.png"},
-    {"name": "周辺ノードB", "sub": "補足B", "label": "関係B", "icon": "icons/fluent/organization.png"},
-    {"name": "周辺ノードC", "sub": "補足C", "label": "関係C", "icon": "icons/fluent/person.png"}
-  ]
 }
 ```
 

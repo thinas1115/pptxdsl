@@ -62,6 +62,13 @@ def main():
     })
     _assert_error(invalid_plain_text, "text を持つオブジェクト")
 
+    removed_hub = _deck({
+        "type": "hub", "kicker": "関係図", "title": "関係者",
+        "center": {"title": "中心"},
+        "items": [{"title": "周辺"}],
+    })
+    _assert_error(removed_hub, "type=hub")
+
     legacy_cards = _deck({
         "type": "cards", "kicker": "比較", "title": "選択肢",
         "cards": [["見出しA", "本文A"], ["見出しB", "本文B"]],

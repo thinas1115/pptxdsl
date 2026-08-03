@@ -23,7 +23,7 @@ from timeline_layout import resolve_marker, resolve_program_span, resolve_span
 
 # noteを実際に描画するtype。それ以外への指定はエラーにする。
 NOTE_TYPES = {"table", "chart", "process", "roadmap", "program_roadmap",
-              "matrix", "hub", "org", "diagram"}
+              "matrix", "org", "diagram"}
 _PLACEHOLDER = re.compile(r"^<[^<>]+>$")
 _UNRESOLVED = re.compile(r"^(?:TBD|TODO|要確認|未定|仮入力|仮文言)$", re.IGNORECASE)
 
@@ -44,7 +44,6 @@ _TYPE_KEYS = {
     "matrix": _BASE_SLIDE_KEYS | {
         "x_axis", "y_axis", "points", "quadrants", "target_label", "note",
     },
-    "hub": _BASE_SLIDE_KEYS | {"hub", "ring", "note"},
     "org": _BASE_SLIDE_KEYS | {"org", "note"},
     "diagram": _BASE_SLIDE_KEYS | {"diagram", "note"},
 }
@@ -482,28 +481,6 @@ def _v_matrix(s):
             s.err(f"points[{i}].emph は真偽値にしてください")
 
 
-def _v_hub(s):
-    s.req_str("hub")
-    ring = s.req_list("ring", 3, 8, "周辺ノード")
-    for i, r in enumerate(ring or []):
-        if not (isinstance(r, dict) and _is_str(r.get("name"))
-                and _is_str(r.get("label")) and _is_str(r.get("icon"))):
-            s.err(f"ring[{i}] には name / label / icon (文字列) が必要です")
-            continue
-        s.allow_keys(r, {"name", "sub", "label", "icon"}, f"ring[{i}]")
-        if "sub" in r and not _is_str(r["sub"]):
-            s.err(f"ring[{i}].sub は空でない文字列にしてください")
-        try:
-            icon = resolve_icon_path(r["icon"])
-        except ValueError:
-            s.err(f"ring[{i}].icon は slidegen/assets/ 内の相対パスに"
-                  "してください")
-            continue
-        if not icon.is_file():
-            s.err(f"ring[{i}].icon のファイルがありません: {r['icon']}。"
-                  "CONTENT_SCHEMA.md のFluentアイコン一覧から選んでください")
-
-
 def _v_org(s):
     if any(key in s.spec for key in ("top", "pm", "teams", "external")):
         s.err('旧org形式の top / pm / teams / external は廃止しました。'
@@ -782,7 +759,7 @@ VALIDATORS = {
     "image": _v_image,
     "process": _v_process, "roadmap": _v_roadmap,
     "program_roadmap": _v_program_roadmap, "matrix": _v_matrix,
-    "hub": _v_hub, "org": _v_org, "diagram": _v_diagram,
+    "org": _v_org, "diagram": _v_diagram,
 }
 
 

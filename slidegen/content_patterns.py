@@ -16,7 +16,7 @@ PATTERN_DECK = {
         {
             "type": "title",
             "title": "社内スライド\nパターンライブラリ",
-            "subtitle": "意思決定からシステム構成まで、23の標準レイアウトを検証",
+            "subtitle": "意思決定からシステム構成まで、22の標準レイアウトを検証",
         },
         {
             "type": "bullets",
@@ -310,19 +310,6 @@ PATTERN_DECK = {
                 {"name": "自由配置図", "x": 0.20, "y": 0.32},
             ],
             "note": "位置づけはテンプレート整備の優先度を示すサンプル。",
-        },
-        {
-            "type": "hub",
-            "kicker": "集約窓口",
-            "title": "インシデント統括窓口へ、5部門の情報と判断を集約する",
-            "hub": "インシデント\n統括窓口",
-            "ring": [
-                {"name": "経営層", "sub": "重要判断", "label": "報告 / 判断", "icon": "icons/fluent/briefcase.png"},
-                {"name": "運用チーム", "sub": "復旧対応", "label": "状況 / 復旧", "icon": "icons/fluent/server.png"},
-                {"name": "利用部門", "sub": "影響確認", "label": "影響 / 優先度", "icon": "icons/fluent/team.png"},
-                {"name": "セキュリティ", "sub": "重大度判定", "label": "判定 / 指示", "icon": "icons/fluent/shield_check.png"},
-                {"name": "広報", "sub": "対外連絡", "label": "公表 / 承認", "icon": "icons/fluent/send.png"},
-            ],
         },
         {
             "type": "org",

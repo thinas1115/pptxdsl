@@ -7,7 +7,6 @@ from pptx.util import Inches
 
 import generate
 from content_patterns import PATTERN_DECK
-from diagrams import fit_hub_layout, s_hub
 from diagrams2 import (_fit_process_flow, _matrix_label_positions,
                        fit_matrix_labels, s_matrix, s_process)
 from layout_fit import FitError
@@ -263,17 +262,6 @@ def main():
     legacy_point_x = 1.0 + 0.4 * 8.0
     assert abs(legacy_labels[0][0] - (legacy_point_x - 1.0 + 0.2)) < 0.001
     s_matrix(_slide(), matrix, 1)
-
-    for count in (3, 5, 8):
-        hub = dict(
-            _base("hub"), hub="中心",
-            ring=[{"name": f"部門{i + 1}", "label": "連携",
-                   "icon": "icons/fluent/team.png"} for i in range(count)],
-        )
-        s_hub(_slide(), hub, 1)
-    assert fit_hub_layout(4.0, 5).stage == "gap"
-    assert fit_hub_layout(3.6, 8).stage == "element"
-    _must_fail(lambda: fit_hub_layout(3.2, 8), "最小設定")
 
     print("generalized renderer tests passed")
 
