@@ -254,7 +254,7 @@ def s_bullets(slide, spec, page):
         add_text(slide, tx, y, tw, bh + 0.08, text, size,
                  color=DONE_TEXT if style == "checklist" and checked else TEXT,
                  spacing=1.22)
-        if style == "numbered" and i < len(bullets):
+        if style == "numbered":
             add_rect(slide, tx, y + bh + 0.16, rule_w, 0.01, RULE)
         y += bh + gap
 

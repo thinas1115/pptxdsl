@@ -128,8 +128,10 @@ def main():
         shape for shape in numbered_slide.shapes
         if 0.009 <= shape.height / Inches(1) <= 0.011
     ]
-    assert len(rules) == 2
+    assert len(rules) == 3
     assert all(shape.width / Inches(1) <= 6.31 for shape in rules)
+    assert max((shape.top + shape.height) / Inches(1) for shape in rules) \
+        < generate.BODY_BOTTOM
 
     long_text = (
         "停止可能時間と繁忙期を確認し、移行候補日と切り戻し条件を"
