@@ -112,6 +112,7 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 # textfit.py — フォント実測
 text_width_in(text, size_pt, weight="regular") -> float      # 1行の実測幅(インチ)
 wrap_text(text, width_in, size_pt, weight="regular") -> list # 禁則込み折り返し
+wrap_natural / wrap_body / wrap_compact                      # 文章役割別の改行
 line_height_in(size_pt, spacing=1.3) -> float
 fit_font_size(text, box_w, box_h, start_pt, min_pt=..., ...) -> (size, lines)
 
@@ -142,6 +143,11 @@ route(slide, pts, *, dash, width)   # 直角折れ線+終端矢印
 Layout(spec, reserve_note=False, content_area=None)  # グリッド仕様→座標(port/channel/route_edges/validate_edges)
 render_diagram(slide, spec, note, content_area=None) # 描画一式
 ```
+
+`fit_text_or_raise()`は太字見出しを`natural`、通常本文を`body`として扱う。
+表セルや線ラベルなど最終行の均等化が不要な狭い領域だけ`role="compact"`を指定する。
+どの役割でも英単語・識別子・数値単位・連続カタカナを語中分割せず、rendererが定める
+`min_pt`まで縮小しても幅または高さに収まらなければ`FitError`で停止する。
 
 ## 必須の収容ポリシー
 

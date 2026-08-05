@@ -17,7 +17,7 @@ from pptx.util import Emu, Inches, Pt
 from content import DECK
 from cover_footer import load_cover_footer_config, render_cover, render_footer
 from layout_fit import FitError, fit_text_or_raise, select_fit, stepped
-from textfit import line_height_in, text_width_in, wrap_text
+from textfit import line_height_in, text_width_in, wrap_natural, wrap_text
 
 # ---- テーマ ----
 NAVY = RGBColor(0x18, 0x2C, 0x43)
@@ -125,10 +125,10 @@ def header(slide, kicker, title, lead=None):
     add_text(slide, 0.72, 0.27, 4.8, 0.32, kicker, kicker_size,
              bold=True, color=ACCENT)
     size = 27
-    lines = wrap_text(title, 11.9, size, "bold")
+    lines = wrap_natural(title, 11.9, size, "bold")
     while len(lines) > 1 and size > 18:
         size -= 0.5
-        lines = wrap_text(title, 11.9, size, "bold")
+        lines = wrap_natural(title, 11.9, size, "bold")
     if len(lines) > 1:
         size, lines = fit_text_or_raise(
             "header", "title", title, 11.9, 0.86, 18,
