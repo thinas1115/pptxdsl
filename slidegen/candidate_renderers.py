@@ -25,6 +25,7 @@ from generate import (
     header,
 )
 from layout_fit import FitError, fit_text_or_raise, select_fit, stepped
+from textfit import text_width_in, wrap_natural
 
 
 def _fit_rows(renderer, available, count, *, row_h, min_row_h, gap, min_gap,
@@ -110,10 +111,16 @@ def s_scope(slide, spec, page):
     body_top = area.top + 0.18
     body_bottom = area.bottom - assumptions_h - (0.12 if assumptions else 0.02)
     max_count = max(len(left_items), len(right_items))
+    sparse = max_count <= 2 and not assumptions
+    if max_count <= 2 and not assumptions:
+        body_top += 0.66
+    row_h = 0.78 if sparse else 0.62
+    row_gap = 0.18 if sparse else 0.12
+    font = 17.0 if sparse else 15.0
     fitted = _fit_rows(
         "scope", body_bottom - body_top - 0.58, max_count,
-        row_h=0.62, min_row_h=0.44, gap=0.12, min_gap=0.03,
-        font=15.0, min_font=11.0,
+        row_h=row_h, min_row_h=0.44, gap=row_gap, min_gap=0.03,
+        font=font, min_font=11.0,
     )
     values = fitted.values
     col_gap, col_w = 0.42, (BODY_W - 0.42) / 2
@@ -154,9 +161,9 @@ def s_summary(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     sections = spec["sections"]
     conclusion = spec.get("conclusion")
-    conclusion_h = 0.72 if conclusion else 0.0
+    conclusion_h = 0.74 if conclusion else 0.0
     top = area.top + 0.26
-    available = area.bottom - top - conclusion_h - 0.18
+    available = area.bottom - top - conclusion_h - 0.22
     count = len(sections)
     if count <= 3:
         cols, rows = count, 1
@@ -164,9 +171,18 @@ def s_summary(slide, spec, page):
         cols, rows = 2, 2
     gap_x, gap_y = 0.46, 0.28
     cell_w = (BODY_W - gap_x * (cols - 1)) / cols
-    cell_h = (available - gap_y * (rows - 1)) / rows
+    # 短い要約を本文下端まで引き延ばさず、内容の自然なまとまりを保つ。
+    natural_h = 2.10 if rows == 1 else 1.66
+    cell_h = min(natural_h, (available - gap_y * (rows - 1)) / rows)
     if cell_h < 1.22:
         raise FitError("summary: 結論を含む本文領域へ論点を配置できません。論点を減らしてください。")
+
+    block_h = rows * cell_h + (rows - 1) * gap_y + conclusion_h
+    extra = max(0.0, area.bottom - top - block_h)
+    top += extra * 0.34
+
+    heading_pt = 18.5 if count == 2 else (17.5 if count == 3 else 16.5)
+    body_pt = 15.0 if count == 2 else (14.0 if count == 3 else 13.0)
 
     for index, section in enumerate(sections):
         row, col = divmod(index, cols)
@@ -176,15 +192,18 @@ def s_summary(slide, spec, page):
                  bold=True, color=ACCENT)
         _text_in_box(slide, "summary", f"sections[{index}].heading",
                      x + 0.55, y, cell_w - 0.55, 0.35,
-                     section["heading"], 16.5, 12.0,
+                     section["heading"], heading_pt, 12.0,
                      bold=True, color=NAVY)
         plain_line(slide, x + 0.55, y + 0.46, x + cell_w, y + 0.46,
                    color=RULE, width=0.8)
         _text_in_box(slide, "summary", f"sections[{index}].body",
                      x + 0.55, y + 0.60, cell_w - 0.58, cell_h - 0.68,
-                     section["body"], 13.0, 10.0, color=TEXT, spacing=1.22)
+                     section["body"], body_pt, 10.0, color=TEXT, spacing=1.22)
     if conclusion:
-        _takeaway(slide, "summary", conclusion, area.bottom - 0.62,
+        conclusion_y = top + rows * cell_h + (rows - 1) * gap_y + 0.24
+        if conclusion_y + 0.58 > area.bottom:
+            raise FitError("summary: 結論を含む本文領域へ論点を配置できません。文言を短くしてください。")
+        _takeaway(slide, "summary", conclusion, conclusion_y,
                   label=spec.get("conclusion_label", "結論"))
 
 
@@ -195,12 +214,19 @@ def s_paired_comparison(slide, spec, page):
     takeaway = spec.get("takeaway")
     top = area.top + 0.24
     takeaway_h = 0.72 if takeaway else 0.0
+    sparse = len(rows) <= 2
+    row_h = 0.88 if sparse else 0.68
+    row_gap = 0.12 if sparse else 0.08
+    font = 15.0 if sparse else 13.5
     fitted = _fit_rows(
         "paired_comparison", area.bottom - top - takeaway_h - 0.54,
-        len(rows), row_h=0.68, min_row_h=0.46, gap=0.08, min_gap=0.02,
-        font=13.5, min_font=10.0,
+        len(rows), row_h=row_h, min_row_h=0.46, gap=row_gap, min_gap=0.02,
+        font=font, min_font=10.0,
     )
     values = fitted.values
+    rows_h = len(rows) * values["row_h"] + max(0, len(rows) - 1) * values["gap"]
+    block_h = 0.56 + rows_h + (0.72 if takeaway else 0.0)
+    top += max(0.0, area.bottom - top - block_h) * 0.34
     left_x, left_w = MARGIN + 0.08, 5.10
     criterion_x, criterion_w = left_x + left_w + 0.18, 1.38
     right_x = criterion_x + criterion_w + 0.18
@@ -217,7 +243,6 @@ def s_paired_comparison(slide, spec, page):
     plain_line(slide, right_x, top + 0.43, right_x + right_w, top + 0.43,
                color=ACCENT, width=1.1)
     y = top + 0.56
-    rows_h = len(rows) * values["row_h"] + max(0, len(rows) - 1) * values["gap"]
     add_rect(slide, criterion_x, y, criterion_w, rows_h, ZEBRA)
     for index, row in enumerate(rows):
         fill = ZEBRA if index % 2 == 0 else CANVAS
@@ -256,12 +281,40 @@ def s_mapping(slide, spec, page):
         font=13.5, min_font=10.0,
     )
     values = fitted.values
-    left_x, item_w = MARGIN + 0.16, 4.45
-    right_x = MARGIN + BODY_W - item_w - 0.16
-    add_text(slide, left_x, top, item_w, 0.30, spec["left_label"], 14.5,
-             bold=True, color=NAVY)
-    add_text(slide, right_x, top, item_w, 0.30, spec["right_label"], 14.5,
-             bold=True, color=NAVY)
+    left_index = {item["id"]: index for index, item in enumerate(left_items)}
+    right_index = {item["id"]: index for index, item in enumerate(right_items)}
+
+    def has_crossing():
+        pairs = [(left_index[link["from"]], right_index[link["to"]])
+                 for link in links]
+        return any(
+            (li - lj) * (ri - rj) < 0
+            for i, (li, ri) in enumerate(pairs)
+            for lj, rj in pairs[i + 1:]
+        )
+
+    # 線が交差する入力を無理に結線すると関係を誤読する。単純な対応だけ
+    # 直線で描き、それ以外は交差のない対応マトリクスへ自動切替する。
+    matrix_mode = has_crossing() or len(links) > max_count + 1
+    if matrix_mode:
+        left_x, left_w = MARGIN + 0.16, 4.10
+        matrix_x, matrix_w = left_x + left_w + 0.26, 2.34
+        right_x = matrix_x + matrix_w + 0.32
+        right_w = MARGIN + BODY_W - 0.16 - right_x
+        add_text(slide, left_x, top, left_w, 0.30, spec["left_label"], 14.5,
+                 bold=True, color=NAVY)
+        add_text(slide, matrix_x, top, matrix_w, 0.30, "対応", 11.0,
+                 bold=True, color=GRAY, align=PP_ALIGN.CENTER)
+        add_text(slide, right_x, top, right_w, 0.30, spec["right_label"], 14.5,
+                 bold=True, color=NAVY)
+    else:
+        left_x, left_w = MARGIN + 0.16, 4.45
+        right_x = MARGIN + BODY_W - left_w - 0.16
+        right_w = left_w
+        add_text(slide, left_x, top, left_w, 0.30, spec["left_label"], 14.5,
+                 bold=True, color=NAVY)
+        add_text(slide, right_x, top, right_w, 0.30, spec["right_label"], 14.5,
+                 bold=True, color=NAVY)
     start_y = top + 0.48
 
     def positions(items):
@@ -273,46 +326,78 @@ def s_mapping(slide, spec, page):
         }
 
     left_y, right_y = positions(left_items), positions(right_items)
-    # 対応線を先に描き、項目と端点を前面へ置く。多対多では直交線の
-    # 交差が分岐に見えるため、端点間を直接結んで対応関係を保つ。
-    gap_left = left_x + item_w
-    gap_right = right_x
-    endpoint_colors = {}
-    for link in links:
-        sy = left_y[link["from"]] + values["row_h"] / 2
-        ty = right_y[link["to"]] + values["row_h"] / 2
-        color = ACCENT if link.get("emphasis") else GRAY
-        width = 1.4 if link.get("emphasis") else 1.0
-        add_arrow(slide, gap_left, sy, gap_right, ty, color=color, width=width)
-        endpoint_colors[("left", link["from"])] = color
-        endpoint_colors[("right", link["to"])] = color
-
-    def draw_items(items, y_by_id, x, side):
+    def draw_items(items, y_by_id, x, width, side, *, flat=False):
         for index, item in enumerate(items):
             y = y_by_id[item["id"]]
-            add_rect(slide, x, y, item_w, values["row_h"], WHITE, line=RULE)
-            marker_x = x + 0.25 if side == "left" else x + item_w - 0.25
+            if flat:
+                plain_line(slide, x, y + values["row_h"], x + width,
+                           y + values["row_h"], color=RULE, width=0.65)
+            else:
+                add_rect(slide, x, y, width, values["row_h"], WHITE, line=RULE)
+            marker_x = x + 0.25 if side == "left" else x + width - 0.25
             _dot(slide, marker_x, y + values["row_h"] / 2, ACCENT, 0.25)
             add_text(slide, marker_x - 0.12, y + values["row_h"] / 2 - 0.12,
                      0.24, 0.24, f"{index + 1}", 8.5, bold=True, color=WHITE,
                      align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
             text_x = x + 0.48 if side == "left" else x + 0.18
-            text_w = item_w - 0.66
+            text_w = width - 0.66
             _text_in_box(slide, "mapping", f"{side}_items[{index}].text",
                          text_x, y, text_w, values["row_h"], item["text"],
                          values["font"], 9.5, bold=True, color=NAVY,
                          anchor=MSO_ANCHOR.MIDDLE)
 
-    draw_items(left_items, left_y, left_x, "left")
-    draw_items(right_items, right_y, right_x, "right")
-    for item in left_items:
-        color = endpoint_colors.get(("left", item["id"]), GRAY)
-        _dot(slide, gap_left, left_y[item["id"]] + values["row_h"] / 2,
-             color, 0.08)
-    for item in right_items:
-        color = endpoint_colors.get(("right", item["id"]), GRAY)
-        _dot(slide, gap_right, right_y[item["id"]] + values["row_h"] / 2,
-             color, 0.08)
+    if matrix_mode:
+        draw_items(left_items, left_y, left_x, left_w, "left", flat=True)
+        draw_items(right_items, right_y, right_x, right_w, "right", flat=True)
+        matrix_y = min(left_y.values())
+        row_step = values["row_h"] + values["gap"]
+        matrix_h = len(left_items) * values["row_h"] + max(
+            0, len(left_items) - 1) * values["gap"]
+        add_rect(slide, matrix_x, matrix_y, matrix_w, matrix_h, ZEBRA)
+        cell_w = matrix_w / len(right_items)
+        for index in range(len(right_items)):
+            cx = matrix_x + (index + 0.5) * cell_w
+            add_text(slide, cx - 0.16, top + 0.28, 0.32, 0.18,
+                     f"{index + 1}", 8.5, bold=True, color=ACCENT,
+                     align=PP_ALIGN.CENTER)
+            if index:
+                plain_line(slide, matrix_x + index * cell_w, matrix_y,
+                           matrix_x + index * cell_w, matrix_y + matrix_h,
+                           color=RULE, width=0.55)
+        for index in range(1, len(left_items)):
+            y = matrix_y + index * row_step - values["gap"] / 2
+            plain_line(slide, matrix_x, y, matrix_x + matrix_w, y,
+                       color=RULE, width=0.55)
+        for link in links:
+            row = left_index[link["from"]]
+            col = right_index[link["to"]]
+            cx = matrix_x + (col + 0.5) * cell_w
+            cy = left_y[link["from"]] + values["row_h"] / 2
+            _dot(slide, cx, cy, ACCENT if link.get("emphasis") else NAVY,
+                 0.15 if link.get("emphasis") else 0.11)
+    else:
+        gap_left = left_x + left_w
+        gap_right = right_x
+        endpoint_colors = {}
+        for link in links:
+            sy = left_y[link["from"]] + values["row_h"] / 2
+            ty = right_y[link["to"]] + values["row_h"] / 2
+            color = ACCENT if link.get("emphasis") else GRAY
+            width = 1.4 if link.get("emphasis") else 1.0
+            add_arrow(slide, gap_left, sy, gap_right, ty,
+                      color=color, width=width)
+            endpoint_colors[("left", link["from"])] = color
+            endpoint_colors[("right", link["to"])] = color
+        draw_items(left_items, left_y, left_x, left_w, "left")
+        draw_items(right_items, right_y, right_x, right_w, "right")
+        for item in left_items:
+            color = endpoint_colors.get(("left", item["id"]), GRAY)
+            _dot(slide, gap_left, left_y[item["id"]] + values["row_h"] / 2,
+                 color, 0.08)
+        for item in right_items:
+            color = endpoint_colors.get(("right", item["id"]), GRAY)
+            _dot(slide, gap_right, right_y[item["id"]] + values["row_h"] / 2,
+                 color, 0.08)
     if takeaway:
         _takeaway(slide, "mapping", takeaway, area.bottom - 0.62)
 
@@ -328,7 +413,14 @@ def _swimlane_step_rects(spec, x0, y0, stage_w, lane_h):
         cell_x = x0 + stage_index[stage_id] * stage_w
         cell_y = y0 + lane_index[lane_id] * lane_h
         gap = 0.08
-        width = min(1.72, (stage_w - 0.22 - gap * (len(steps) - 1)) / len(steps))
+        if len(spec["stages"]) <= 2:
+            max_node_w = 2.62
+        elif len(spec["stages"]) <= 3:
+            max_node_w = 2.12
+        else:
+            max_node_w = 1.72
+        width = min(max_node_w,
+                    (stage_w - 0.22 - gap * (len(steps) - 1)) / len(steps))
         total_w = len(steps) * width + gap * (len(steps) - 1)
         start_x = cell_x + (stage_w - total_w) / 2
         node_h = min(0.56, lane_h - 0.20)
@@ -349,7 +441,7 @@ def s_swimlane(slide, spec, page):
     takeaway = spec.get("takeaway")
     takeaway_h = 0.72 if takeaway else 0.0
     top = area.top + 0.12
-    stage_h, lane_label_w = 0.48, 1.48
+    stage_h, lane_label_w = 0.48, 1.72
     stage_index = {stage["id"]: index for index, stage in enumerate(stages)}
     step_by_id = {step["id"]: step for step in spec["steps"]}
     has_feedback = any(
@@ -359,12 +451,15 @@ def s_swimlane(slide, spec, page):
     )
     feedback_h = 0.30 if has_feedback else 0.0
     available_h = area.bottom - top - stage_h - takeaway_h - 0.12
+    standard_lane_h = 1.06 if len(lanes) == 2 else 0.94 if len(lanes) == 3 else 0.86
     fitted = _fit_rows(
         "swimlane", available_h, len(lanes),
-        row_h=0.86, min_row_h=0.62, gap=0.0, min_gap=0.0,
+        row_h=standard_lane_h, min_row_h=0.62, gap=0.0, min_gap=0.0,
         font=11.5, min_font=9.0, reserve=feedback_h,
     )
     lane_h = fitted.values["row_h"]
+    used_h = len(lanes) * lane_h + feedback_h
+    top += max(0.0, available_h - used_h) * 0.30
     x0 = MARGIN + lane_label_w
     stage_w = (BODY_W - lane_label_w) / len(stages)
     lane_y0 = top + stage_h
@@ -382,10 +477,28 @@ def s_swimlane(slide, spec, page):
         y = lane_y0 + index * lane_h
         add_rect(slide, MARGIN, y, BODY_W, lane_h,
                  ZEBRA if index % 2 == 0 else CANVAS)
-        _text_in_box(slide, "swimlane", f"lanes[{index}].label",
-                     MARGIN + 0.12, y, lane_label_w - 0.22, lane_h,
-                     lane["label"], 13.0, 10.0, bold=True, color=NAVY,
-                     anchor=MSO_ANCHOR.MIDDLE)
+        lane_text_w = lane_label_w - 0.22
+        lane_font = 13.0
+        while (lane_font > 8.0
+               and text_width_in(lane["label"], lane_font, "bold") > lane_text_w):
+            lane_font -= 0.5
+        if text_width_in(lane["label"], lane_font, "bold") <= lane_text_w:
+            lane_lines = [lane["label"]]
+        else:
+            lane_font = 12.0
+            lane_lines = wrap_natural(
+                lane["label"], lane_text_w, lane_font, "bold")
+            while len(lane_lines) > 2 and lane_font > 8.0:
+                lane_font -= 0.5
+                lane_lines = wrap_natural(
+                    lane["label"], lane_text_w, lane_font, "bold")
+        if len(lane_lines) > 2:
+            raise FitError(
+                f"swimlane: lanes[{index}].label を2行以内へ収容できません。"
+                "担当名を短くしてください。")
+        add_text(slide, MARGIN + 0.12, y, lane_text_w, lane_h,
+                 "\n".join(lane_lines), lane_font, bold=True, color=NAVY,
+                 anchor=MSO_ANCHOR.MIDDLE)
         plain_line(slide, MARGIN, y + lane_h, MARGIN + BODY_W, y + lane_h,
                    color=RULE, width=0.65)
     for edge in spec["edges"]:
@@ -440,11 +553,20 @@ def s_swimlane(slide, spec, page):
         add_rect(slide, x, y, w, h,
                  LIGHT if step.get("style") == "accent" else WHITE,
                  line=ACCENT if step.get("style") == "accent" else RULE)
-        _text_in_box(slide, "swimlane", f"steps[{index}].name",
-                     x + 0.10, y, w - 0.20, h, step["name"],
-                     fitted.values["font"], 8.5, bold=True, color=NAVY,
-                     align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
-                     role="compact")
+        one_line_size = min(11.5, fitted.values["font"])
+        while (one_line_size >= 7.5
+               and text_width_in(step["name"], one_line_size, "bold") > w - 0.20):
+            one_line_size -= 0.5
+        if one_line_size >= 7.5:
+            add_text(slide, x + 0.10, y, w - 0.20, h, step["name"],
+                     one_line_size, bold=True, color=NAVY,
+                     align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+        else:
+            _text_in_box(slide, "swimlane", f"steps[{index}].name",
+                         x + 0.10, y, w - 0.20, h, step["name"],
+                         fitted.values["font"], 8.5, bold=True, color=NAVY,
+                         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
+                         role="compact")
     if takeaway:
         _takeaway(slide, "swimlane", takeaway, area.bottom - 0.62)
 
@@ -465,7 +587,15 @@ def s_sequence(slide, spec, page):
         row_h=0.42, min_row_h=0.30, gap=0.12, min_gap=0.02,
         font=10.5, min_font=8.0,
     )
-    participant_x0, participant_x1 = 3.05, 12.25
+    if len(participants) == 2:
+        participant_x0, participant_x1 = 3.85, 9.48
+    elif len(participants) == 3:
+        participant_x0, participant_x1 = 3.45, 10.15
+    else:
+        participant_x0, participant_x1 = 3.05, 12.25
+    used_h = (len(messages) * fitted.values["row_h"]
+              + max(0, len(messages) - 1) * fitted.values["gap"])
+    message_top += max(0.0, available - used_h) * 0.28
     xs = [participant_x0 + i * (participant_x1 - participant_x0) / (len(participants) - 1)
           for i in range(len(participants))]
     x_by_id = {participant["id"]: x for participant, x in zip(participants, xs)}
@@ -512,8 +642,11 @@ def s_sequence(slide, spec, page):
                   width=1.0)
             label_x, label_w = sx + 0.10, 1.20
         else:
-            add_arrow(slide, sx, y, tx, y, width=1.05,
-                      dash="dash" if message.get("kind") == "return" else None)
+            kind = message.get("kind", "request")
+            add_arrow(slide, sx, y, tx, y,
+                      color=ACCENT if kind == "async" else GRAY,
+                      width=1.20 if kind == "async" else 1.05,
+                      dash="dash" if kind == "return" else None)
             label_x, label_w = (sx + tx) / 2, min(1.72, abs(tx - sx) - 0.10)
         label_y = y - 0.27
         label_size, lines = fit_text_or_raise(

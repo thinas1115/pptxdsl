@@ -15,6 +15,7 @@ from candidate_renderers import (
     s_summary,
     s_swimlane,
 )
+from candidate_review_cases import REVIEW_DECK
 from content_patterns import PATTERN_DECK
 from layout_fit import FitError
 from validate_content import validate
@@ -146,6 +147,8 @@ def _assert_fit_stages():
 def main():
     errors = validate(deepcopy(PATTERN_DECK), allow_sample_content=True)
     assert not errors, "\n".join(errors)
+    review_errors = validate(deepcopy(REVIEW_DECK), allow_sample_content=True)
+    assert not review_errors, "\n".join(review_errors)
 
     samples = [
         deepcopy(spec) for spec in PATTERN_DECK["slides"]
@@ -153,7 +156,9 @@ def main():
     ]
     assert {spec["type"] for spec in samples} == set(RENDERERS)
     prs = _presentation()
-    for spec in samples + _dense_specs():
+    review_specs = [deepcopy(spec) for spec in REVIEW_DECK["slides"]]
+    assert len(review_specs) == len(RENDERERS) * 4
+    for spec in samples + review_specs + _dense_specs():
         slide = _render(prs, spec)
         _assert_in_slide(slide)
 
