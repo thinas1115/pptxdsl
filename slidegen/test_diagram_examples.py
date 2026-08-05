@@ -5,7 +5,8 @@ import json
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
-from diagram_layout import ICON_SIZE, Layout, render_diagram
+from diagram_layout import (ICON_SIZE, Layout, _max_overlapping_stack,
+                            render_diagram)
 from diagram_specs import AWS_MULTIAZ_EXAMPLE, AWS_SIMPLE_EXAMPLE
 from diagrams import EDGE_GAP, NODE_LABEL_PAD_X, NODE_LABEL_PAD_Y
 from layout_fit import FitError
@@ -21,6 +22,21 @@ def _assert_no_layout_fields(diagram):
 
 
 def main():
+    # 横に離れたルート帯は同じ縦領域を共有し、重なる帯だけを積算する。
+    assert _max_overlapping_stack([
+        (0.0, 2.0, 0.6),
+        (2.2, 4.2, 0.8),
+    ]) == 0.8
+    assert abs(_max_overlapping_stack([
+        (0.0, 2.0, 0.6),
+        (1.7, 3.7, 0.8),
+    ]) - 1.4) <= 0.001
+    assert abs(_max_overlapping_stack([
+        (0.0, 2.0, 0.6),
+        (1.7, 3.7, 0.8),
+        (3.4, 5.4, 0.5),
+    ]) - 1.4) <= 0.001
+
     examples = [AWS_SIMPLE_EXAMPLE, AWS_MULTIAZ_EXAMPLE]
     for diagram in examples:
         _assert_no_layout_fields(diagram)
