@@ -5,6 +5,7 @@
 """
 import json
 import re
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from string import Formatter
@@ -12,7 +13,7 @@ from string import Formatter
 from PIL import Image, UnidentifiedImageError
 from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 
 from layout_fit import fit_text_or_raise
 from textfit import (
@@ -442,12 +443,25 @@ def render_footer(slide, page, meta, total, config, *, add_text, add_rect):
                      anchor=MSO_ANCHOR.MIDDLE, wrap=default_text)
     if footer.show_page_number:
         if footer.show_total:
-            add_text(slide, 11.38, 6.98, 0.64, 0.28,
-                     f"{page:0{digits}d}", 11, bold=True,
-                     color=footer.page_color, align=PP_ALIGN.RIGHT)
-            add_text(slide, 12.04, 6.99, 0.58, 0.26,
-                     f"/ {total:0{digits}d}", 8.2,
-                     color=footer.text_color, align=PP_ALIGN.RIGHT)
+            page_text = f"{page:0{digits}d}"
+            total_text = f" / {total:0{digits}d}"
+            marker = add_text(
+                slide, 11.38, 6.98, 1.24, 0.28,
+                page_text + total_text, 8.2, color=footer.text_color,
+                align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE, wrap=False)
+            if marker is not None:
+                paragraph = marker.text_frame.paragraphs[0]
+                page_run = paragraph.runs[0]
+                total_style = deepcopy(page_run._r.get_or_add_rPr())
+                page_run.text = page_text
+                page_run.font.size = Pt(11)
+                page_run.font.bold = True
+                page_run.font.color.rgb = footer.page_color
+                total_run = paragraph.add_run()
+                default_style = total_run._r.get_or_add_rPr()
+                total_run._r.remove(default_style)
+                total_run._r.insert(0, total_style)
+                total_run.text = total_text
         else:
             add_text(slide, 11.78, 6.98, 0.84, 0.28,
                      f"{page:0{digits}d}", 11, bold=True,

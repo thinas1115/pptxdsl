@@ -15,6 +15,7 @@ from cover_footer import (
     render_cover,
     render_footer,
 )
+from generate import add_rect, add_text
 from validate_content import validate
 
 
@@ -168,6 +169,20 @@ def main():
         add_rect=lambda *args, **kwargs: None,
     )
     assert all(args[5] != "" for args in optional_footer_calls)
+
+    footer_prs = Presentation()
+    footer_slide = footer_prs.slides.add_slide(footer_prs.slide_layouts[6])
+    render_footer(
+        footer_slide, 8, minimal_deck["meta"], 22, default,
+        add_text=add_text, add_rect=add_rect,
+    )
+    marker = next(
+        shape for shape in footer_slide.shapes
+        if shape.has_text_frame and shape.text == "08 / 22")
+    marker_runs = marker.text_frame.paragraphs[0].runs
+    assert len(marker_runs) == 2
+    assert marker_runs[0].font.size.pt == 11
+    assert abs(marker_runs[1].font.size.pt - 8.2) < 0.02
 
     custom = parse_cover_footer_config({
         "cover": {
