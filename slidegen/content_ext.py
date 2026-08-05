@@ -26,20 +26,6 @@ EXTRA_SLIDES = [
         "note": "図は簡略化。実装時はIAM・ネットワーク設計を別途詳細化する。",
     },
     {
-        "type": "hub",
-        "kicker": "関係者調整(表現力検証)",
-        "title": "導入は事務局をハブに6者と並行調整する",
-        "hub": "AI活用\n推進事務局",
-        "ring": [
-            {"name": "経営層", "sub": "投資判断", "label": "効果報告 / 承認", "icon": "icons/fluent/briefcase.png"},
-            {"name": "情報システム部", "sub": "基盤・契約", "label": "セキュリティ審査", "icon": "icons/fluent/server.png"},
-            {"name": "現場部門", "sub": "パイロット参加", "label": "要件 / フィードバック", "icon": "icons/fluent/team.png"},
-            {"name": "法務・コンプラ", "sub": "規程整備", "label": "利用規程レビュー", "icon": "icons/fluent/shield_check.png"},
-            {"name": "広報・ブランド", "sub": "テンプレ所管", "label": "テンプレート提供", "icon": "icons/fluent/send.png"},
-            {"name": "外部ベンダー", "sub": "技術支援", "label": "導入支援 / QA", "icon": "icons/fluent/toolbox.png"},
-        ],
-    },
-    {
         "type": "org",
         "kicker": "推進体制",
         "title": "責任者から各チームまで、指揮系統を明確にする",

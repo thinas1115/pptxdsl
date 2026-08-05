@@ -30,7 +30,44 @@ def main():
 
     ignored_bullet_value = _deck(_bullets())
     ignored_bullet_value["slides"][1]["bullets"][0][1] = "描画されない値"
-    _assert_error(ignored_bullet_value, '["本文", null]')
+    _assert_error(ignored_bullet_value, "text を持つオブジェクト")
+
+    for style in ("numbered", "bullet", "checklist"):
+        styled = _deck({
+            "type": "bullets", "style": style,
+            "kicker": "分類", "title": "要点",
+            "bullets": [
+                {"text": "本文A", **({"checked": True}
+                                    if style == "checklist" else {})},
+                {"text": "本文B"},
+            ],
+        })
+        assert not validate(styled), "\n".join(validate(styled))
+
+    invalid_style = _deck(_bullets())
+    invalid_style["slides"][1]["style"] = "tasks"
+    _assert_error(invalid_style, "numbered")
+
+    invalid_checked = _deck({
+        "type": "bullets", "style": "bullet",
+        "kicker": "分類", "title": "要点",
+        "bullets": [{"text": "本文A", "checked": True}],
+    })
+    _assert_error(invalid_checked, "style=checklist")
+
+    invalid_plain_text = _deck({
+        "type": "bullets", "style": "bullet",
+        "kicker": "分類", "title": "要点",
+        "bullets": ["本文A"],
+    })
+    _assert_error(invalid_plain_text, "text を持つオブジェクト")
+
+    removed_hub = _deck({
+        "type": "hub", "kicker": "関係図", "title": "関係者",
+        "center": {"title": "中心"},
+        "items": [{"title": "周辺"}],
+    })
+    _assert_error(removed_hub, "type=hub")
 
     legacy_cards = _deck({
         "type": "cards", "kicker": "比較", "title": "選択肢",

@@ -1,5 +1,4 @@
-"""ハブ図と構成図で共有する描画部品。"""
-import math
+"""構成図で共有する描画部品。"""
 
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
@@ -8,10 +7,8 @@ from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 from asset_paths import ASSET_DIR, resolve_icon_path
-from generate import (ACCENT, BODY_TOP, BODY_BOTTOM, BODY_W, CANVAS, CORAL, GRAY,
-                      LIGHT, MARGIN, NAVY, TEXT, WHITE, ContentArea,
-                      add_rect, add_text, header, note_line)
-from layout_fit import FitError, ensure_within, fit_text_or_raise, select_fit
+from generate import CANVAS, GRAY, NAVY, TEXT, add_text
+from layout_fit import fit_text_or_raise
 from textfit import line_height_in, text_width_in
 
 ORANGE = RGBColor(0xE8, 0x7B, 0x1E)   # compute
@@ -138,145 +135,3 @@ def left_of(cx):
 
 
 # (旧ハンドコード版 s_aws は diagram_layout.py + diagram_specs.py に移行済み)
-
-
-# ---- ステークホルダー調整図(ハブ型) ----
-def fit_hub_layout(area_height, count):
-    """放射間隔を圧縮してからアイコンを縮小する。"""
-    candidates = [
-        ("standard", {"radius_y": 1.72, "icon_size": 0.64}, 4.15),
-        ("gap", {"radius_y": 1.54, "icon_size": 0.64}, 3.79),
-        ("element", {"radius_y": 1.44, "icon_size": 0.50}, 3.45),
-    ]
-    if count >= 7:
-        candidates = [
-            (stage, values, used + 0.10)
-            for stage, values, used in candidates
-        ]
-    return select_fit(
-        "hub", area_height, candidates,
-        guidance="周辺ノードの文言または件数を減らしてください。",
-    )
-
-
-def _hub_overlap(a, b, gap=0.04):
-    return not (a[2] + gap <= b[0] or b[2] + gap <= a[0]
-                or a[3] + gap <= b[1] or b[3] + gap <= a[1])
-
-
-def _hub_label_obstacles(pos, ring, icon_size, cx, cy, hw, hh):
-    obstacles = [(cx - hw / 2, cy - hh / 2, cx + hw / 2, cy + hh / 2)]
-    for (nx, ny), item in zip(pos, ring):
-        obstacles.append((nx - icon_size / 2, ny - icon_size / 2,
-                          nx + icon_size / 2, ny + icon_size / 2))
-        above = ny > cy + 0.45
-        title_y = (ny - icon_size / 2 - 0.59 if above
-                   else ny + icon_size / 2 + 0.05)
-        title_w = min(2.1, text_width_in(item["name"], 11, "bold")
-                      + NODE_LABEL_PAD_X)
-        obstacles.append((nx - title_w / 2, title_y,
-                          nx + title_w / 2, title_y + 0.28))
-        if item.get("sub"):
-            sub_y = (ny - icon_size / 2 - 0.31 if above
-                     else ny + icon_size / 2 + 0.33)
-            sub_w = min(2.1, text_width_in(item["sub"], 9) + NODE_LABEL_PAD_X)
-            obstacles.append((nx - sub_w / 2, sub_y,
-                              nx + sub_w / 2, sub_y + 0.26))
-    return obstacles
-
-
-def _place_hub_relation_labels(slide, routes, obstacles, area):
-    placed = []
-    for start_x, start_y, end_x, end_y, label in routes:
-        dx, dy = end_x - start_x, end_y - start_y
-        distance = math.hypot(dx, dy)
-        perp_x, perp_y = -dy / distance, dx / distance
-        actual_w = min(2.1, text_width_in(label, 10) + EDGE_LABEL_PAD_X)
-        actual_h = line_height_in(10, 1.1) + EDGE_LABEL_PAD_Y
-        chosen = None
-        for ratio, offset in (
-                (0.58, 0.0), (0.64, 0.18), (0.64, -0.18),
-                (0.70, 0.24), (0.70, -0.24), (0.52, 0.24), (0.52, -0.24),
-                (0.60, 0.42), (0.60, -0.42), (0.55, 0.66), (0.55, -0.66),
-                (0.84, 0.0), (0.84, 0.35), (0.84, -0.35)):
-            label_x = start_x + dx * ratio + perp_x * offset
-            label_y = start_y + dy * ratio + perp_y * offset
-            rect = (label_x - actual_w / 2, label_y - actual_h / 2,
-                    label_x + actual_w / 2, label_y + actual_h / 2)
-            inside = (rect[0] >= MARGIN and rect[2] <= MARGIN + BODY_W
-                      and rect[1] >= area.top and rect[3] <= area.bottom)
-            if not inside:
-                continue
-            if any(_hub_overlap(rect, other) for other in obstacles + placed):
-                continue
-            chosen = (label_x, label_y, rect)
-            break
-        if chosen is None:
-            raise FitError(
-                f"hub.ring.label: {label!r} を周辺ノードとハブに重ならず"
-                "配置できません。関係ラベルを短くしてください。")
-        arrow_label(slide, chosen[0], chosen[1], label, w=2.1, size=10)
-        placed.append(chosen[2])
-
-
-def s_hub(slide, spec, page):
-    area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    if spec.get("note") and area.shifted:
-        area = ContentArea(area.top, area.bottom - 0.30, area.shifted)
-    y = area.map_y
-    cx, cy = 6.67, area.top + area.height * 0.50
-    hw, hh = 2.45, 1.05
-    ring = spec["ring"]
-    if not 3 <= len(ring) <= 8:
-        raise FitError(
-            "hub: 周辺ノードは3〜8件までです。項目を整理するか図を分割してください。")
-    fitted = fit_hub_layout(area.height, len(ring))
-    icon_size = fitted.values["icon_size"]
-    radius_y = fitted.values["radius_y"]
-    radius_x = 4.56
-    pos = []
-    for index in range(len(ring)):
-        angle = -math.pi / 2 + index * 2 * math.pi / len(ring)
-        pos.append((cx + radius_x * math.cos(angle),
-                    cy + radius_y * math.sin(angle)))
-
-    # Connectors first: lines stay behind the icon and its labels.
-    routes = []
-    for (sx, sy), item in zip(pos, ring):
-        dx, dy = cx - sx, cy - sy
-        distance = math.hypot(dx, dy)
-        ux, uy = dx / distance, dy / distance
-        start_x, start_y = sx + ux * 0.34, sy + uy * 0.34
-        ellipse_r = 1 / math.sqrt((ux / (hw / 2)) ** 2 + (uy / (hh / 2)) ** 2)
-        end_x, end_y = cx - ux * ellipse_r, cy - uy * ellipse_r
-        add_arrow(slide, start_x, start_y, end_x, end_y,
-                  both=True, color=LINE, width=1.25)
-        routes.append((start_x, start_y, end_x, end_y, item["label"]))
-
-    obstacles = _hub_label_obstacles(pos, ring, icon_size, cx, cy, hw, hh)
-    _place_hub_relation_labels(slide, routes, obstacles, area)
-
-    for i, ((nx, ny), item) in enumerate(zip(pos, ring)):
-        icon_node(slide, nx, ny, item["icon"], item["name"], item.get("sub"),
-                  size=icon_size, label_above=ny > cy + 0.45)
-
-    # 中心ハブ
-    sp = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(cx - hw / 2), Inches(cy - hh / 2),
-                                Inches(hw), Inches(hh))
-    sp.fill.solid()
-    sp.fill.fore_color.rgb = NAVY
-    sp.line.fill.background()
-    sp.shadow.inherit = False
-    hub_size, hub_lines = fit_text_or_raise(
-        "hub", "hub", spec["hub"], hw, 0.62, 13.5,
-        min_pt=11, weight="bold", spacing=1.1)
-    add_text(slide, cx - hw / 2, cy - 0.31, hw, 0.62,
-             spec["hub"], hub_size, bold=True,
-             color=WHITE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-    max_bottom = max(ny + icon_size / 2 + (0.02 if ny > cy + 0.45 else 0.59)
-                     for _nx, ny in pos)
-    ensure_within(
-        "hub", max_bottom - area.top, area.height,
-        guidance="周辺ノードのラベルを短くしてください。")
-    if spec.get("note"):
-        note_line(slide, spec["note"])

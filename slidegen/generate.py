@@ -32,6 +32,7 @@ CORAL = RGBColor(0xC7, 0x58, 0x3E)
 LIGHT = RGBColor(0xDF, 0xEB, 0xE8)
 TEXT = RGBColor(0x20, 0x27, 0x29)
 GRAY = RGBColor(0x66, 0x6E, 0x70)
+DONE_TEXT = RGBColor(0x56, 0x60, 0x62)
 WHITE = RGBColor(0xFF, 0xFF, 0xFC)
 ZEBRA = RGBColor(0xEC, 0xEA, 0xE4)
 CANVAS = RGBColor(0xF7, 0xF5, 0xEF)
@@ -182,35 +183,80 @@ def s_title(slide, spec, page):
                  add_text=add_text, add_rect=add_rect)
 
 
+def _normalize_bullet(item):
+    """公開object形式と既存の2要素配列を同じ描画入力へ揃える。"""
+    if isinstance(item, dict):
+        return item["text"], bool(item.get("checked", False))
+    return item[0], False
+
+
+def _bullet_first_line_center(y, size):
+    """Return the visual center of the first body-text line in inches."""
+    return y + size / 108 + 0.012
+
+
 def s_bullets(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    bullets = spec["bullets"]
-    area_h = area.height - 0.22
-    tx = 1.68
-    tw = 10.15
+    style = spec.get("style", "numbered")
+    bullets = [_normalize_bullet(item) for item in spec["bullets"]]
+    top_gap = 0.27 if area.shifted else 0.32
+    area_h = area.height - top_gap - 0.28
+    tx, tw = 1.48, 9.65
+    preferred_size = 22 if len(bullets) <= 2 else 20 if len(bullets) <= 4 else 18
+
     fitted = fit_vertical_stacks(
         "bullets", area_h, [bullets],
         lambda item, size: (
             len(wrap_text(item[0], tw, size))
             * line_height_in(size, 1.22)
         ),
-        standard_size=18,
+        standard_size=preferred_size,
         min_size=12,
         font_step=0.5,
-        standard_gap=0.48,
-        min_gap=0.30,
+        standard_gap=0.52,
+        min_gap=0.34,
         gap_step=0.03,
         guidance="箇条書きを減らすか各項目を短くしてください。",
     )
     size, gap = fitted.size, fitted.gap
     heights = fitted.stacks[0]
-    y = area.top + 0.38 + max(0.0, (area_h - fitted.used) * 0.22)
-    for i, ((text, _), bh) in enumerate(zip(bullets, heights), 1):
-        add_text(slide, 0.78, y - 0.07, 0.62, 0.45, f"{i:02d}", 15,
-                 bold=True, color=GRAY, align=PP_ALIGN.RIGHT)
-        add_text(slide, tx, y, tw, bh + 0.08, text, size, spacing=1.22)
-        if i < len(bullets):
-            add_rect(slide, tx, y + bh + 0.15, tw, 0.012, RULE)
+    rule_w = min(9.05, max(
+        6.30,
+        max(text_width_in(text, size) for text, _checked in bullets) + 0.30,
+    ))
+    y = area.top + top_gap
+    for i, ((text, checked), bh) in enumerate(zip(bullets, heights), 1):
+        marker_center = _bullet_first_line_center(y, size)
+        if style == "numbered":
+            # Latin numerals sit slightly below the geometric center when
+            # vertically anchored, so keep the text box 0.012in higher.
+            add_text(slide, 0.80, marker_center - 0.162, 0.46, 0.30,
+                     f"{i:02d}", 15.5, bold=True, color=ACCENT,
+                     align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE)
+        elif style == "bullet":
+            marker = slide.shapes.add_shape(
+                MSO_SHAPE.OVAL, Inches(1.04), Inches(marker_center - 0.07),
+                Inches(0.14), Inches(0.14))
+            marker.fill.solid()
+            marker.fill.fore_color.rgb = ACCENT
+            marker.line.fill.background()
+            marker.shadow.inherit = False
+        else:
+            checkbox_top = marker_center - 0.12
+            add_rect(
+                slide, 0.99, checkbox_top, 0.24, 0.24,
+                ACCENT if checked else CANVAS,
+                line=ACCENT if checked else GRAY,
+            )
+            if checked:
+                add_text(slide, 0.99, checkbox_top - 0.028, 0.24, 0.25, "✓", 12,
+                         bold=True, color=WHITE, align=PP_ALIGN.CENTER,
+                         anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, wrap=False)
+        add_text(slide, tx, y, tw, bh + 0.08, text, size,
+                 color=DONE_TEXT if style == "checklist" and checked else TEXT,
+                 spacing=1.22)
+        if style == "numbered":
+            add_rect(slide, tx, y + bh + 0.16, rule_w, 0.01, RULE)
         y += bh + gap
 
 

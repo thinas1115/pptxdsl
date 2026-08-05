@@ -23,7 +23,7 @@ from timeline_layout import resolve_marker, resolve_program_span
 
 # noteを実際に描画するtype。それ以外への指定はエラーにする。
 NOTE_TYPES = {"table", "chart", "process", "program_roadmap",
-              "matrix", "hub", "org", "diagram"}
+              "matrix", "org", "diagram"}
 _PLACEHOLDER = re.compile(r"^<[^<>]+>$")
 _UNRESOLVED = re.compile(r"^(?:TBD|TODO|要確認|未定|仮入力|仮文言)$", re.IGNORECASE)
 
@@ -32,7 +32,7 @@ _META_KEYS = {"title", "footer", "date", "organization", "author"}
 _BASE_SLIDE_KEYS = {"type", "kicker", "title", "lead"}
 _TYPE_KEYS = {
     "title": {"type", "title", "subtitle"},
-    "bullets": _BASE_SLIDE_KEYS | {"bullets"},
+    "bullets": _BASE_SLIDE_KEYS | {"style", "bullets"},
     "cards": _BASE_SLIDE_KEYS | {"style", "cards"},
     "table": _BASE_SLIDE_KEYS | {"columns", "rows", "note"},
     "twocol": _BASE_SLIDE_KEYS | {"left", "right"},
@@ -43,7 +43,6 @@ _TYPE_KEYS = {
     "matrix": _BASE_SLIDE_KEYS | {
         "x_axis", "y_axis", "points", "quadrants", "target_label", "note",
     },
-    "hub": _BASE_SLIDE_KEYS | {"hub", "ring", "note"},
     "org": _BASE_SLIDE_KEYS | {"org", "note"},
     "diagram": _BASE_SLIDE_KEYS | {"diagram", "note"},
 }
@@ -124,11 +123,24 @@ def _v_title(s):
 
 
 def _v_bullets(s):
-    items = s.req_list("bullets", 1, 6, "[本文, null]")
-    for i, b in enumerate(items or []):
-        if not (isinstance(b, list) and len(b) == 2
-                and _is_str(b[0]) and b[1] is None):
-            s.err(f'bullets[{i}] は ["本文", null] の2要素配列にしてください')
+    style = s.spec.get("style", "numbered")
+    if style not in {"numbered", "bullet", "checklist"}:
+        s.err('bullets.style は "numbered" / "bullet" / "checklist" にしてください')
+    items = s.req_list("bullets", 1, 6, "項目")
+    for i, item in enumerate(items or []):
+        if isinstance(item, list):
+            if not (len(item) == 2 and _is_str(item[0]) and item[1] is None):
+                s.err(f"bullets[{i}] は text を持つオブジェクトにしてください")
+            continue
+        if not (isinstance(item, dict) and _is_str(item.get("text"))):
+            s.err(f"bullets[{i}] は text を持つオブジェクトにしてください")
+            continue
+        s.allow_keys(item, {"text", "checked"}, f"bullets[{i}]")
+        if "checked" in item:
+            if style != "checklist":
+                s.err(f"bullets[{i}].checked はstyle=checklistの場合だけ指定できます")
+            elif not isinstance(item["checked"], bool):
+                s.err(f"bullets[{i}].checked は真偽値にしてください")
 
 
 def _v_cards(s):
@@ -458,28 +470,6 @@ def _v_matrix(s):
             s.err(f"points[{i}].emph は真偽値にしてください")
 
 
-def _v_hub(s):
-    s.req_str("hub")
-    ring = s.req_list("ring", 3, 8, "周辺ノード")
-    for i, r in enumerate(ring or []):
-        if not (isinstance(r, dict) and _is_str(r.get("name"))
-                and _is_str(r.get("label")) and _is_str(r.get("icon"))):
-            s.err(f"ring[{i}] には name / label / icon (文字列) が必要です")
-            continue
-        s.allow_keys(r, {"name", "sub", "label", "icon"}, f"ring[{i}]")
-        if "sub" in r and not _is_str(r["sub"]):
-            s.err(f"ring[{i}].sub は空でない文字列にしてください")
-        try:
-            icon = resolve_icon_path(r["icon"])
-        except ValueError:
-            s.err(f"ring[{i}].icon は slidegen/assets/ 内の相対パスに"
-                  "してください")
-            continue
-        if not icon.is_file():
-            s.err(f"ring[{i}].icon のファイルがありません: {r['icon']}。"
-                  "CONTENT_SCHEMA.md のFluentアイコン一覧から選んでください")
-
-
 def _v_org(s):
     if any(key in s.spec for key in ("top", "pm", "teams", "external")):
         s.err('旧org形式の top / pm / teams / external は廃止しました。'
@@ -758,7 +748,7 @@ VALIDATORS = {
     "image": _v_image,
     "process": _v_process, "program_roadmap": _v_program_roadmap,
     "matrix": _v_matrix,
-    "hub": _v_hub, "org": _v_org, "diagram": _v_diagram,
+    "org": _v_org, "diagram": _v_diagram,
 }
 
 

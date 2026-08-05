@@ -4,10 +4,9 @@ AIが書くのは離散的な仕様(セル・メンバー・経由チャネル�
 座標はすべて本エンジンが決定論的に導出するため、いつ誰が(どのモデルが)
 仕様を書いても同じ図になる。仕様の形式は CONTENT_SCHEMA.md を参照。
 """
-from generate import BODY_BOTTOM, BODY_TOP, BODY_W, MARGIN, note_line
-from diagrams import (ACCENT, EDGE_GAP, EDGE_LABEL_PAD_X, EDGE_LABEL_PAD_Y,
-                      ICON_R, LINE, NAVY, add_arrow, arrow_label, container,
-                      icon_node)
+from generate import ACCENT, BODY_BOTTOM, BODY_TOP, BODY_W, MARGIN, NAVY, note_line
+from diagrams import (EDGE_GAP, EDGE_LABEL_PAD_X, EDGE_LABEL_PAD_Y, ICON_R,
+                      LINE, add_arrow, arrow_label, container, icon_node)
 from diagrams3 import route
 from layout_fit import FitError, stepped
 from textfit import line_height_in, text_width_in

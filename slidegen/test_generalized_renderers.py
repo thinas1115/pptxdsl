@@ -7,7 +7,6 @@ from pptx.util import Inches
 
 import generate
 from content_patterns import PATTERN_DECK
-from diagrams import fit_hub_layout, s_hub
 from diagrams2 import (_fit_process_flow, _matrix_label_positions,
                        fit_matrix_labels, s_matrix, s_process)
 from layout_fit import FitError
@@ -62,6 +61,95 @@ def _assert_process_natural_top(slide, flow, area_top):
 def main():
     errors = validate(deepcopy(PATTERN_DECK), allow_sample_content=True)
     assert not errors, "\n".join(errors)
+
+    bullet_specs = {
+        "numbered": [{"text": "順序付き項目"}],
+        "bullet": [{"text": "通常箇条書き"}],
+        "checklist": [{"text": "完了項目", "checked": True},
+                      {"text": "未完了項目", "checked": False}],
+    }
+    bullet_slides = {}
+    for style, items in bullet_specs.items():
+        spec = dict(_base("bullets"), style=style, bullets=items)
+        bullet_slides[style] = _slide()
+        generate.s_bullets(bullet_slides[style], spec, 1)
+        body = _text_shape(bullet_slides[style], items[0]["text"])
+        body_top = body.top / Inches(1)
+        assert generate.BODY_TOP + 0.31 <= body_top <= generate.BODY_TOP + 0.33
+        assert body.text_frame.paragraphs[0].runs[0].font.size.pt >= 22
+    assert _text_shape(bullet_slides["numbered"], "01")
+    assert any(shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+               and shape.auto_shape_type == generate.MSO_SHAPE.OVAL
+               for shape in bullet_slides["bullet"].shapes)
+    assert _text_shape(bullet_slides["checklist"], "✓")
+
+    # Marker alignment must follow every font size selected by item density.
+    expected_sizes = {2: 22, 4: 20, 6: 18}
+    for style in ("numbered", "bullet", "checklist"):
+        for count, expected_size in expected_sizes.items():
+            items = [
+                {"text": f"配置基準を確認する項目{i + 1}",
+                 "checked": style == "checklist" and i % 2 == 0}
+                for i in range(count)
+            ]
+            slide = _slide()
+            generate.s_bullets(
+                slide,
+                dict(_base("bullets"), style=style, bullets=items),
+                1,
+            )
+            body = _text_shape(slide, items[0]["text"])
+            body_top = body.top / Inches(1)
+            size = body.text_frame.paragraphs[0].runs[0].font.size.pt
+            assert size == expected_size
+            expected_center = generate._bullet_first_line_center(body_top, size)
+            if style == "numbered":
+                marker = _text_shape(slide, "01")
+                expected_center -= 0.012
+            else:
+                marker = next(
+                    shape for shape in slide.shapes
+                    if shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+                    and 0.9 <= shape.left / Inches(1) <= 1.1
+                    and 0.13 <= shape.width / Inches(1) <= 0.25
+                    and 0.13 <= shape.height / Inches(1) <= 0.25
+                )
+            marker_center = (marker.top + marker.height / 2) / Inches(1)
+            assert abs(marker_center - expected_center) < 0.01
+
+    numbered = dict(
+        _base("bullets"), style="numbered",
+        bullets=[{"text": f"判断項目{i}"} for i in range(3)],
+    )
+    numbered_slide = _slide()
+    generate.s_bullets(numbered_slide, numbered, 1)
+    rules = [
+        shape for shape in numbered_slide.shapes
+        if 0.009 <= shape.height / Inches(1) <= 0.011
+    ]
+    assert len(rules) == 3
+    assert all(shape.width / Inches(1) <= 6.31 for shape in rules)
+    assert max((shape.top + shape.height) / Inches(1) for shape in rules) \
+        < generate.BODY_BOTTOM
+
+    long_text = (
+        "停止可能時間と繁忙期を確認し、移行候補日と切り戻し条件を"
+        "関係部門で合意してから実施判断へ進む"
+    )
+    wrapped = dict(
+        _base("bullets"), style="checklist",
+        lead="長文とleadを併用しても、本文下端の安全余白を維持します。",
+        bullets=[{"text": long_text, "checked": i < 2} for i in range(4)],
+    )
+    wrapped_slide = _slide()
+    generate.s_bullets(wrapped_slide, wrapped, 1)
+    body_shapes = [
+        shape for shape in wrapped_slide.shapes
+        if getattr(shape, "has_text_frame", False) and shape.text == long_text
+    ]
+    assert len(body_shapes) == 4
+    assert max((shape.top + shape.height) / Inches(1)
+               for shape in body_shapes) < generate.BODY_BOTTOM
 
     columns = ["区分", "短い値", "詳細説明"]
     rows = [["A", "可", "利用部門と運用条件を文章で説明する"]]
@@ -174,17 +262,6 @@ def main():
     legacy_point_x = 1.0 + 0.4 * 8.0
     assert abs(legacy_labels[0][0] - (legacy_point_x - 1.0 + 0.2)) < 0.001
     s_matrix(_slide(), matrix, 1)
-
-    for count in (3, 5, 8):
-        hub = dict(
-            _base("hub"), hub="中心",
-            ring=[{"name": f"部門{i + 1}", "label": "連携",
-                   "icon": "icons/fluent/team.png"} for i in range(count)],
-        )
-        s_hub(_slide(), hub, 1)
-    assert fit_hub_layout(4.0, 5).stage == "gap"
-    assert fit_hub_layout(3.6, 8).stage == "element"
-    _must_fail(lambda: fit_hub_layout(3.2, 8), "最小設定")
 
     print("generalized renderer tests passed")
 

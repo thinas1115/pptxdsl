@@ -73,7 +73,7 @@ python slidegen/validate_content.py content.json
 - `type: "title"` 以外は `lead` (string) を任意指定できる。タイトル直下に要旨を置き、指定時だけ本文開始位置が下がる。未指定時の本文位置は変わらない。
 - `lead` は本文を読む前に伝える結論・前提・読み方を1〜2行で書く。単なるタイトルの言い換えや本文項目の列挙には使わない。文字数の固定上限はないが、最小フォントでも領域へ収まらない場合は生成を停止する。
 - JSONなので、Pythonのタプルではなく配列を使う。
-- `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `program_roadmap` / `matrix` / `hub` / `org` / `diagram` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
+- `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `program_roadmap` / `matrix` / `org` / `diagram` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
 - 構成図は `diagram` type で書く(グリッド仕様のみ、座標の数値は書かない)。
 
 ```json
@@ -118,36 +118,45 @@ python slidegen/validate_content.py content.json
 
 ### bullets
 
-用途: 箇条書き、目次、要点整理。
+用途: 順序付きの説明、順序を持たない要点列挙、タスク一覧。
 
 必須:
 
 - `type`: `"bullets"`
 - `kicker`: string
 - `title`: string
-- `bullets`: `[text, null]` の配列
+- `bullets`: object の配列
+- `bullets[*].text`: string
+
+任意:
+
+- `style`: `"numbered"` / `"bullet"` / `"checklist"`。省略時は`"numbered"`
+- `bullets[*].checked`: boolean。`style: "checklist"`の場合だけ指定可能。省略時は`false`
 
 制約:
 
 - `bullets` は3〜5件程度が安全(validatorの上限は6件)。
-- 各要素は `["本文", null]` の2要素配列。2要素目は描画されないため`null`固定にする。
-  文字列だけを直接並べるとエラーになる。
+- 手順・優先順位・読み順がある場合は`numbered`、順序を持たない要点は`bullet`、
+  実施項目と完了状態は`checklist`を使う。
+- `checklist`の完了項目はチェック済み、未完了項目は空のチェックボックスで描画する。
+- 各項目を単なる文字列で直接並べるとエラーになる。
 
 ```json
 {
   "type": "bullets",
+  "style": "checklist",
   "kicker": "分類",
   "title": "タイトル",
   "bullets": [
-    ["箇条書き本文", null],
-    ["箇条書き本文", null]
+    {"text": "完了した項目", "checked": true},
+    {"text": "これから実施する項目", "checked": false}
   ]
 }
 ```
 
 ### cards
 
-用途: 独立したサマリ、KPI、選択肢、事例の比較。出力は枠線に頼らないフラットな編集的カードになる。
+用途: 主結論と複数の独立した根拠、KPI、選択肢、事例の比較。出力は枠線に頼らないフラットな編集的カードになる。
 
 必須:
 
@@ -167,7 +176,7 @@ python slidegen/validate_content.py content.json
 制約:
 
 - `cards` は2〜6件。件数に応じて1〜2行の列数と幅が自動計算される。
-- 各項目が独立して比較できる場合に使う。フェーズ名や図のノードなど、別の構造に属する要素には使わない。
+- 各項目が独立して比較できる場合に使う。読み順のある要点、フェーズ名、図のノードなど、別の構造に属する要素には使わない。
 - `editorial`: サマリ・選択肢・事例向け。4件で`emphasis: true`が1件なら、その項目を主項目として描画する。
 - `metrics`: KPI向け。`heading`と`value`を分けて書き、rendererが文字列から数値を推測しないようにする。
 
@@ -539,45 +548,6 @@ python slidegen/validate_content.py content.json
     {"name": "点ラベル", "x": 0.5, "y": 0.5, "emph": true}
   ],
   "note": "任意の注記"
-}
-```
-
-### hub
-
-用途: ステークホルダー関係図。
-
-必須:
-
-- `type`: `"hub"`
-- `kicker`: string
-- `title`: string
-- `hub`: string
-- `ring`: object の配列
-- `ring[*].name`: string
-- `ring[*].label`: string
-- `ring[*].icon`: string。`icons/fluent/〜.png` を指定する
-
-任意:
-
-- `ring[*].sub`: string
-- `note`: string
-
-制約:
-
-- `ring` は3〜8件。件数に応じて楕円周上へ均等配置する。
-- 本文高さが不足する場合は放射間隔、アイコンの順に縮小し、最小値でも収まらなければ生成を停止する。
-
-```json
-{
-  "type": "hub",
-  "kicker": "分類",
-  "title": "タイトル",
-  "hub": "中央ラベル",
-  "ring": [
-    {"name": "周辺ノードA", "sub": "補足A", "label": "関係A", "icon": "icons/fluent/team.png"},
-    {"name": "周辺ノードB", "sub": "補足B", "label": "関係B", "icon": "icons/fluent/organization.png"},
-    {"name": "周辺ノードC", "sub": "補足C", "label": "関係C", "icon": "icons/fluent/person.png"}
-  ]
 }
 ```
 

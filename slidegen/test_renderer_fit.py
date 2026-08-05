@@ -3,7 +3,6 @@ from pptx import Presentation
 from pptx.util import Inches
 
 import generate
-from diagrams import s_hub
 from org_layout import s_org
 from diagrams2 import s_matrix, s_process, s_program_roadmap
 from layout_fit import FitError
@@ -43,6 +42,13 @@ def main():
         assert "箇条書きを減らす" in str(e), str(e)
     else:
         raise AssertionError("rendererエラーにスライド位置が付与されませんでした")
+
+    checklist = _base("bullets")
+    checklist.update(
+        style="checklist",
+        bullets=[{"text": LONG, "checked": i % 2 == 0} for i in range(6)],
+    )
+    _must_fail(generate.s_bullets, checklist, "不足")
 
     spec = _base("cards")
     spec.update(style="editorial", cards=[[f"項目{i}", LONG] for i in range(7)])
@@ -101,12 +107,6 @@ def main():
                 points=[{"name": str(i), "x": 0.5, "y": 0.5}
                         for i in range(9)])
     _must_fail(s_matrix, spec, "点は1〜8件")
-
-    spec = _base("hub")
-    spec.update(hub="中心", ring=[{"name": "部門", "label": "連携",
-                                   "icon": "icons/fluent/team.png"}
-                                  for _ in range(9)])
-    _must_fail(s_hub, spec, "周辺ノードは3〜8件")
 
     spec = _base("org")
     spec["org"] = {

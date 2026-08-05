@@ -41,7 +41,6 @@ rendererと共通部品の範囲に閉じ込めやすい。
 | グラフ | `generate.py` の `s_chart()` | グラフ面、系列色、凡例、余白、データラベル |
 | 大判画像 | `slidegen/image_slide.py` の `s_image()` / `fit_image_layout()` | 画像枠、contain/cover、右下影、縮小限界 |
 | 図解共通部品 | `slidegen/diagrams.py` の `LINE` / `add_arrow()` / `arrow_label()` / `container()` / `icon_node()` | アイコンノード、枠、矢印、線上ラベルの見た目 |
-| ハブ図 | `diagrams.py` の `s_hub()` | 放射配置と中心・周辺ノードの造形 |
 | 体制図 | `org_layout.py` の `OrgLayout` | 階層DAG、関係線、ノードstyle、段階的収容 |
 | 工程 / ロードマップ / 2軸図 | `slidegen/diagrams2.py` の各 `s_*()` | 各ジャンル固有の線、帯、点、ラベル、余白 |
 | 構成図の色名 | `slidegen/diagram_layout.py` の `COLORS` | diagram specで指定できる離散的な色名と実色の対応 |
