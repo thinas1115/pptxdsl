@@ -121,6 +121,10 @@ stepped(start, minimum, step) -> iterator
 select_fit(renderer, available, candidates, *, guidance) -> FitResult
 fit_text_or_raise(renderer, field, text, box_w, box_h, max_pt, *, min_pt, ...) -> (size, lines)
 ensure_within(renderer, used, available, *, guidance) -> FitResult
+fit_vertical_stacks(renderer, available, stacks, measure_item, *,
+                    standard_size, min_size, font_step,
+                    standard_gap, min_gap, gap_step,
+                    fixed_height=0.0, guidance=...) -> VerticalPackResult
 
 # generate.py — ページ部品と定数
 SLIDE_W=13.333, SLIDE_H=7.5, MARGIN=0.55, BODY_W=12.233, BODY_TOP=1.58, BODY_BOTTOM=6.85
