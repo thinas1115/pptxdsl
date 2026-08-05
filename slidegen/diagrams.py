@@ -50,7 +50,7 @@ def arrow_label(slide, cx, cy, text, w=1.6, size=9):
     box_h = line_height_in(size, 1.1) + EDGE_LABEL_PAD_Y
     actual_size, _ = fit_text_or_raise(
         "arrow_label", "text", text, w - EDGE_LABEL_PAD_X, box_h, size,
-        min_pt=max(7, size - 2), spacing=1.1)
+        min_pt=max(7, size - 2), spacing=1.1, role="compact")
     actual_w = min(w, text_width_in(text, actual_size) + EDGE_LABEL_PAD_X)
     actual_h = line_height_in(actual_size, 1.1) + EDGE_LABEL_PAD_Y
     tb = add_text(slide, cx - actual_w / 2, cy - actual_h / 2, actual_w, actual_h,
@@ -73,7 +73,7 @@ def container(slide, x, y, w, h, label, color=LINE, dash=None):
         ln.insert(0, ln.makeelement(qn("a:prstDash"), {"val": dash}))
     label_size, _ = fit_text_or_raise(
         "container", "label", label, w - 0.3, 0.28, 10.5,
-        min_pt=8.5, weight="bold", spacing=1.1)
+        min_pt=8.5, weight="bold", spacing=1.1, role="natural")
     label_w = min(w - 0.3, text_width_in(label, label_size, "bold") + 0.08)
     add_text(slide, x + 0.12, y + 0.06, label_w, 0.28, label, label_size, bold=True,
              color=color)
@@ -85,7 +85,8 @@ def _masked_node_label(slide, cx, y, text, *, max_w, slot_h, size, min_pt,
     weight = "bold" if bold else "regular"
     actual_size, lines = fit_text_or_raise(
         "icon_node", "title" if bold else "sub", text, max_w, slot_h, size,
-        min_pt=min_pt, weight=weight, spacing=1.1)
+        min_pt=min_pt, weight=weight, spacing=1.1,
+        role="natural" if bold else "compact")
     rendered = "\n".join(lines)
     actual_w = min(max_w, text_width_in(rendered, actual_size, weight)
                    + NODE_LABEL_PAD_X)
