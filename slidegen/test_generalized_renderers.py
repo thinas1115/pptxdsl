@@ -172,6 +172,25 @@ def main():
     assert any(shape.has_text_frame and shape.text_frame.text == "10%"
                for shape in card_slide.shapes)
 
+    # 強調項目が1件ある4カードでも、特殊な左右非対称配置へ切り替えない。
+    editorial_cards = [
+        {"heading": f"選択肢{i + 1}", "body": "適用条件と注意点を示す。",
+         "emphasis": i == 0}
+        for i in range(4)
+    ]
+    editorial_slide = _slide()
+    generate.s_cards(
+        editorial_slide,
+        dict(_base("cards"), style="editorial", cards=editorial_cards),
+        1,
+    )
+    heading_tops = [
+        round(_text_shape(editorial_slide, card["heading"]).top / Inches(1), 2)
+        for card in editorial_cards
+    ]
+    assert len(set(heading_tops)) == 2
+    assert all(heading_tops.count(top) == 2 for top in set(heading_tops))
+
     comparison = dict(
         _base("twocol"),
         left={"label": "現状", "heading": "現在", "bullets": ["課題を確認"]},
