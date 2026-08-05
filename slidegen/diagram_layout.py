@@ -48,6 +48,32 @@ GAP = 0.06             # 行間の最小クリアランス
 OVERLAP_MIN = 0.1      # コンテナ帯と前行の「横方向重なり」判定しきい値
 
 
+def _max_overlapping_stack(intervals, overlap_min=OVERLAP_MIN):
+    """横方向に同時に重なる帯だけを積算し、必要な最大厚を返す。"""
+    reduced = []
+    solo_max = 0.0
+    inset = overlap_min / 2
+    for lo, hi, value in intervals:
+        if hi - lo <= overlap_min:
+            solo_max = max(solo_max, value)
+            continue
+        reduced.append((lo + inset, hi - inset, value))
+
+    if not reduced:
+        return solo_max
+
+    bounds = sorted({point for lo, hi, _ in reduced for point in (lo, hi)})
+    candidates = [(lo + hi) / 2 for lo, hi, _ in reduced]
+    candidates += [(left + right) / 2
+                   for left, right in zip(bounds, bounds[1:])
+                   if right > left]
+    overlap_max = max(
+        sum(value for lo, hi, value in reduced if lo < x < hi)
+        for x in candidates
+    )
+    return max(solo_max, overlap_max)
+
+
 class Layout:
     def __init__(self, spec, reserve_note=False, content_area=None):
         self.spec = spec
@@ -188,8 +214,16 @@ class Layout:
                     return total + chain_stack(ch, key, side)
             return total
 
-        top_stack = sum(chain_stack(r, "band", "top") for r in roots)
-        bot_stack = sum(chain_stack(r, "bband", "bot") for r in roots)
+        # 横に離れたルートコンテナの帯は同じY領域を共有できる。全ルートを
+        # 単純加算せず、同時に横重なりするチェーンの最大厚だけを確保する。
+        top_stack = _max_overlapping_stack([
+            (*band_by_name[r]["x"], chain_stack(r, "band", "top"))
+            for r in roots
+        ])
+        bot_stack = _max_overlapping_stack([
+            (*band_by_name[r]["x"], chain_stack(r, "bband", "bot"))
+            for r in roots
+        ])
 
         # 行ピッチ = 必須分(前行ラベル深さ+次行アイコン半径。重なり厳禁) +
         #            裁量分(横方向に重なるコンテナ帯+GAP。収まらない時はここだけ圧縮)。

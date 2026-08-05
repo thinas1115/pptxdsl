@@ -9,7 +9,7 @@ import generate
 from content import DECK
 from content_ext import EXTRA_SLIDES
 from org_layout import s_org
-from diagrams2 import s_matrix, s_process, s_roadmap
+from diagrams2 import s_matrix, s_process, s_program_roadmap
 from diagram_layout import render_diagram
 
 
@@ -23,7 +23,8 @@ def s_diagram(slide, spec, page):
 
 RENDER_EXTENDED = dict(generate.RENDER,
                        org=s_org,
-                       process=s_process, roadmap=s_roadmap, matrix=s_matrix,
+                       process=s_process, program_roadmap=s_program_roadmap,
+                       matrix=s_matrix,
                        diagram=s_diagram)
 
 

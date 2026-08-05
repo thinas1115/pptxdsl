@@ -8,7 +8,7 @@ from pptx.util import Inches
 import generate
 from content_patterns import PATTERN_DECK
 from org_layout import s_org
-from diagrams2 import s_matrix, s_process, s_program_roadmap, s_roadmap
+from diagrams2 import s_matrix, s_process, s_program_roadmap
 from diagram_layout import render_diagram
 from image_slide import s_image
 from validate_content import validate
@@ -24,8 +24,8 @@ def s_diagram(slide, spec, page):
 
 RENDER = dict(generate.RENDER,
               org=s_org,
-              process=s_process, roadmap=s_roadmap,
-              program_roadmap=s_program_roadmap, matrix=s_matrix,
+              process=s_process, program_roadmap=s_program_roadmap,
+              matrix=s_matrix,
               diagram=s_diagram, image=s_image)
 
 

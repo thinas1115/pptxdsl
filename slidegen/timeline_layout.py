@@ -1,4 +1,4 @@
-"""ロードマップ系rendererの期間解決・レーン割当・収容計算。"""
+"""工程表rendererの期間解決・レーン割当・収容計算。"""
 from dataclasses import dataclass
 
 from layout_fit import select_fit, stepped
@@ -104,42 +104,6 @@ def centered_label_box(center, previous_center, following_center,
     if half_width <= 0:
         raise ValueError("ラベルを中央配置できる幅がありません")
     return center - half_width, half_width * 2
-
-
-def fit_roadmap(available, row_count, *, has_note=False):
-    """既存roadmapを最大6行まで段階的に収容する。"""
-    reserve = 0.30 if has_note else 0.0
-    usable = available - reserve
-    candidates = [
-        ("standard", {
-            "top_gap": 0.24, "header_h": 0.48, "row_h": 0.78,
-            "bar_h": 0.30, "period_pt": 10.5, "name_pt": 12.5,
-            "goal_pt": 9.5, "bar_pt": 10.0, "milestone_pt": 8.5,
-        }, 0.24 + 0.48 + row_count * 0.78),
-    ]
-    for row_h in stepped(0.76, 0.70, 0.02):
-        values = {
-            "top_gap": 0.12, "header_h": 0.44, "row_h": row_h,
-            "bar_h": 0.28, "period_pt": 10.0, "name_pt": 12.0,
-            "goal_pt": 9.0, "bar_pt": 9.5, "milestone_pt": 8.0,
-        }
-        candidates.append(("gap", values, 0.12 + 0.44 + row_count * row_h))
-    for row_h in stepped(0.68, 0.56, 0.02):
-        ratio = (row_h - 0.56) / 0.12
-        values = {
-            "top_gap": 0.08, "header_h": 0.42, "row_h": row_h,
-            "bar_h": 0.22 + 0.04 * ratio,
-            "period_pt": 8.5 + 1.0 * ratio,
-            "name_pt": 9.5 + 1.5 * ratio,
-            "goal_pt": 7.5 + 1.0 * ratio,
-            "bar_pt": 8.0 + 1.0 * ratio,
-            "milestone_pt": 7.0 + 0.5 * ratio,
-        }
-        candidates.append(("element", values, 0.08 + 0.42 + row_count * row_h))
-    return select_fit(
-        "roadmap", usable, candidates,
-        guidance="フェーズ名を短くするか、フェーズ数を減らして分割してください。",
-    )
 
 
 def fit_program_roadmap(available, lane_counts, *, has_note=False):

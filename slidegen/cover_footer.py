@@ -18,6 +18,7 @@ from pptx.util import Inches, Pt
 from layout_fit import fit_text_or_raise
 from textfit import (
     line_height_in,
+    text_width_in,
     title_lines_are_natural,
     wrap_text,
     wrap_title,
@@ -290,9 +291,16 @@ def _format(value, meta, *, page, total):
 
 
 def _single_line_size(text, width, size, min_size, *, field, weight="regular"):
-    while len(wrap_text(text, width, size, weight)) > 1 and size > min_size:
+    def fits_single_line(candidate_size):
+        lines = wrap_text(text, width, candidate_size, weight)
+        return (
+            len(lines) == 1
+            and text_width_in(lines[0], candidate_size, weight) <= width + 0.01
+        )
+
+    while not fits_single_line(size) and size > min_size:
         size -= 0.5
-    if len(wrap_text(text, width, size, weight)) > 1:
+    if not fits_single_line(size):
         raise ValueError(f"{field} の展開後の文字列が長すぎます: {text}")
     return size
 

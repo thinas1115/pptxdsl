@@ -73,7 +73,7 @@ python slidegen/validate_content.py content.json
 - `type: "title"` 以外は `lead` (string) を任意指定できる。タイトル直下に要旨を置き、指定時だけ本文開始位置が下がる。未指定時の本文位置は変わらない。
 - `lead` は本文を読む前に伝える結論・前提・読み方を1〜2行で書く。単なるタイトルの言い換えや本文項目の列挙には使わない。文字数の固定上限はないが、最小フォントでも領域へ収まらない場合は生成を停止する。
 - JSONなので、Pythonのタプルではなく配列を使う。
-- `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `roadmap` / `program_roadmap` / `matrix` / `org` / `diagram` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
+- `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `program_roadmap` / `matrix` / `org` / `diagram` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
 - 構成図は `diagram` type で書く(グリッド仕様のみ、座標の数値は書かない)。
 
 ```json
@@ -434,55 +434,10 @@ python slidegen/validate_content.py content.json
 }
 ```
 
-### roadmap
-
-用途: フェーズ単位のガント風ロードマップ。1フェーズにつき1本のバーを置く。
-
-必須:
-
-- `type`: `"roadmap"`
-- `kicker`: string
-- `title`: string
-- `months`: string の配列
-- `phases`: object の配列
-- `phases[*].name`: string
-- `phases[*].goal`: string
-- `phases[*].bar`: string
-- `phases[*].start`: number または `months` 内の期間ラベル
-- `phases[*].end`: number または `months` 内の期間ラベル
-- `milestones`: object の配列
-- `milestones[*].at`: number または `months` 内の期間ラベル
-- `milestones[*].row`: number
-- `milestones[*].label`: string
-
-制約:
-
-- `months` は重複しない3〜12件。月以外に四半期、週、工程名なども使える。
-- `phases` は1〜6件。4件以上ではrendererが余白・行高・文字を段階的に縮小する。
-- 数値の `start`, `end`, `at` は期間列の境界index。12期間なら `0` から `12` の範囲。
-- 期間ラベルの `start` は該当列の開始、`end` は該当列を含む終了、`at` は該当列の中央として扱う。
-- 数値indexと期間ラベルは混在できるが、AI生成では読みやすい期間ラベル指定を推奨する。
-- `milestones[*].row` は対応する `phases` の0始まりindex。不要なら `"milestones": []`。
-
-```json
-{
-  "type": "roadmap",
-  "kicker": "分類",
-  "title": "タイトル",
-  "months": ["4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月", "1月", "2月", "3月"],
-  "phases": [
-    {"name": "Phase 1", "goal": "目的", "bar": "バー内文言", "start": "4月", "end": "6月"}
-  ],
-  "milestones": [
-    {"at": "6月", "row": 0, "label": "判定"}
-  ]
-}
-```
-
 ### program_roadmap
 
-用途: 複数テーマに複数作業があり、同じ時間軸で並行関係を示すプログラム工程表。
-作業期間が重なる場合はrendererが同一テーマ内のレーンを自動で増やす。
+用途: 少数フェーズから複数テーマの並行作業まで、同じ時間軸で期間計画を示す工程表。
+同じテーマ内で作業期間が重なる場合はrendererがレーンを自動で増やす。
 
 必須:
 
@@ -499,6 +454,10 @@ python slidegen/validate_content.py content.json
 
 任意:
 
+- `tracks[*].goal`: テーマの狙い。指定したテーマだけ左側の見出し欄へ表示する
+- `tracks[*].milestone`: テーマ内の判定点。1テーマにつき1件まで
+- `tracks[*].milestone.at`: number または `periods` 内の期間ラベル
+- `tracks[*].milestone.label`: string
 - `tracks[*].activities[*].emph`: boolean。重要作業を強調する
 - `note`: string
 
@@ -511,8 +470,11 @@ python slidegen/validate_content.py content.json
   `0`は最初の月の開始、`0.25`は最初の月の1/4経過、`0.5`は月半ば、
   `0.75`は3/4経過、`1`は次月の開始を表す。
 - 期間ラベルの`start`は該当期間の開始、`end`は該当期間を含む終了として扱う。
+- 期間ラベルの`milestone.at`は該当期間の中央として扱う。数値指定は0.25刻みとし、
+  同じテーマ内のいずれかの作業期間内に置く。
 - 0.25刻み以外の数値はvalidatorが拒否する。
 - 同じテーマ内で重なる作業は入力順や座標指定ではなく、期間の重なりから自動レーン配置する。
+- `milestone`を指定したテーマだけ判定点用のレーンを追加する。未指定テーマの行高は変わらない。
 - 最小設定でも収まらない場合は、テーマまたは同時並行作業を減らしてスライドを分割する。
 
 ```json
@@ -524,10 +486,12 @@ python slidegen/validate_content.py content.json
   "tracks": [
     {
       "name": "テーマA",
+      "goal": "対象業務を確定する",
       "activities": [
         {"label": "作業A1", "start": 0.25, "end": 2.75},
         {"label": "作業A2", "start": 2.0, "end": 4.0, "emph": true}
-      ]
+      ],
+      "milestone": {"at": 2.75, "label": "実施判断"}
     },
     {
       "name": "テーマB",

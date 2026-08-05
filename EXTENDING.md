@@ -53,8 +53,8 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/generate.py` | 基本renderer (title/bullets/cards/table/twocol/chart) + 共通ヘルパー + ページ定数 |
 | `slidegen/diagrams.py` | 図解部品 (icon_node/add_arrow/arrow_label/container) |
 | `slidegen/org_layout.py` | 体制図の階層DAG配置、直角配線、段階的収容 |
-| `slidegen/diagrams2.py` | process/roadmap/program_roadmap/matrix renderer |
-| `slidegen/timeline_layout.py` | 期間ラベル解決、重複作業の自動レーン割当、roadmap系の段階的収容 |
+| `slidegen/diagrams2.py` | process/program_roadmap/matrix renderer |
+| `slidegen/timeline_layout.py` | 期間ラベル解決、重複作業の自動レーン割当、工程表の段階的収容 |
 | `slidegen/image_slide.py` | 大判画像の比率維持・中央トリミング・右下影・段階的収容 |
 | `slidegen/diagrams3.py` | route() 直角配線 |
 | `slidegen/diagram_layout.py` | 宣言的レイアウトエンジン (グリッド仕様→座標。diagram type の本体) |
@@ -112,6 +112,7 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 # textfit.py — フォント実測
 text_width_in(text, size_pt, weight="regular") -> float      # 1行の実測幅(インチ)
 wrap_text(text, width_in, size_pt, weight="regular") -> list # 禁則込み折り返し
+wrap_natural / wrap_body / wrap_compact                      # 文章役割別の改行
 line_height_in(size_pt, spacing=1.3) -> float
 fit_font_size(text, box_w, box_h, start_pt, min_pt=..., ...) -> (size, lines)
 
@@ -120,6 +121,10 @@ stepped(start, minimum, step) -> iterator
 select_fit(renderer, available, candidates, *, guidance) -> FitResult
 fit_text_or_raise(renderer, field, text, box_w, box_h, max_pt, *, min_pt, ...) -> (size, lines)
 ensure_within(renderer, used, available, *, guidance) -> FitResult
+fit_vertical_stacks(renderer, available, stacks, measure_item, *,
+                    standard_size, min_size, font_step,
+                    standard_gap, min_gap, gap_step,
+                    fixed_height=0.0, guidance=...) -> VerticalPackResult
 
 # generate.py — ページ部品と定数
 SLIDE_W=13.333, SLIDE_H=7.5, MARGIN=0.55, BODY_W=12.233, BODY_TOP=1.58, BODY_BOTTOM=6.85
@@ -142,6 +147,11 @@ route(slide, pts, *, dash, width)   # 直角折れ線+終端矢印
 Layout(spec, reserve_note=False, content_area=None)  # グリッド仕様→座標(port/channel/route_edges/validate_edges)
 render_diagram(slide, spec, note, content_area=None) # 描画一式
 ```
+
+`fit_text_or_raise()`は太字見出しを`natural`、通常本文を`body`として扱う。
+表セルや線ラベルなど最終行の均等化が不要な狭い領域だけ`role="compact"`を指定する。
+どの役割でも英単語・識別子・数値単位・連続カタカナを語中分割せず、rendererが定める
+`min_pt`まで縮小しても幅または高さに収まらなければ`FitError`で停止する。
 
 ## 必須の収容ポリシー
 

@@ -4,7 +4,7 @@ from pptx.util import Inches
 
 import generate
 from org_layout import s_org
-from diagrams2 import s_matrix, s_process, s_program_roadmap, s_roadmap
+from diagrams2 import s_matrix, s_process, s_program_roadmap
 from layout_fit import FitError
 
 
@@ -93,12 +93,6 @@ def main():
         {"name": "確認", "desc": "品質を確認"},
     ])
     s_process(_slide(), generic_attribute, 1)
-
-    spec = _base("roadmap")
-    spec.update(months=["1月", "2月", "3月", "4月"], milestones=[],
-                phases=[{"name": "Phase", "goal": "目標", "bar": "実行",
-                         "start": 0, "end": 1} for _ in range(7)])
-    _must_fail(s_roadmap, spec, "フェーズは1〜6件")
 
     spec = _base("program_roadmap")
     spec.update(periods=["1月", "2月", "3月", "4月"],

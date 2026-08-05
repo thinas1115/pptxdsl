@@ -69,18 +69,67 @@ def title_lines_are_natural(lines: list[str]) -> bool:
     return True
 
 
-def wrap_text(text: str, width_in: float, size_pt: float,
-              weight: str = "regular") -> list[str]:
-    """幅width_inに収まるよう禁則処理つきで折り返し、行のリストを返す。
-
-    改行文字は強制改行として扱う。
-    """
+def _wrap_role(text: str, width_in: float, size_pt: float, weight: str,
+               *, min_last_ratio: float) -> list[str]:
     lines: list[str] = []
     for para in text.split("\n"):
         wrapped = _wrap_one(para, width_in, size_pt, weight)
-        lines.extend(balance_last_line(
-            wrapped, width_in, size_pt, weight, min_ratio=0.18))
+        if min_last_ratio > 0:
+            wrapped = balance_last_line(
+                wrapped, width_in, size_pt, weight,
+                min_ratio=min_last_ratio)
+        lines.extend(wrapped)
     return lines or [""]
+
+
+def wrap_natural(text: str, width_in: float, size_pt: float,
+                 weight: str = "regular") -> list[str]:
+    """タイトル・見出し向け。短い最終行と助詞孤立を強く抑える。"""
+    paragraphs = text.split("\n")
+    # 見出しでは入力側の改行も絶対位置とはせず、短い末尾段落だけは
+    # 直前段落へ戻して全体を再組版する。本文の段落区切りはwrap_bodyで維持する。
+    if (len(paragraphs) >= 2
+            and text_width_in(paragraphs[-1], size_pt, weight)
+            < width_in * 0.28):
+        paragraphs[-2:] = [paragraphs[-2] + paragraphs[-1]]
+    lines: list[str] = []
+    for paragraph in paragraphs:
+        lines.extend(_wrap_one(paragraph, width_in, size_pt, weight))
+    return balance_last_line(
+        lines, width_in, size_pt, weight, min_ratio=0.28)
+
+
+def wrap_body(text: str, width_in: float, size_pt: float,
+              weight: str = "regular") -> list[str]:
+    """lead・本文向け。読みやすさを保ちつつ過剰な行移動を避ける。"""
+    return _wrap_role(
+        text, width_in, size_pt, weight, min_last_ratio=0.18)
+
+
+def wrap_compact(text: str, width_in: float, size_pt: float,
+                 weight: str = "regular") -> list[str]:
+    """表セル・線ラベル向け。最終行補正を行わず、領域利用を優先する。"""
+    return _wrap_role(
+        text, width_in, size_pt, weight, min_last_ratio=0.0)
+
+
+def wrapper_for_role(role: str):
+    """文章の役割に対応する折り返し関数を返す。"""
+    wrappers = {
+        "natural": wrap_natural,
+        "body": wrap_body,
+        "compact": wrap_compact,
+    }
+    try:
+        return wrappers[role]
+    except KeyError as error:
+        raise ValueError(f"未対応の文章役割です: {role}") from error
+
+
+def wrap_text(text: str, width_in: float, size_pt: float,
+              weight: str = "regular") -> list[str]:
+    """後方互換の本文折り返し。新規コードは文章役割を明示する。"""
+    return wrap_body(text, width_in, size_pt, weight)
 
 
 def balance_last_line(lines: list[str], width_in: float, size_pt: float,
@@ -129,16 +178,7 @@ def balance_last_line(lines: list[str], width_in: float, size_pt: float,
 def wrap_title(text: str, width_in: float, size_pt: float,
                weight: str = "regular") -> list[str]:
     """英単語・カタカナ語を分断せず、短い最終行も補正する。"""
-    lines: list[str] = []
-    for para in text.split("\n"):
-        lines.extend(_wrap_title_one(para, width_in, size_pt, weight))
-    return balance_last_line(
-        lines or [""], width_in, size_pt, weight, min_ratio=0.28)
-
-
-def _wrap_title_one(para: str, width_in: float, size_pt: float,
-                    weight: str) -> list[str]:
-    return _wrap_tokens(para, width_in, size_pt, weight)
+    return wrap_natural(text, width_in, size_pt, weight)
 
 
 def _natural_tokens(para: str) -> list[str]:
@@ -164,6 +204,25 @@ def _natural_tokens(para: str) -> list[str]:
     return result
 
 
+def _is_protected_token(token: str) -> bool:
+    """英単語・識別子・数値単位・連続カタカナを語中分割から守る。"""
+    core = token.strip().strip(_BREAK_BEFORE + _BREAK_AFTER)
+    if not core:
+        return False
+    if any(ch.isascii() and ch.isalpha() for ch in core):
+        return True
+    if all(_is_katakana(ch) for ch in core):
+        return True
+    return core[0].isdigit() or "０" <= core[0] <= "９"
+
+
+def _split_if_allowed(token: str, width_in: float, size_pt: float,
+                      weight: str) -> list[str]:
+    if _is_protected_token(token):
+        return [token]
+    return _wrap_chars(token, width_in, size_pt, weight)
+
+
 def _wrap_tokens(para: str, width_in: float, size_pt: float,
                  weight: str) -> list[str]:
     if not para:
@@ -176,7 +235,8 @@ def _wrap_tokens(para: str, width_in: float, size_pt: float,
             cur = candidate
             if text_width_in(cur, size_pt, weight) <= width_in:
                 continue
-            split_token = _wrap_chars(cur, width_in, size_pt, weight)
+            split_token = _split_if_allowed(
+                cur, width_in, size_pt, weight)
             lines.extend(split_token[:-1])
             cur = split_token[-1]
             continue
@@ -197,7 +257,8 @@ def _wrap_tokens(para: str, width_in: float, size_pt: float,
             lines.append(cur.rstrip())
             cur = token.lstrip()
         if text_width_in(cur, size_pt, weight) > width_in:
-            split_token = _wrap_chars(cur, width_in, size_pt, weight)
+            split_token = _split_if_allowed(
+                cur, width_in, size_pt, weight)
             lines.extend(split_token[:-1])
             cur = split_token[-1]
     if cur:
@@ -257,7 +318,9 @@ def fit_font_size(text: str, box_w_in: float, box_h_in: float,
     size = max_pt
     while size >= min_pt:
         lines = wrapper(text, w, size, weight)
-        if (len(lines) * line_height_in(size, spacing) <= h
+        if (all(text_width_in(line, size, weight) <= w + 0.01
+                for line in lines)
+                and len(lines) * line_height_in(size, spacing) <= h
                 and (line_validator is None or line_validator(lines))):
             return size, lines
         size -= 0.5
@@ -270,4 +333,9 @@ def fits(text: str, box_w_in: float, box_h_in: float, size_pt: float,
     """指定サイズで収まるかの判定。"""
     w = box_w_in - pad_in * 2
     lines = wrap_text(text, w, size_pt, weight)
-    return len(lines) * line_height_in(size_pt, spacing) <= box_h_in - pad_in * 2
+    return (
+        all(text_width_in(line, size_pt, weight) <= w + 0.01
+            for line in lines)
+        and len(lines) * line_height_in(size_pt, spacing)
+        <= box_h_in - pad_in * 2
+    )

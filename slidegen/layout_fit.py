@@ -4,9 +4,10 @@
 テキスト実測、明示停止の契約だけを共有する。
 """
 from dataclasses import dataclass
-from typing import Iterable, Mapping
+from typing import Callable, Iterable, Mapping, Sequence
 
-from textfit import fit_font_size, line_height_in
+from textfit import (fit_font_size, line_height_in, text_width_in,
+                     title_lines_are_natural, wrapper_for_role)
 
 
 FIT_EPS = 0.01
@@ -20,6 +21,18 @@ class FitError(ValueError):
 class FitResult:
     stage: str
     values: Mapping[str, float]
+    used: float
+    available: float
+
+
+@dataclass(frozen=True)
+class VerticalPackResult:
+    """自然高さで縦に詰めた複数stackの収容結果。"""
+
+    stage: str
+    size: float
+    gap: float
+    stacks: Sequence[Sequence[float]]
     used: float
     available: float
 
@@ -49,6 +62,57 @@ def select_fit(renderer, available, candidates: Iterable, *, guidance):
     )
 
 
+def fit_vertical_stacks(
+        renderer,
+        available,
+        stacks,
+        measure_item: Callable[[object, float], float],
+        *,
+        standard_size,
+        min_size,
+        font_step,
+        standard_gap,
+        min_gap,
+        gap_step,
+        fixed_height=0.0,
+        guidance):
+    """自然高さのstackを、gap圧縮後に文字縮小して収容する。"""
+    if not stacks or any(not stack for stack in stacks):
+        raise ValueError("縦詰め対象は空でないstackにしてください")
+
+    def measure(size, gap):
+        measured = [
+            [measure_item(item, size) for item in stack]
+            for stack in stacks
+        ]
+        used = max(
+            fixed_height + sum(heights)
+            + gap * max(0, len(heights) - 1)
+            for heights in measured
+        )
+        return measured, used
+
+    def candidates():
+        for gap in stepped(standard_gap, min_gap, gap_step):
+            _measured, used = measure(standard_size, gap)
+            yield (
+                "standard" if gap == standard_gap else "gap",
+                {"size": standard_size, "gap": gap},
+                used,
+            )
+        for size in stepped(
+                standard_size - font_step, min_size, font_step):
+            _measured, used = measure(size, min_gap)
+            yield "font", {"size": size, "gap": min_gap}, used
+
+    fitted = select_fit(
+        renderer, available, candidates(), guidance=guidance)
+    size, gap = fitted.values["size"], fitted.values["gap"]
+    measured, used = measure(size, gap)
+    return VerticalPackResult(
+        fitted.stage, size, gap, measured, used, available)
+
+
 def ensure_within(renderer, used, available, *, guidance):
     """固定構図の使用量を検証し、超過時は不足量つきで停止する。"""
     return select_fit(
@@ -57,13 +121,29 @@ def ensure_within(renderer, used, available, *, guidance):
 
 def fit_text_or_raise(renderer, field, text, box_w, box_h, max_pt, *,
                       min_pt, weight="regular", spacing=1.3, pad_in=0.0,
-                      wrapper=None, line_validator=None):
+                      wrapper=None, line_validator=None, role=None):
     """最小フォントでも入らない文字列を黙って描画せず停止する。"""
+    role = role or ("natural" if weight in {"medium", "bold"} else "body")
+    wrapper = wrapper or wrapper_for_role(role)
+    if role == "natural" and line_validator is None:
+        line_validator = title_lines_are_natural
     size, lines = fit_font_size(
         text, box_w, box_h, max_pt, min_pt=min_pt, weight=weight,
         spacing=spacing, pad_in=pad_in, wrapper=wrapper,
         line_validator=line_validator,
     )
+    usable_w = box_w - pad_in * 2
+    widest = max(
+        (text_width_in(line, size, weight) for line in lines),
+        default=0.0)
+    if widest > usable_w + FIT_EPS:
+        shortage = widest - usable_w
+        raise FitError(
+            f"{renderer}.{field}: 最小フォント{min_pt:g}ptでも語を分断せず"
+            f"横方向に収まりません(必要{widest:.2f}in / "
+            f"幅{usable_w:.2f}in / 不足{shortage:.2f}in)。"
+            "文言を短くするか表示領域を見直してください。"
+        )
     used = len(lines) * line_height_in(size, spacing) + pad_in * 2
     if used > box_h + FIT_EPS:
         shortage = used - box_h
