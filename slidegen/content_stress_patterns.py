@@ -194,25 +194,6 @@ def _large_aws_diagram():
 
 LARGE_AWS_DIAGRAM = _large_aws_diagram()
 
-ROADMAP_STRESS = {
-    "type": "roadmap",
-    "kicker": "大規模ロードマップ",
-    "title": "12期間・6フェーズを1枚で管理する",
-    "lead": "余白圧縮後に行高・文字・バーを縮小し、年間計画を収容します。",
-    "months": ["4月", "5月", "6月", "7月", "8月", "9月",
-               "10月", "11月", "12月", "1月", "2月", "3月"],
-    "phases": [
-        {"name": f"Phase {i + 1}  検証工程{i + 1}", "goal": "判定条件を確認",
-         "bar": f"工程{i + 1}を実施", "start": i * 2, "end": i * 2 + 2}
-        for i in range(6)
-    ],
-    "milestones": [
-        {"at": i * 2 + 2, "row": i, "label": f"判定{i + 1}"}
-        for i in range(6)
-    ],
-    "note": "roadmapの要素縮小ストレス検証。",
-}
-
 PROGRAM_ROADMAP_STRESS = {
     "type": "program_roadmap",
     "kicker": "大規模プログラム工程表",
@@ -275,7 +256,6 @@ STRESS_PATTERN_DECK = {
             "lead": "AWS公式アイコンで分岐・冗長化・外周迂回を含む縮小耐性を確認します。",
             "diagram": LARGE_AWS_DIAGRAM,
         },
-        ROADMAP_STRESS,
         PROGRAM_ROADMAP_STRESS,
         IMAGE_STRESS,
     ],
