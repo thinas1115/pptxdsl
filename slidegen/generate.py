@@ -312,48 +312,6 @@ def s_cards(slide, spec, page):
                 add_rect(slide, x, y + ch + gap_y / 2, cw, 0.012, RULE)
         return
 
-    emphasized = [i for i, card in enumerate(cards) if card["emphasis"]]
-    if style == "editorial" and n == 4 and len(emphasized) == 1:
-        lead_index = emphasized[0]
-        lead_card = cards[lead_index]
-        supporting = [card for i, card in enumerate(cards) if i != lead_index]
-        top = area.top + 0.46
-        add_text(slide, 0.8, top, 0.58, 0.36, "01", 15,
-                 bold=True, color=GRAY)
-        lead_head_size, _ = fit_text_or_raise(
-            "cards.editorial", f"cards[{lead_index}].heading", lead_card["heading"],
-            3.95, 0.56, 23, min_pt=18, weight="bold", spacing=1.1)
-        add_text(slide, 1.52, top - 0.03, 3.95, 0.56, lead_card["heading"],
-                 lead_head_size, bold=True, color=NAVY)
-        lead_size, lead_lines = fit_text_or_raise(
-            "cards.editorial", f"cards[{lead_index}].body", lead_card["body"],
-            4.1, 2.05, 16, min_pt=13, spacing=1.28)
-        add_text(slide, 1.52, top + 0.76, 4.1, 2.05,
-                 "\n".join(lead_lines), lead_size, color=TEXT, spacing=1.28)
-
-        right_x, right_w = 6.42, 5.92
-        row_h = 1.31
-        for i, card in enumerate(supporting, 2):
-            y = top + (i - 2) * row_h
-            add_text(slide, right_x, y + 0.02, 0.5, 0.32, f"{i:02d}", 12.5,
-                     bold=True, color=GRAY)
-            head_size, _ = fit_text_or_raise(
-                "cards.editorial", f"supporting[{i - 2}].heading", card["heading"],
-                right_w - 0.68, 0.38, 16, min_pt=13,
-                weight="bold", spacing=1.1)
-            add_text(slide, right_x + 0.68, y, right_w - 0.68, 0.38,
-                     card["heading"],
-                     head_size, bold=True, color=NAVY)
-            body_size, body_lines = fit_text_or_raise(
-                "cards.editorial", f"supporting[{i - 2}].body", card["body"],
-                right_w - 0.72, 0.56, 12.5, min_pt=11, spacing=1.15)
-            add_text(slide, right_x + 0.68, y + 0.48, right_w - 0.72, 0.56,
-                     "\n".join(body_lines), body_size,
-                     color=TEXT, spacing=1.15)
-            if i < n:
-                add_rect(slide, right_x + 0.68, y + 1.14, right_w - 0.68, 0.012, RULE)
-        return
-
     cols = n if n <= 3 else (2 if n == 4 else 3)
     rows = math.ceil(n / cols)
     gap_x, gap_y = 0.72, 0.44

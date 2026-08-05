@@ -26,8 +26,7 @@ GROUPS = (
     ("image", (12,), 835, 382, 235),
     ("twocol", (8,), 1100, 382, 235),
     ("process ×2", (13, 14), 1365, 382, 235),
-    ("roadmap", (15,), 80, 592, 235),
-    ("program roadmap", (16,), 345, 592, 235),
+    ("program roadmap ×2", (15, 16), 80, 592, 235),
     ("matrix", (17,), 610, 592, 235),
     ("org", (18,), 875, 592, 235),
     ("diagram ×4", (19, 20, 21, 22), 475, 800, 235),
@@ -76,7 +75,7 @@ def build(png_dir: Path, output: Path) -> None:
 
     draw.text((80, 34), "pptxdsl", fill=INK, font=title_font)
     draw.line((370, 65, 370, 130), fill="#87A3B2", width=3)
-    draw.text((410, 69), "13 TYPES  /  22 EXAMPLES", fill=ACCENT, font=count_font)
+    draw.text((410, 69), "12 TYPES  /  22 EXAMPLES", fill=ACCENT, font=count_font)
     draw.text((414, 119), "GROUPED BY TYPE", fill=MUTED, font=small_font)
 
     for label, pages, x, label_y, thumb_width in GROUPS:
