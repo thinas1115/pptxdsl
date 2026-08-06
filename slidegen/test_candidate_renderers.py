@@ -159,7 +159,7 @@ def _assert_mapping_order():
             item["id"] for item in spec["right_items"]}
 
 
-def _assert_sequence_has_no_redundant_numbers():
+def _assert_sequence_structure():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
         if spec["type"] == "sequence" and "標準" in spec["kicker"]
@@ -173,6 +173,15 @@ def _assert_sequence_has_no_redundant_numbers():
     redundant = {f"{index + 1:02d}" for index in range(len(spec["messages"]))}
     assert texts.isdisjoint(redundant), texts & redundant
     assert {phase["label"] for phase in spec["phases"]} <= texts
+    participant_shapes = [
+        shape for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False)
+        and shape.text.strip() in {item["label"] for item in spec["participants"]}
+    ]
+    center = sum(
+        shape.left + shape.width / 2 for shape in participant_shapes
+    ) / len(participant_shapes)
+    assert abs(center - _presentation().slide_width / 2) <= Inches(0.05)
 
 
 def _assert_swimlane_legend():
@@ -223,7 +232,7 @@ def main():
     assert any("未定義id" in error for error in errors)
     _assert_fit_stages()
     _assert_mapping_order()
-    _assert_sequence_has_no_redundant_numbers()
+    _assert_sequence_structure()
     _assert_swimlane_legend()
     print("candidate renderer tests: OK")
 

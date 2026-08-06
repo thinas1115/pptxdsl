@@ -597,12 +597,10 @@ def s_sequence(slide, spec, page):
         row_h=0.42, min_row_h=0.30, gap=0.12, min_gap=0.02,
         font=10.5, min_font=8.0,
     )
-    if len(participants) == 2:
-        participant_x0, participant_x1 = 3.85, 9.48
-    elif len(participants) == 3:
-        participant_x0, participant_x1 = 3.45, 10.15
-    else:
-        participant_x0, participant_x1 = 3.05, 12.25
+    sequence_center = MARGIN + BODY_W / 2
+    half_span = min(4.45, 2.80 + 0.55 * (len(participants) - 2))
+    participant_x0 = sequence_center - half_span
+    participant_x1 = sequence_center + half_span
     used_h = (len(messages) * fitted.values["row_h"]
               + max(0, len(messages) - 1) * fitted.values["gap"])
     message_top += max(0.0, available - used_h) * 0.28
@@ -618,9 +616,11 @@ def s_sequence(slide, spec, page):
     for phase in phases:
         start_index = index_by_id[phase["from"]]
         y1 = message_y[messages[start_index]["id"]] - fitted.values["gap"] / 2
-        plain_line(slide, MARGIN + 1.52, y1, MARGIN + BODY_W - 0.12, y1,
+        phase_line_x0 = MARGIN + 1.34
+        phase_line_x1 = 2 * sequence_center - phase_line_x0
+        plain_line(slide, phase_line_x0, y1, phase_line_x1, y1,
                    color=RULE, width=0.7)
-        phase_box = add_text(slide, MARGIN + 0.18, y1 - 0.12, 1.24, 0.24,
+        phase_box = add_text(slide, MARGIN + 0.10, y1 - 0.12, 1.10, 0.24,
                              phase["label"], 8.5, bold=True, color=ACCENT,
                              align=PP_ALIGN.RIGHT,
                              anchor=MSO_ANCHOR.MIDDLE)
