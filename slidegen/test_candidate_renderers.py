@@ -159,6 +159,22 @@ def _assert_mapping_order():
             item["id"] for item in spec["right_items"]}
 
 
+def _assert_sequence_has_no_redundant_numbers():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "sequence" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    texts = {
+        shape.text.strip()
+        for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False)
+    }
+    redundant = {f"{index + 1:02d}" for index in range(len(spec["messages"]))}
+    assert texts.isdisjoint(redundant), texts & redundant
+    assert {phase["label"] for phase in spec["phases"]} <= texts
+
+
 def main():
     errors = validate(deepcopy(PATTERN_DECK), allow_sample_content=True)
     assert not errors, "\n".join(errors)
@@ -184,6 +200,7 @@ def main():
     assert any("未定義id" in error for error in errors)
     _assert_fit_stages()
     _assert_mapping_order()
+    _assert_sequence_has_no_redundant_numbers()
     print("candidate renderer tests: OK")
 
 

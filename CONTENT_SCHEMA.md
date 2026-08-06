@@ -741,6 +741,9 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 - `phases`: 最大3件。`label`と、範囲の先頭・末尾message IDを`from` / `to`へ指定する
 - `takeaway`: シーケンスから得られる示唆
 
+`messages`の配列順が上から下への実行順になる。rendererは同じ順序を重複して示す通番を表示しない。
+工程のまとまりを読み手へ示す必要がある場合だけ`phases`を指定する。
+
 ```json
 {
   "type": "sequence",

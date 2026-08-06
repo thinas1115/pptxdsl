@@ -599,7 +599,7 @@ def s_sequence(slide, spec, page):
         y1 = message_y[messages[start_index]["id"]] - fitted.values["gap"] / 2
         plain_line(slide, MARGIN + 1.52, y1, MARGIN + BODY_W - 0.12, y1,
                    color=RULE, width=0.7)
-        phase_box = add_text(slide, MARGIN + 0.60, y1 - 0.12, 0.82, 0.24,
+        phase_box = add_text(slide, MARGIN + 0.18, y1 - 0.12, 1.24, 0.24,
                              phase["label"], 8.5, bold=True, color=ACCENT,
                              align=PP_ALIGN.RIGHT,
                              anchor=MSO_ANCHOR.MIDDLE)
@@ -619,9 +619,6 @@ def s_sequence(slide, spec, page):
     for index, message in enumerate(messages):
         y = message_y[message["id"]] + fitted.values["row_h"] / 2
         sx, tx = x_by_id[message["from"]], x_by_id[message["to"]]
-        add_text(slide, MARGIN + 0.18, y - 0.12, 0.38, 0.24,
-                 f"{index + 1:02d}", 9.5, bold=True, color=ACCENT,
-                 align=PP_ALIGN.RIGHT)
         if sx == tx:
             loop_w, loop_h = 0.46, max(0.22, fitted.values["row_h"] * 0.72)
             points = [(sx, y - loop_h / 2), (sx + loop_w, y - loop_h / 2),
