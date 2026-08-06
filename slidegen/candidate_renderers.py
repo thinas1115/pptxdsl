@@ -325,20 +325,22 @@ def s_mapping(slide, spec, page):
         font=13.5, min_font=10.0,
     )
     values = fitted.values
-    left_x, left_w = MARGIN + 0.16, 4.45
-    right_x = MARGIN + BODY_W - left_w - 0.16
+    left_x, left_w = MARGIN + 0.65, 4.45
+    right_x = MARGIN + BODY_W - left_w - 0.65
     right_w = left_w
-    add_text(slide, left_x, top, left_w, 0.30, spec["left_label"], 14.5,
-             bold=True, color=NAVY)
-    add_text(slide, right_x, top, right_w, 0.30, spec["right_label"], 14.5,
-             bold=True, color=NAVY)
-    start_y = top + 0.48
+    header_h = 0.42
+    for x, width, label in (
+        (left_x, left_w, spec["left_label"]),
+        (right_x, right_w, spec["right_label"]),
+    ):
+        add_rect(slide, x, top, width, header_h, ZEBRA, round_=True)
+        add_text(slide, x + 0.48, top, width - 0.66, header_h, label, 13.0,
+                 bold=True, color=NAVY, anchor=MSO_ANCHOR.MIDDLE)
+    start_y = top + header_h + 0.10
 
     def positions(items):
-        total = len(items) * values["row_h"] + max(0, len(items) - 1) * values["gap"]
-        extra = max(0.0, body_bottom - start_y - total)
         return {
-            item["id"]: start_y + extra * 0.35 + i * (values["row_h"] + values["gap"])
+            item["id"]: start_y + i * (values["row_h"] + values["gap"])
             for i, item in enumerate(items)
         }
 
@@ -346,13 +348,14 @@ def s_mapping(slide, spec, page):
     def draw_items(items, y_by_id, x, width, side):
         for index, item in enumerate(items):
             y = y_by_id[item["id"]]
-            add_rect(slide, x, y, width, values["row_h"], WHITE, line=RULE)
-            marker_x = x + 0.25 if side == "left" else x + width - 0.25
+            add_rect(slide, x, y, width, values["row_h"], WHITE,
+                     line=RULE, round_=True)
+            marker_x = x + 0.25
             _dot(slide, marker_x, y + values["row_h"] / 2, ACCENT, 0.25)
             add_text(slide, marker_x - 0.12, y + values["row_h"] / 2 - 0.12,
                      0.24, 0.24, f"{index + 1}", 8.5, bold=True, color=WHITE,
                      align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-            text_x = x + 0.48 if side == "left" else x + 0.18
+            text_x = x + 0.48
             text_w = width - 0.66
             _text_in_box(slide, "mapping", f"{side}_items[{index}].text",
                          text_x, y, text_w, values["row_h"], item["text"],

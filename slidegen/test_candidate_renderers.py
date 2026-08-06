@@ -159,6 +159,37 @@ def _assert_mapping_order():
             item["id"] for item in spec["right_items"]}
 
 
+def _assert_mapping_column_alignment():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "mapping" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    by_text = {
+        shape.text.strip(): shape
+        for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False) and shape.text.strip()
+    }
+    left_header = by_text[spec["left_label"]]
+    right_header = by_text[spec["right_label"]]
+    first_left = by_text[spec["left_items"][0]["text"]]
+    first_right = by_text[spec["right_items"][0]["text"]]
+    assert abs(left_header.left - first_left.left) <= Inches(0.01)
+    assert abs(right_header.left - first_right.left) <= Inches(0.01)
+    header_bands = [
+        shape for shape in slide.shapes
+        if shape.top == left_header.top and shape.width >= Inches(4.0)
+        and not getattr(shape, "text", "").strip()
+    ]
+    assert len(header_bands) == 2
+    slide_center = _presentation().slide_width / 2
+    column_center = (
+        min(shape.left for shape in header_bands)
+        + max(shape.left + shape.width for shape in header_bands)
+    ) / 2
+    assert abs(column_center - slide_center) <= Inches(0.05)
+
+
 def _assert_sequence_structure():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
@@ -232,6 +263,7 @@ def main():
     assert any("未定義id" in error for error in errors)
     _assert_fit_stages()
     _assert_mapping_order()
+    _assert_mapping_column_alignment()
     _assert_sequence_structure()
     _assert_swimlane_legend()
     print("candidate renderer tests: OK")
