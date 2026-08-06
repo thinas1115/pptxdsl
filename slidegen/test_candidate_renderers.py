@@ -8,6 +8,7 @@ from pptx.util import Inches
 import generate
 from candidate_renderers import (
     _fit_rows,
+    _mapping_items_by_min_crossings,
     s_mapping,
     s_paired_comparison,
     s_scope,
@@ -144,6 +145,20 @@ def _assert_fit_stages():
         raise AssertionError("最小値でも収まらない入力を明示停止できていません")
 
 
+def _assert_mapping_order():
+    expected_crossings = {"疎": 0, "標準": 0, "上限": 3, "長文": 0}
+    specs = [spec for spec in REVIEW_DECK["slides"] if spec["type"] == "mapping"]
+    for spec in specs:
+        left, right, crossings = _mapping_items_by_min_crossings(
+            spec["left_items"], spec["right_items"], spec["links"])
+        variant = spec["kicker"].split("/")[-1].strip()
+        assert crossings == expected_crossings[variant], (variant, crossings)
+        assert {item["id"] for item in left} == {
+            item["id"] for item in spec["left_items"]}
+        assert {item["id"] for item in right} == {
+            item["id"] for item in spec["right_items"]}
+
+
 def main():
     errors = validate(deepcopy(PATTERN_DECK), allow_sample_content=True)
     assert not errors, "\n".join(errors)
@@ -168,6 +183,7 @@ def main():
                       allow_sample_content=True)
     assert any("未定義id" in error for error in errors)
     _assert_fit_stages()
+    _assert_mapping_order()
     print("candidate renderer tests: OK")
 
 

@@ -1,6 +1,7 @@
 """採用判断用に追加した業務スライドrenderer群。"""
 
 from collections import defaultdict
+from itertools import permutations
 
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
@@ -265,11 +266,54 @@ def s_paired_comparison(slide, spec, page):
         _takeaway(slide, "paired_comparison", takeaway, area.bottom - 0.62)
 
 
+def _mapping_items_by_min_crossings(left_items, right_items, links):
+    """関係を変えずに左右項目を並べ替え、直接結線の交差数を最小化する。"""
+    left_ids = [item["id"] for item in left_items]
+    right_ids = [item["id"] for item in right_items]
+    original_left = {item_id: index for index, item_id in enumerate(left_ids)}
+    original_right = {item_id: index for index, item_id in enumerate(right_ids)}
+    pairs = [(link["from"], link["to"]) for link in links]
+    best = None
+    for left_order in permutations(left_ids):
+        left_rank = {item_id: index for index, item_id in enumerate(left_order)}
+        for right_order in permutations(right_ids):
+            right_rank = {item_id: index for index, item_id in enumerate(right_order)}
+            crossings = sum(
+                (left_rank[source_a] - left_rank[source_b])
+                * (right_rank[target_a] - right_rank[target_b]) < 0
+                for index, (source_a, target_a) in enumerate(pairs)
+                for source_b, target_b in pairs[index + 1:]
+            )
+            displacement = sum(
+                abs(index - original_left[item_id])
+                for index, item_id in enumerate(left_order)
+            ) + sum(
+                abs(index - original_right[item_id])
+                for index, item_id in enumerate(right_order)
+            )
+            score = (crossings, displacement, left_order, right_order)
+            if best is None or score < best:
+                best = score
+                if crossings == 0 and displacement == 0:
+                    break
+        if best[:2] == (0, 0):
+            break
+    left_by_id = {item["id"]: item for item in left_items}
+    right_by_id = {item["id"]: item for item in right_items}
+    return (
+        [left_by_id[item_id] for item_id in best[2]],
+        [right_by_id[item_id] for item_id in best[3]],
+        best[0],
+    )
+
+
 def s_mapping(slide, spec, page):
     """左右の項目間に一対多・多対多の対応線を描く。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     left_items, right_items = spec["left_items"], spec["right_items"]
     links = spec["links"]
+    left_items, right_items, _crossings = _mapping_items_by_min_crossings(
+        left_items, right_items, links)
     takeaway = spec.get("takeaway")
     top = area.top + 0.22
     takeaway_h = 0.72 if takeaway else 0.0
@@ -281,40 +325,13 @@ def s_mapping(slide, spec, page):
         font=13.5, min_font=10.0,
     )
     values = fitted.values
-    left_index = {item["id"]: index for index, item in enumerate(left_items)}
-    right_index = {item["id"]: index for index, item in enumerate(right_items)}
-
-    def has_crossing():
-        pairs = [(left_index[link["from"]], right_index[link["to"]])
-                 for link in links]
-        return any(
-            (li - lj) * (ri - rj) < 0
-            for i, (li, ri) in enumerate(pairs)
-            for lj, rj in pairs[i + 1:]
-        )
-
-    # 線が交差する入力を無理に結線すると関係を誤読する。単純な対応だけ
-    # 直線で描き、それ以外は交差のない対応マトリクスへ自動切替する。
-    matrix_mode = has_crossing() or len(links) > max_count + 1
-    if matrix_mode:
-        left_x, left_w = MARGIN + 0.16, 4.10
-        matrix_x, matrix_w = left_x + left_w + 0.26, 2.34
-        right_x = matrix_x + matrix_w + 0.32
-        right_w = MARGIN + BODY_W - 0.16 - right_x
-        add_text(slide, left_x, top, left_w, 0.30, spec["left_label"], 14.5,
-                 bold=True, color=NAVY)
-        add_text(slide, matrix_x, top, matrix_w, 0.30, "対応", 11.0,
-                 bold=True, color=GRAY, align=PP_ALIGN.CENTER)
-        add_text(slide, right_x, top, right_w, 0.30, spec["right_label"], 14.5,
-                 bold=True, color=NAVY)
-    else:
-        left_x, left_w = MARGIN + 0.16, 4.45
-        right_x = MARGIN + BODY_W - left_w - 0.16
-        right_w = left_w
-        add_text(slide, left_x, top, left_w, 0.30, spec["left_label"], 14.5,
-                 bold=True, color=NAVY)
-        add_text(slide, right_x, top, right_w, 0.30, spec["right_label"], 14.5,
-                 bold=True, color=NAVY)
+    left_x, left_w = MARGIN + 0.16, 4.45
+    right_x = MARGIN + BODY_W - left_w - 0.16
+    right_w = left_w
+    add_text(slide, left_x, top, left_w, 0.30, spec["left_label"], 14.5,
+             bold=True, color=NAVY)
+    add_text(slide, right_x, top, right_w, 0.30, spec["right_label"], 14.5,
+             bold=True, color=NAVY)
     start_y = top + 0.48
 
     def positions(items):
@@ -326,14 +343,10 @@ def s_mapping(slide, spec, page):
         }
 
     left_y, right_y = positions(left_items), positions(right_items)
-    def draw_items(items, y_by_id, x, width, side, *, flat=False):
+    def draw_items(items, y_by_id, x, width, side):
         for index, item in enumerate(items):
             y = y_by_id[item["id"]]
-            if flat:
-                plain_line(slide, x, y + values["row_h"], x + width,
-                           y + values["row_h"], color=RULE, width=0.65)
-            else:
-                add_rect(slide, x, y, width, values["row_h"], WHITE, line=RULE)
+            add_rect(slide, x, y, width, values["row_h"], WHITE, line=RULE)
             marker_x = x + 0.25 if side == "left" else x + width - 0.25
             _dot(slide, marker_x, y + values["row_h"] / 2, ACCENT, 0.25)
             add_text(slide, marker_x - 0.12, y + values["row_h"] / 2 - 0.12,
@@ -346,58 +359,34 @@ def s_mapping(slide, spec, page):
                          values["font"], 9.5, bold=True, color=NAVY,
                          anchor=MSO_ANCHOR.MIDDLE)
 
-    if matrix_mode:
-        draw_items(left_items, left_y, left_x, left_w, "left", flat=True)
-        draw_items(right_items, right_y, right_x, right_w, "right", flat=True)
-        matrix_y = min(left_y.values())
-        row_step = values["row_h"] + values["gap"]
-        matrix_h = len(left_items) * values["row_h"] + max(
-            0, len(left_items) - 1) * values["gap"]
-        add_rect(slide, matrix_x, matrix_y, matrix_w, matrix_h, ZEBRA)
-        cell_w = matrix_w / len(right_items)
-        for index in range(len(right_items)):
-            cx = matrix_x + (index + 0.5) * cell_w
-            add_text(slide, cx - 0.16, top + 0.28, 0.32, 0.18,
-                     f"{index + 1}", 8.5, bold=True, color=ACCENT,
-                     align=PP_ALIGN.CENTER)
-            if index:
-                plain_line(slide, matrix_x + index * cell_w, matrix_y,
-                           matrix_x + index * cell_w, matrix_y + matrix_h,
-                           color=RULE, width=0.55)
-        for index in range(1, len(left_items)):
-            y = matrix_y + index * row_step - values["gap"] / 2
-            plain_line(slide, matrix_x, y, matrix_x + matrix_w, y,
-                       color=RULE, width=0.55)
-        for link in links:
-            row = left_index[link["from"]]
-            col = right_index[link["to"]]
-            cx = matrix_x + (col + 0.5) * cell_w
-            cy = left_y[link["from"]] + values["row_h"] / 2
-            _dot(slide, cx, cy, ACCENT if link.get("emphasis") else NAVY,
-                 0.15 if link.get("emphasis") else 0.11)
-    else:
-        gap_left = left_x + left_w
-        gap_right = right_x
-        endpoint_colors = {}
-        for link in links:
-            sy = left_y[link["from"]] + values["row_h"] / 2
-            ty = right_y[link["to"]] + values["row_h"] / 2
-            color = ACCENT if link.get("emphasis") else GRAY
-            width = 1.4 if link.get("emphasis") else 1.0
-            add_arrow(slide, gap_left, sy, gap_right, ty,
-                      color=color, width=width)
-            endpoint_colors[("left", link["from"])] = color
-            endpoint_colors[("right", link["to"])] = color
-        draw_items(left_items, left_y, left_x, left_w, "left")
-        draw_items(right_items, right_y, right_x, right_w, "right")
-        for item in left_items:
-            color = endpoint_colors.get(("left", item["id"]), GRAY)
-            _dot(slide, gap_left, left_y[item["id"]] + values["row_h"] / 2,
-                 color, 0.08)
-        for item in right_items:
-            color = endpoint_colors.get(("right", item["id"]), GRAY)
-            _dot(slide, gap_right, right_y[item["id"]] + values["row_h"] / 2,
-                 color, 0.08)
+    gap_left = left_x + left_w
+    gap_right = right_x
+    endpoint_colors = {}
+    # 参考スライドと同じく、項目間を直接追えることを優先する。線を先に描き、
+    # 項目と端点を前面へ置くことで、交差があっても接続元と接続先を見失いにくくする。
+    for link in links:
+        sy = left_y[link["from"]] + values["row_h"] / 2
+        ty = right_y[link["to"]] + values["row_h"] / 2
+        color = ACCENT if link.get("emphasis") else GRAY
+        width = 1.4 if link.get("emphasis") else 1.0
+        # 後から描く線の下へ背景色の縁を置き、交点で線が連結して見える
+        # 誤読を防ぐ。端点は項目描画後に置き直す。
+        plain_line(slide, gap_left, sy, gap_right, ty,
+                   color=CANVAS, width=3.6)
+        add_arrow(slide, gap_left, sy, gap_right, ty,
+                  color=color, width=width)
+        endpoint_colors[("left", link["from"])] = color
+        endpoint_colors[("right", link["to"])] = color
+    draw_items(left_items, left_y, left_x, left_w, "left")
+    draw_items(right_items, right_y, right_x, right_w, "right")
+    for item in left_items:
+        color = endpoint_colors.get(("left", item["id"]), GRAY)
+        _dot(slide, gap_left, left_y[item["id"]] + values["row_h"] / 2,
+             color, 0.08)
+    for item in right_items:
+        color = endpoint_colors.get(("right", item["id"]), GRAY)
+        _dot(slide, gap_right, right_y[item["id"]] + values["row_h"] / 2,
+             color, 0.08)
     if takeaway:
         _takeaway(slide, "mapping", takeaway, area.bottom - 0.62)
 
