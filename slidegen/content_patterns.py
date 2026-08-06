@@ -603,6 +603,7 @@ PATTERN_DECK = {
                 {"from": "isolate", "to": "provider"},
                 {"from": "provider", "to": "result"},
                 {"from": "result", "to": "notify"},
+                {"from": "result", "to": "triage", "kind": "feedback"},
                 {"from": "notify", "to": "close"},
             ],
             "takeaway": "工程だけでなく、誰が受け取り、どこへ引き継ぐかを同時に確認する。",

@@ -705,6 +705,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 
 同じlane / stageセルへ配置できるstepは最大2件。座標や線の経由点は入力せず、rendererがレーン境界を
 使って配線する。厳密な時刻や期間が主役なら`program_roadmap`、機器間メッセージなら`sequence`を使う。
+`forward`と`feedback`が同じスライドに存在する場合は、rendererが実線と破線の凡例を自動表示する。
 
 ```json
 {

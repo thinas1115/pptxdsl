@@ -438,7 +438,12 @@ def s_swimlane(slide, spec, page):
         < stage_index[step_by_id[edge["from"]]["stage"]]
         for edge in spec["edges"]
     )
+    edge_kinds = {
+        "feedback" if edge.get("kind") == "feedback" else "forward"
+        for edge in spec["edges"]
+    }
     feedback_h = 0.30 if has_feedback else 0.0
+    show_line_legend = len(edge_kinds) > 1
     available_h = area.bottom - top - stage_h - takeaway_h - 0.12
     standard_lane_h = 1.06 if len(lanes) == 2 else 0.94 if len(lanes) == 3 else 0.86
     fitted = _fit_rows(
@@ -460,6 +465,22 @@ def s_swimlane(slide, spec, page):
         if index:
             plain_line(slide, x, top, x, lane_y0 + len(lanes) * lane_h,
                        color=RULE, width=0.65)
+    if show_line_legend:
+        legend_x = MARGIN + 0.10
+        add_text(slide, legend_x, top + 0.01, 0.38, 0.18,
+                 "凡例", 7.5, bold=True, color=GRAY,
+                 anchor=MSO_ANCHOR.MIDDLE)
+        add_arrow(slide, legend_x + 0.48, top + 0.13,
+                  legend_x + 0.80, top + 0.13, color=GRAY, width=1.15)
+        add_text(slide, legend_x + 0.88, top + 0.04, 0.62, 0.18,
+                 "順方向", 8.0, color=TEXT,
+                 anchor=MSO_ANCHOR.MIDDLE)
+        add_arrow(slide, legend_x + 0.48, top + 0.34,
+                  legend_x + 0.80, top + 0.34, color=GRAY, width=1.15,
+                  dash="dash")
+        add_text(slide, legend_x + 0.88, top + 0.25, 0.62, 0.18,
+                 "差戻し", 8.0, color=TEXT,
+                 anchor=MSO_ANCHOR.MIDDLE)
     rects = _swimlane_step_rects(spec, x0, lane_y0, stage_w, lane_h)
     lane_index = {lane["id"]: index for index, lane in enumerate(lanes)}
     for index, lane in enumerate(lanes):

@@ -175,6 +175,29 @@ def _assert_sequence_has_no_redundant_numbers():
     assert {phase["label"] for phase in spec["phases"]} <= texts
 
 
+def _assert_swimlane_legend():
+    specs = {
+        spec["kicker"].split("/")[-1].strip(): deepcopy(spec)
+        for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane"
+    }
+    legend_texts = {"凡例", "順方向", "差戻し"}
+    dense_slide = _render(_presentation(), specs["上限"])
+    dense_texts = {
+        shape.text.strip()
+        for shape in dense_slide.shapes
+        if getattr(shape, "has_text_frame", False)
+    }
+    assert legend_texts <= dense_texts
+    standard_slide = _render(_presentation(), specs["標準"])
+    standard_texts = {
+        shape.text.strip()
+        for shape in standard_slide.shapes
+        if getattr(shape, "has_text_frame", False)
+    }
+    assert legend_texts.isdisjoint(standard_texts)
+
+
 def main():
     errors = validate(deepcopy(PATTERN_DECK), allow_sample_content=True)
     assert not errors, "\n".join(errors)
@@ -201,6 +224,7 @@ def main():
     _assert_fit_stages()
     _assert_mapping_order()
     _assert_sequence_has_no_redundant_numbers()
+    _assert_swimlane_legend()
     print("candidate renderer tests: OK")
 
 
