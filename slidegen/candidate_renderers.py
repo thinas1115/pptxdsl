@@ -3,6 +3,7 @@
 from collections import defaultdict
 from itertools import permutations
 
+from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
@@ -30,6 +31,16 @@ from generate import (
 from layout_fit import FitError, fit_text_or_raise, select_fit, stepped
 from quality_markers import SURFACE_ON_CANVAS_PREFIX
 from textfit import text_width_in, wrap_natural
+
+
+# 参照デザインから採取したswimlane専用パレット。全体テーマ変更の影響を受けさせない。
+SWIMLANE_CANVAS = RGBColor(0xFA, 0xF9, 0xF6)
+SWIMLANE_ACCENT = RGBColor(0x10, 0x84, 0x90)
+SWIMLANE_NAVY = RGBColor(0x0F, 0x2A, 0x46)
+SWIMLANE_GRAY = RGBColor(0x66, 0x77, 0x8D)
+SWIMLANE_LIGHT = RGBColor(0xEA, 0xF0, 0xEF)
+SWIMLANE_RULE = RGBColor(0xBB, 0xBA, 0xBA)
+SWIMLANE_WHITE = RGBColor(0xFE, 0xFE, 0xFE)
 
 
 def _flatten_shape(shape):
@@ -515,22 +526,22 @@ def _swimlane_step_label(step, index):
 
 def _swimlane_header(slide, spec):
     """参照デザインの縦リズムを保つswimlane専用ヘッダー。"""
-    _flat_rect(slide, 0, 0, 13.333, 7.5, CANVAS)
+    _flat_rect(slide, 0, 0, 13.333, 7.5, SWIMLANE_CANVAS)
     plain_line(slide, 0.19, 0.20, 13.08, 0.20,
-               color=ACCENT, width=3.0)
+               color=SWIMLANE_ACCENT, width=3.0)
     title_size, title_lines = fit_text_or_raise(
         "swimlane", "title", spec["title"], 12.25, 0.48, 25.5,
         min_pt=19.0, weight="bold", spacing=1.08,
     )
     add_text(slide, 0.53, 0.54, 12.25, 0.48, "\n".join(title_lines),
-             title_size, bold=True, color=NAVY, spacing=1.08)
+             title_size, bold=True, color=SWIMLANE_NAVY, spacing=1.08)
     if spec.get("lead"):
         lead_size, lead_lines = fit_text_or_raise(
             "swimlane", "lead", spec["lead"], 12.25, 0.34, 14.0,
             min_pt=11.5, spacing=1.12,
         )
         add_text(slide, 0.53, 1.05, 12.25, 0.34, "\n".join(lead_lines),
-                 lead_size, color=GRAY, spacing=1.12)
+                 lead_size, color=SWIMLANE_GRAY, spacing=1.12)
 
 
 def s_swimlane(slide, spec, page):
@@ -573,37 +584,38 @@ def s_swimlane(slide, spec, page):
             Inches(stage_w + (0.04 if index < len(stages) - 1 else 0)),
             Inches(stage_h))
         shape.fill.solid()
-        shape.fill.fore_color.rgb = WHITE
-        shape.line.color.rgb = RULE
+        shape.fill.fore_color.rgb = SWIMLANE_CANVAS
+        shape.line.color.rgb = SWIMLANE_RULE
         shape.line.width = Pt(0.85)
         shape.name = (
             f"{SURFACE_ON_CANVAS_PREFIX}swimlane-stage:{stage['id']}")
         _flatten_shape(shape)
         add_text(slide, x + 0.14, top + 0.06, stage_w - 0.28, 0.26,
-                 stage["label"], 10.5, bold=True, color=NAVY,
+                 stage["label"], 10.5, bold=True, color=SWIMLANE_NAVY,
                  align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
     if show_line_legend:
         legend_x = frame_x + 0.08
         add_text(slide, legend_x, top + 0.01, 0.28, 0.18,
-                 "凡例", 7.5, bold=True, color=GRAY,
+                 "凡例", 7.5, bold=True, color=SWIMLANE_GRAY,
                  anchor=MSO_ANCHOR.MIDDLE)
         add_arrow(slide, legend_x + 0.36, top + 0.13,
-                  legend_x + 0.62, top + 0.13, color=ACCENT, width=1.15)
+                  legend_x + 0.62, top + 0.13, color=SWIMLANE_ACCENT, width=1.15)
         add_text(slide, legend_x + 0.68, top + 0.04, 0.42, 0.18,
-                 "順方向", 7.0, color=TEXT,
+                 "順方向", 7.0, color=SWIMLANE_NAVY,
                  anchor=MSO_ANCHOR.MIDDLE)
         add_arrow(slide, legend_x + 0.36, top + 0.31,
-                  legend_x + 0.62, top + 0.31, color=ACCENT, width=1.15,
+                  legend_x + 0.62, top + 0.31, color=SWIMLANE_ACCENT, width=1.15,
                   dash="dash")
         add_text(slide, legend_x + 0.68, top + 0.22, 0.42, 0.18,
-                 "差戻し", 7.0, color=TEXT,
+                 "差戻し", 7.0, color=SWIMLANE_NAVY,
                  anchor=MSO_ANCHOR.MIDDLE)
     rects = _swimlane_step_rects(spec, x0, lane_y0, stage_w, lane_h)
     lane_index = {lane["id"]: index for index, lane in enumerate(lanes)}
     for index, lane in enumerate(lanes):
         y = lane_y0 + index * lane_h
-        _flat_rect(slide, frame_x, y, lane_label_w, lane_h, LIGHT)
-        _flat_rect(slide, x0, y, frame_w - lane_label_w, lane_h, CANVAS)
+        _flat_rect(slide, frame_x, y, lane_label_w, lane_h, SWIMLANE_LIGHT)
+        _flat_rect(slide, x0, y, frame_w - lane_label_w, lane_h,
+                   SWIMLANE_CANVAS)
         lane_text_w = lane_label_w - 0.22
         lane_font = 13.0
         while (lane_font > 8.0
@@ -624,16 +636,17 @@ def s_swimlane(slide, spec, page):
                 f"swimlane: lanes[{index}].label を2行以内へ収容できません。"
                 "担当名を短くしてください。")
         add_text(slide, frame_x + 0.12, y, lane_text_w, lane_h,
-                 "\n".join(lane_lines), lane_font, bold=True, color=NAVY,
+                 "\n".join(lane_lines), lane_font, bold=True,
+                 color=SWIMLANE_NAVY,
                  anchor=MSO_ANCHOR.MIDDLE)
         plain_line(slide, frame_x, y + lane_h, frame_x + frame_w, y + lane_h,
-                   color=RULE, width=0.65)
+                   color=SWIMLANE_RULE, width=0.65)
     plain_line(slide, x0, lane_y0, x0, lane_y0 + len(lanes) * lane_h,
-               color=RULE, width=0.8)
+               color=SWIMLANE_RULE, width=0.8)
     for index in range(1, len(stages)):
         x = x0 + index * stage_w
         plain_line(slide, x, lane_y0, x, lane_y0 + len(lanes) * lane_h,
-                   color=RULE, width=0.55)
+                   color=SWIMLANE_RULE, width=0.55)
     # 接続線を先に描き、ノードを上から重ねて線の貫通を隠す。
     for edge in spec["edges"]:
         sx, sy, sw, sh = rects[edge["from"]]
@@ -683,12 +696,13 @@ def s_swimlane(slide, spec, page):
             points = [start, (start[0], channel_y), (end[0], channel_y), end]
         route(slide, points,
               dash="dash" if edge.get("kind") == "feedback" else None,
-              width=1.10, color=ACCENT)
+              width=1.10, color=SWIMLANE_ACCENT)
     for index, step in enumerate(spec["steps"]):
         x, y, w, h = rects[step["id"]]
         _flat_rect(slide, x, y, w, h,
-                   LIGHT if step.get("style") == "accent" else WHITE,
-                   line=ACCENT)
+                   SWIMLANE_LIGHT if step.get("style") == "accent"
+                   else SWIMLANE_WHITE,
+                   line=SWIMLANE_ACCENT)
         display_name = _swimlane_step_label(step, index)
         one_line_size = min(11.5, fitted.values["font"])
         text_x = x + 0.06
@@ -698,12 +712,13 @@ def s_swimlane(slide, spec, page):
             one_line_size -= 0.5
         if one_line_size >= 7.5:
             add_text(slide, text_x, y, text_w, h, display_name,
-                     one_line_size, bold=True, color=NAVY,
+                     one_line_size, bold=True, color=SWIMLANE_NAVY,
                      align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
         else:
             _text_in_box(slide, "swimlane", f"steps[{index}].name",
                          text_x, y, text_w, h, display_name,
-                         fitted.values["font"], 7.5, bold=True, color=NAVY,
+                         fitted.values["font"], 7.5, bold=True,
+                         color=SWIMLANE_NAVY,
                          align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
                          role="compact")
 def s_sequence(slide, spec, page):

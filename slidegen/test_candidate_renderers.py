@@ -10,6 +10,11 @@ import generate
 from candidate_renderers import (
     ACCENT,
     RULE,
+    SWIMLANE_ACCENT,
+    SWIMLANE_CANVAS,
+    SWIMLANE_LIGHT,
+    SWIMLANE_RULE,
+    SWIMLANE_WHITE,
     _fit_rows,
     _mapping_items_by_min_crossings,
     s_mapping,
@@ -277,7 +282,7 @@ def _assert_swimlane_node_frames_and_routes():
         shape for shape in slide.shapes
         if Inches(0.45) <= shape.height <= Inches(0.70)
         and Inches(0.80) <= shape.width <= Inches(2.5)
-        and _rgb(shape) == ACCENT
+        and _rgb(shape) == SWIMLANE_ACCENT
     ]
     assert len(framed_nodes) >= len(spec["steps"])
     diagonal_lines = [
@@ -304,9 +309,9 @@ def _assert_swimlane_stage_surface_contrast():
         surface_rgb = tuple(shape.fill.fore_color.rgb)
         edge_rgb = tuple(shape.line.color.rgb)
         assert (
-            contrast_ratio(surface_rgb, tuple(generate.CANVAS))
+            contrast_ratio(surface_rgb, tuple(SWIMLANE_CANVAS))
             >= MIN_SURFACE_CONTRAST
-            or contrast_ratio(edge_rgb, tuple(generate.CANVAS))
+            or contrast_ratio(edge_rgb, tuple(SWIMLANE_CANVAS))
             >= MIN_SURFACE_EDGE_CONTRAST
         )
 
@@ -324,7 +329,38 @@ def _assert_swimlane_body_uses_canvas():
         and shape.height >= Inches(0.5)
     ]
     assert len(lane_bodies) == len(spec["lanes"])
-    assert all(_fill_rgb(shape) == generate.CANVAS for shape in lane_bodies)
+    assert all(_fill_rgb(shape) == SWIMLANE_CANVAS for shape in lane_bodies)
+
+
+def _assert_swimlane_reference_palette():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    lane_labels = [
+        shape for shape in slide.shapes
+        if Inches(1.20) <= shape.width <= Inches(1.35)
+        and shape.height >= Inches(0.5)
+        and _fill_rgb(shape) == SWIMLANE_LIGHT
+    ]
+    node_cards = [
+        shape for shape in slide.shapes
+        if Inches(0.45) <= shape.height <= Inches(0.70)
+        and Inches(0.80) <= shape.width <= Inches(2.5)
+        and _rgb(shape) == SWIMLANE_ACCENT
+    ]
+    assert len(lane_labels) == len(spec["lanes"])
+    assert len(node_cards) >= len(spec["steps"])
+    assert {_fill_rgb(shape) for shape in node_cards} <= {
+        SWIMLANE_WHITE, SWIMLANE_LIGHT,
+    }
+    stage_surfaces = [
+        shape for shape in slide.shapes
+        if shape.name.startswith(SURFACE_ON_CANVAS_PREFIX)
+    ]
+    assert all(_fill_rgb(shape) == SWIMLANE_CANVAS for shape in stage_surfaces)
+    assert all(_rgb(shape) == SWIMLANE_RULE for shape in stage_surfaces)
 
 
 def main():
@@ -381,6 +417,7 @@ def main():
     _assert_swimlane_node_frames_and_routes()
     _assert_swimlane_stage_surface_contrast()
     _assert_swimlane_body_uses_canvas()
+    _assert_swimlane_reference_palette()
     print("candidate renderer tests: OK")
 
 
