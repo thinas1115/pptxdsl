@@ -16,6 +16,9 @@ slidegen/s3_labels.txt
 slidegen/lbl.txt
 slidegen/test_result.txt
 
+# Officeが編集中に作る一時ロックファイル
+~$*.pptx
+
 # 依存・キャッシュ
 node_modules/
 __pycache__/

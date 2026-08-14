@@ -16,7 +16,7 @@ PATTERN_DECK = {
         {
             "type": "title",
             "title": "社内スライド\nパターンライブラリ",
-            "subtitle": "意思決定からシステム構成まで、28の標準レイアウトを検証",
+            "subtitle": "意思決定から技術研修まで、24のTypeを34枚で検証",
         },
         {
             "type": "bullets",
@@ -469,6 +469,141 @@ PATTERN_DECK = {
                     {"from": "worker", "to": "monitor", "dash": "dash"},
                 ],
             },
+        },
+        {
+            "type": "concept",
+            "kicker": "言葉の定義",
+            "title": "RTOは、障害発生から業務再開までの目標時間を表す",
+            "term": "RTO",
+            "definition": "Recovery Time Objectiveの略です。障害が起きてから、業務やサービスを再開するまでに許容する目標時間を定めます。",
+            "icon": "icons/fluent/clock.png",
+            "points": [
+                {"label": "起点", "text": "業務やサービスへ影響する障害が発生した時点。"},
+                {"label": "終点", "text": "利用者が必要な業務を再開できる状態へ戻った時点。"},
+                {"label": "設計への反映", "text": "復旧手順、冗長化、バックアップ方式の要求へ落とし込む。"},
+            ],
+            "misconception": "実際に要した復旧時間の実績値ではなく、事前に合意する目標値です。",
+        },
+        {
+            "type": "network",
+            "kicker": "ネットワーク構成",
+            "title": "物理リンクを共有しながら、用途別の通信範囲を分離する",
+            "lanes": [
+                {"id": "business", "label": "業務VLAN", "sub": "社内端末"},
+                {"id": "guest", "label": "ゲストVLAN", "sub": "来訪者端末"},
+            ],
+            "columns": [
+                {"id": "left", "label": "フロアA"},
+                {"id": "switch_a", "label": "スイッチA"},
+                {"id": "switch_b", "label": "スイッチB"},
+                {"id": "right", "label": "フロアB"},
+            ],
+            "nodes": [
+                {"id": "staff_a", "label": "業務PC A", "icon": "icons/fluent/laptop.png", "column": "left", "lanes": ["business"]},
+                {"id": "guest_a", "label": "ゲスト端末 A", "icon": "icons/fluent/phone.png", "column": "left", "lanes": ["guest"]},
+                {"id": "switch_a", "label": "スイッチA", "icon": "icons/fluent/switch.png", "column": "switch_a", "lanes": ["business", "guest"]},
+                {"id": "switch_b", "label": "スイッチB", "icon": "icons/fluent/switch.png", "column": "switch_b", "lanes": ["business", "guest"]},
+                {"id": "staff_b", "label": "業務PC B", "icon": "icons/fluent/desktop.png", "column": "right", "lanes": ["business"]},
+                {"id": "guest_b", "label": "ゲスト端末 B", "icon": "icons/fluent/phone.png", "column": "right", "lanes": ["guest"]},
+            ],
+            "links": [
+                {"from": "staff_a", "to": "switch_a", "kind": "access", "lanes": ["business"]},
+                {"from": "guest_a", "to": "switch_a", "kind": "access", "lanes": ["guest"]},
+                {"from": "switch_a", "to": "switch_b", "kind": "trunk", "lanes": ["business", "guest"], "label": "Trunk"},
+                {"from": "switch_b", "to": "staff_b", "kind": "access", "lanes": ["business"]},
+                {"from": "switch_b", "to": "guest_b", "kind": "access", "lanes": ["guest"]},
+            ],
+        },
+        {
+            "type": "protocol_state_flow",
+            "kicker": "IPパケット状態の追跡",
+            "title": "NAT前後の送信元IPを、処理段階ごとに追跡する",
+            "lead": "端末から送ったIPパケットがルーターで変換され、外部サーバーへ届くまでの送信元情報を比較します。",
+            "stages": [
+                {"id": "client", "label": "社内端末", "icon": "icons/fluent/laptop.png", "role": "endpoint"},
+                {"id": "inside", "label": "ルーター内側", "icon": "icons/fluent/ethernet.png", "role": "processor"},
+                {"id": "nat", "label": "NAT処理", "icon": "icons/fluent/switch.png", "role": "processor"},
+                {"id": "internet", "label": "インターネット区間", "icon": "icons/fluent/link.png", "role": "link"},
+                {"id": "server", "label": "外部サーバー", "icon": "icons/fluent/server.png", "role": "endpoint"},
+            ],
+            "flows": [
+                {
+                    "label": "送信元IP",
+                    "sub": "アドレス変換",
+                    "states": [
+                        {"stage": "client", "label": "10.0.0.25", "detail": "端末のプライベートIP", "appearance": "plain"},
+                        {"stage": "inside", "label": "10.0.0.25", "detail": "変換前の送信元", "appearance": "plain"},
+                        {"stage": "nat", "label": "203.0.113.10", "detail": "送信元を書き換え", "appearance": "internal"},
+                        {"stage": "internet", "label": "203.0.113.10", "detail": "変換後のパケット", "appearance": "plain"},
+                        {"stage": "server", "label": "203.0.113.10", "detail": "外部から見える送信元", "appearance": "plain"},
+                    ],
+                },
+                {
+                    "label": "宛先IP",
+                    "sub": "変化なし",
+                    "states": [
+                        {"stage": "client", "label": "198.51.100.20", "detail": "外部サーバー", "appearance": "plain"},
+                        {"stage": "inside", "label": "198.51.100.20", "detail": "宛先を維持", "appearance": "plain"},
+                        {"stage": "nat", "label": "198.51.100.20", "detail": "宛先を維持", "appearance": "internal"},
+                        {"stage": "internet", "label": "198.51.100.20", "detail": "外部へ転送", "appearance": "plain"},
+                        {"stage": "server", "label": "198.51.100.20", "detail": "自分宛てとして受信", "appearance": "plain"},
+                    ],
+                },
+            ],
+            "takeaway": "NATでは送信元IPを書き換え、宛先IPは維持したまま外部へ転送します。",
+        },
+        {
+            "type": "protocol_anatomy",
+            "kicker": "プロトコル構造",
+            "title": "TCPセグメントを分解し、制御情報とデータの位置を読む",
+            "frames": [
+                {
+                    "label": "TCP",
+                    "fields": [
+                        {"id": "src", "name": "送信元Port", "bits": 16},
+                        {"id": "dst", "name": "宛先Port", "bits": 16},
+                        {"id": "seq", "name": "Sequence", "bits": 32, "role": "highlight"},
+                        {"id": "ack", "name": "ACK", "bits": 32, "role": "highlight"},
+                        {"id": "flags", "name": "Flags", "bits": 9, "role": "alert"},
+                        {"id": "window", "name": "Window", "bits": 16},
+                        {"id": "payload", "name": "Payload", "bits": 512, "role": "muted"},
+                    ],
+                    "annotations": [
+                        {"field": "seq", "text": "受信側が並び順と欠落を判断する番号。"},
+                        {"field": "ack", "text": "次に受信したい位置を相手へ通知する。"},
+                        {"field": "flags", "text": "接続開始・終了などの状態を示す。"},
+                    ],
+                }
+            ],
+            "takeaway": "フィールドを位置で捉えると、パケットキャプチャの値を役割へ結び付けやすくなります。",
+        },
+        {
+            "type": "code_lab",
+            "kicker": "設定と確認",
+            "title": "設定例と確認コマンドを並べ、変更後の状態まで検証する",
+            "sections": [
+                {"label": "設定例", "code": "service:\n  image: example/app:2.4\n  replicas: 3\n  healthcheck:\n    path: /health"},
+                {"label": "確認コマンド", "code": "deploy --file service.yml\nstatus service\nlogs service --tail 50"},
+            ],
+            "check_label": "確認する状態",
+            "checks": [
+                "稼働数が指定したreplicasと一致している",
+                "healthcheckが成功し、トラフィックを受けられる",
+                "直近ログに起動失敗や設定エラーがない",
+                "切り戻し用の直前バージョンを特定できる",
+            ],
+            "takeaway": "コマンドの実行ではなく、期待状態の確認までを作業単位にします。",
+        },
+        {
+            "type": "knowledge_check",
+            "mode": "questions",
+            "kicker": "理解度チェック",
+            "title": "判断理由を選び、運用設計の理解を確認する",
+            "questions": [
+                {"question": "監視通知を設計するとき、最初に決めるものはどれか。", "options": ["検知したい利用者影響", "通知メールの色", "担当者の座席"], "answer": 0, "explanation": "利用者影響から必要な検知条件と通知先を逆算します。"},
+                {"question": "変更後の確認として最も適切なものはどれか。", "options": ["コマンドが終了したこと", "期待状態と実測値の一致", "手順書のページ数"], "answer": 1, "explanation": "実行結果ではなく、期待したサービス状態になったことを確認します。"},
+                {"question": "例外対応を残すときに必要な情報はどれか。", "options": ["適用条件と承認者", "作成者の好み", "画面の配色"], "answer": 0, "explanation": "例外の適用条件、期限、承認責任を追跡可能にします。"},
+            ],
         },
         {
             "type": "scope",

@@ -3,6 +3,7 @@ from copy import deepcopy
 
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches
 
 import generate
@@ -157,7 +158,18 @@ def main():
     assert abs(sum(widths) - generate.BODY_W) < 0.001
     assert widths[2] > widths[0]
     table = dict(_base("table"), columns=columns, rows=rows)
-    generate.s_table(_slide(), table, 1)
+    table_slide = _slide()
+    generate.s_table(table_slide, table, 1)
+    rendered_table = next(
+        shape.table for shape in table_slide.shapes
+        if getattr(shape, "has_table", False)
+    )
+    assert all(
+        paragraph.alignment == PP_ALIGN.LEFT
+        for rendered_row in rendered_table.rows
+        for cell in rendered_row.cells
+        for paragraph in cell.text_frame.paragraphs
+    )
 
     cards = dict(
         _base("cards"), style="metrics",

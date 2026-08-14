@@ -9,12 +9,13 @@
 
 ## 出力例
 
-対応する18種類のtypeを、28枚の出力例で確認できます。
+対応する23種類のtypeを、33枚の出力例で確認できます。
 
 ![TYPE別パターンギャラリー](docs/pattern-gallery-by-type.png)
 
 PowerPointで確認・編集できる実物は
 [パターンギャラリー](examples/gallery/pattern_gallery.pptx)に収録しています。
+研修資料の構成例は[VLAN基礎研修](examples/training/vlan/README.md)で確認できます。
 
 ## セットアップ
 

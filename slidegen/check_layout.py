@@ -22,6 +22,7 @@ EMU = 914400
 EDGE = 0.03          # 枠線の当たり判定幅
 SEG_TRIM = 0.08      # 線分端はノード接続なので判定から除外する長さ
 EPS = 0.03           # 視認できない接触(スリバー)を無視する許容量
+BACKGROUND_PREFIX = "layout-background:"
 
 
 def rect_of(sh):
@@ -174,8 +175,9 @@ def check(path):
                 if sh.name != COVER_BACKGROUND_NAME:
                     pics.append((bounds, sh.name))
             elif st in (MSO_SHAPE_TYPE.AUTO_SHAPE,):
-                (solids if has_solid_fill(sh) else frames).append(
-                    (bounds, sh.name, z))
+                if not sh.name.startswith(BACKGROUND_PREFIX):
+                    (solids if has_solid_fill(sh) else frames).append(
+                        (bounds, sh.name, z))
             elif st == MSO_SHAPE_TYPE.LINE:
                 segs.append((seg_of(sh), sh.name, z))
             elif st == MSO_SHAPE_TYPE.CHART:

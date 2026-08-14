@@ -14,6 +14,10 @@ from image_slide import s_image
 from candidate_renderers import (
     s_mapping, s_paired_comparison, s_scope, s_sequence, s_summary, s_swimlane,
 )
+from training_renderers import (
+    s_code_lab, s_concept, s_knowledge_check, s_network, s_protocol_state_flow,
+    s_protocol_anatomy,
+)
 from validate_content import validate
 
 
@@ -32,7 +36,11 @@ RENDER = dict(generate.RENDER,
               diagram=s_diagram, image=s_image,
               scope=s_scope, summary=s_summary,
               paired_comparison=s_paired_comparison, mapping=s_mapping,
-              swimlane=s_swimlane, sequence=s_sequence)
+              swimlane=s_swimlane, sequence=s_sequence,
+              concept=s_concept, network=s_network,
+              protocol_state_flow=s_protocol_state_flow,
+              protocol_anatomy=s_protocol_anatomy,
+              code_lab=s_code_lab, knowledge_check=s_knowledge_check)
 
 
 def main(out_path, cover_footer_config=None):

@@ -28,6 +28,20 @@ def _assert_error(deck, expected):
 def main():
     assert not validate(_deck(_bullets()))
 
+    linked_note = _deck({
+        "type": "table", "kicker": "用語", "title": "規格",
+        "columns": ["用語", "定義"], "rows": [["規格名", "定義文"]],
+        "note": "※ 詳細:",
+        "note_link": {
+            "label": "公式ドキュメント",
+            "url": "https://example.com/standard",
+        },
+    })
+    assert not validate(linked_note), "\n".join(validate(linked_note))
+    invalid_note_link = deepcopy(linked_note)
+    invalid_note_link["slides"][1]["note_link"]["url"] = "http://example.com"
+    _assert_error(invalid_note_link, "https://")
+
     ignored_bullet_value = _deck(_bullets())
     ignored_bullet_value["slides"][1]["bullets"][0][1] = "描画されない値"
     _assert_error(ignored_bullet_value, "text を持つオブジェクト")
@@ -61,6 +75,33 @@ def main():
         "bullets": ["本文A"],
     })
     _assert_error(invalid_plain_text, "text を持つオブジェクト")
+
+    for heading in (
+        "研修の目的", "前提知識", "VLANとは", "同一VLAN内の通信", "VLANの必要性",
+    ):
+        heading_deck = _deck(_bullets())
+        heading_deck["slides"][1]["title"] = heading
+        assert not validate(heading_deck), "\n".join(validate(heading_deck))
+
+    for sentence_title in (
+        "VLANを理解する前に、前提知識を確認する",
+        "同じVLAN内ではL2通信ができる",
+        "資料作成時間を最大72%短縮",
+        "VLANが必要",
+        "新方式が優位",
+        "現状を整理し\n対応方針を決める",
+    ):
+        invalid_title = _deck(_bullets())
+        invalid_title["slides"][1]["title"] = sentence_title
+        _assert_error(invalid_title, '"title" は名詞句または短い疑問形')
+
+    gallery_title = _deck(_bullets())
+    gallery_title["slides"][1]["title"] = "判断材料を整理し、次の行動を決める"
+    assert not validate(gallery_title, allow_sample_content=True)
+
+    invalid_cover_title = _deck(_bullets())
+    invalid_cover_title["slides"][0]["title"] = "VLANを理解し、構成を説明できる"
+    _assert_error(invalid_cover_title, '"title" は名詞句または短い疑問形')
 
     removed_hub = _deck({
         "type": "hub", "kicker": "関係図", "title": "関係者",
@@ -171,7 +212,7 @@ def main():
     for expected in ("nodes.a.sub", "label_w: 未対応", ".dash", ".both"):
         assert any(expected in error for error in errors), "\n".join(errors)
 
-    print("OK: AI content contract accepts optional covers and rejects unsupported input")
+    print("OK: AI content contract accepts headings and rejects assertive page titles")
 
 
 if __name__ == "__main__":
