@@ -712,12 +712,15 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 任意:
 
 - `steps[*].style`: `"standard" | "accent"`
+- `steps[*].number`: 表示する工程番号（1〜99）。省略時は`steps`の配列順、`null`なら番号を表示しない
 - `edges[*].kind`: `"forward" | "feedback"`。前段階へ戻る線は`feedback`必須
 - `takeaway`: フローから得られる示唆
 
 同じlane / stageセルへ配置できるstepは最大2件。座標や線の経由点は入力せず、rendererがレーン境界を
 使って配線する。厳密な時刻や期間が主役なら`program_roadmap`、機器間メッセージなら`sequence`を使う。
 `forward`と`feedback`が同じスライドに存在する場合は、rendererが実線と破線の凡例を自動表示する。
+`steps`の配列順は既定の工程番号として表示されるため、実行順または説明順に並べる。外部作業などを
+番号なしで併記する場合や、配置順と実行順が一致しない場合だけ`number`を明示する。
 
 ```json
 {

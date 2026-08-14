@@ -944,12 +944,12 @@ def _v_swimlane(s):
     stages, stage_ids = _id_label_list(s, "stages", 2, 6)
     stage_index = {stage.get("id"): index for index, stage in enumerate(stages)}
     steps = s.req_list("steps", 2, 14, "工程") or []
-    step_ids, cell_counts, step_stage = set(), {}, {}
+    step_ids, cell_counts, step_stage, step_numbers = set(), {}, {}, set()
     for index, step in enumerate(steps):
         if not isinstance(step, dict):
             s.err(f"steps[{index}] はオブジェクトにしてください")
             continue
-        s.allow_keys(step, {"id", "name", "lane", "stage", "style"},
+        s.allow_keys(step, {"id", "name", "lane", "stage", "style", "number"},
                      f"steps[{index}]")
         if not _is_str(step.get("id")) or not _is_str(step.get("name")):
             s.err(f"steps[{index}] にはid / name (文字列) が必要です")
@@ -965,6 +965,14 @@ def _v_swimlane(s):
             s.err(f"steps[{index}] と同じlane / stageには最大2工程までです")
         if step.get("style", "standard") not in {"standard", "accent"}:
             s.err(f"steps[{index}].style はstandard / accentにしてください")
+        if "number" in step and step["number"] is not None:
+            number = step["number"]
+            if not isinstance(number, int) or isinstance(number, bool) or not 1 <= number <= 99:
+                s.err(f"steps[{index}].number は1〜99の整数またはnullにしてください")
+            elif number in step_numbers:
+                s.err(f"steps[{index}].number={number} が重複しています")
+            else:
+                step_numbers.add(number)
         step_stage[step["id"]] = stage_index.get(step.get("stage"), -1)
     edges = s.req_list("edges", 1, 20, "工程接続") or []
     seen = set()

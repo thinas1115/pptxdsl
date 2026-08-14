@@ -17,7 +17,11 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from cover_footer import COVER_BACKGROUND_NAME
-from quality_markers import MIN_SURFACE_CONTRAST, SURFACE_ON_CANVAS_PREFIX
+from quality_markers import (
+    MIN_SURFACE_CONTRAST,
+    MIN_SURFACE_EDGE_CONTRAST,
+    SURFACE_ON_CANVAS_PREFIX,
+)
 from textfit import line_height_in, wrap_text
 
 EMU = 914400
@@ -165,6 +169,17 @@ def solid_fill_rgb(sh):
         return None
 
 
+def solid_line_rgb(sh):
+    """図形の単色輪郭をRGBで返す。輪郭なし・テーマ色は判定不能とする。"""
+    try:
+        rgb = sh.line.color.rgb
+        if rgb is None or sh.line.width <= 0:
+            return None
+        return tuple(rgb)
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
 def relative_luminance(rgb):
     values = [value / 255 for value in rgb]
     linear = [
@@ -224,11 +239,19 @@ def check(path):
                         findings.append((si, "VIS-CONTRAST", sh.name,
                                          "塗りまたはキャンバス色を取得できません"))
                     else:
-                        ratio = contrast_ratio(surface_rgb, canvas_rgb)
-                        if ratio < MIN_SURFACE_CONTRAST:
+                        fill_ratio = contrast_ratio(surface_rgb, canvas_rgb)
+                        edge_rgb = solid_line_rgb(sh)
+                        edge_ratio = (
+                            contrast_ratio(edge_rgb, canvas_rgb)
+                            if edge_rgb is not None else 0.0
+                        )
+                        if (fill_ratio < MIN_SURFACE_CONTRAST
+                                and edge_ratio < MIN_SURFACE_EDGE_CONTRAST):
                             findings.append((
                                 si, "VIS-CONTRAST", sh.name,
-                                f"{ratio:.3f} < {MIN_SURFACE_CONTRAST:.2f}"))
+                                f"面={fill_ratio:.3f} < {MIN_SURFACE_CONTRAST:.2f}, "
+                                f"輪郭={edge_ratio:.3f} < "
+                                f"{MIN_SURFACE_EDGE_CONTRAST:.2f}"))
                 if not sh.name.startswith(BACKGROUND_PREFIX):
                     (solids if has_solid_fill(sh) else frames).append(
                         (bounds, sh.name, z))

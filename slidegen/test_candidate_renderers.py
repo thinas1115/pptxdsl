@@ -23,7 +23,11 @@ from candidate_review_cases import REVIEW_DECK
 from check_layout import contrast_ratio
 from content_patterns import PATTERN_DECK
 from layout_fit import FitError
-from quality_markers import MIN_SURFACE_CONTRAST, SURFACE_ON_CANVAS_PREFIX
+from quality_markers import (
+    MIN_SURFACE_CONTRAST,
+    MIN_SURFACE_EDGE_CONTRAST,
+    SURFACE_ON_CANVAS_PREFIX,
+)
 from validate_content import validate
 
 
@@ -265,7 +269,7 @@ def _assert_swimlane_node_frames_and_routes():
     framed_nodes = [
         shape for shape in slide.shapes
         if Inches(0.45) <= shape.height <= Inches(0.70)
-        and Inches(1.0) <= shape.width <= Inches(2.5)
+        and Inches(0.80) <= shape.width <= Inches(2.5)
         and _rgb(shape) == ACCENT
     ]
     assert len(framed_nodes) >= len(spec["steps"])
@@ -291,9 +295,12 @@ def _assert_swimlane_stage_surface_contrast():
     assert len(stages) == len(spec["stages"])
     for shape in stages:
         surface_rgb = tuple(shape.fill.fore_color.rgb)
+        edge_rgb = tuple(shape.line.color.rgb)
         assert (
             contrast_ratio(surface_rgb, tuple(generate.CANVAS))
             >= MIN_SURFACE_CONTRAST
+            or contrast_ratio(edge_rgb, tuple(generate.CANVAS))
+            >= MIN_SURFACE_EDGE_CONTRAST
         )
 
 

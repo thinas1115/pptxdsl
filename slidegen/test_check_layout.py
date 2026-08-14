@@ -87,11 +87,18 @@ with TemporaryDirectory() as td:
     stage.name = f"{SURFACE_ON_CANVAS_PREFIX}test-stage"
     stage.fill.solid()
     stage.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFC)
+    stage.line.fill.background()
     findings = save(prs, out / "surface_contrast_ng.pptx")
     assert any(kind == "VIS-CONTRAST" for _, kind, _, _ in findings), findings
 
+    stage.line.color.rgb = RGBColor(0xD1, 0xCF, 0xC8)
+    stage.line.width = Pt(0.85)
+    findings = save(prs, out / "surface_outline_contrast_ok.pptx")
+    assert not any(kind == "VIS-CONTRAST" for _, kind, _, _ in findings), findings
+
+    stage.line.fill.background()
     stage.fill.fore_color.rgb = RGBColor(0xDF, 0xEB, 0xE8)
-    findings = save(prs, out / "surface_contrast_ok.pptx")
+    findings = save(prs, out / "surface_fill_contrast_ok.pptx")
     assert not any(kind == "VIS-CONTRAST" for _, kind, _, _ in findings), findings
 
 print("check_layout broken-PPTX regression: ALL OK")
