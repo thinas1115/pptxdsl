@@ -3,10 +3,13 @@
 from copy import deepcopy
 
 from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.util import Inches
 
 import generate
 from candidate_renderers import (
+    ACCENT,
+    RULE,
     _fit_rows,
     _mapping_items_by_min_crossings,
     s_mapping,
@@ -229,6 +232,50 @@ def _assert_swimlane_legend():
     assert legend_texts.isdisjoint(standard_texts)
 
 
+def _rgb(shape):
+    try:
+        return shape.line.color.rgb
+    except (AttributeError, TypeError):
+        return None
+
+
+def _assert_scope_panel_integration():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "scope" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    panels = [
+        shape for shape in slide.shapes
+        if Inches(5.0) <= shape.width <= Inches(7.0)
+        and shape.height >= Inches(2.5)
+    ]
+    assert len(panels) == 2
+    assert all(_rgb(shape) == RULE for shape in panels)
+
+
+def _assert_swimlane_node_frames_and_routes():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    framed_nodes = [
+        shape for shape in slide.shapes
+        if Inches(0.45) <= shape.height <= Inches(0.70)
+        and Inches(1.0) <= shape.width <= Inches(2.5)
+        and _rgb(shape) == ACCENT
+    ]
+    assert len(framed_nodes) >= len(spec["steps"])
+    diagonal_lines = [
+        shape for shape in slide.shapes
+        if shape.shape_type == MSO_SHAPE_TYPE.LINE
+        and shape.width > Inches(0.01)
+        and shape.height > Inches(0.01)
+    ]
+    assert not diagonal_lines
+
+
 def main():
     errors = validate(deepcopy(PATTERN_DECK), allow_sample_content=True)
     assert not errors, "\n".join(errors)
@@ -262,6 +309,8 @@ def main():
     _assert_mapping_column_alignment()
     _assert_sequence_structure()
     _assert_swimlane_legend()
+    _assert_scope_panel_integration()
+    _assert_swimlane_node_frames_and_routes()
     print("candidate renderer tests: OK")
 
 

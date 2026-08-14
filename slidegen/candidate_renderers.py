@@ -6,7 +6,7 @@ from itertools import permutations
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 
 from asset_paths import resolve_icon_path
 from diagrams import add_arrow
@@ -187,9 +187,10 @@ def s_scope(slide, spec, page):
 
     def column(x, label, items, positive):
         color = ACCENT if positive else GRAY
-        _flat_rect(slide, x, body_top, col_w, panel_h,
+        # 見出しだけが白く浮かないよう、外周を持つ一枚のパネルとして描く。
+        _flat_rect(slide, x, body_top, col_w, panel_h, WHITE, line=RULE)
+        _flat_rect(slide, x, body_top, col_w, 0.62,
                    LIGHT if positive else ZEBRA)
-        _flat_rect(slide, x, body_top, col_w, 0.62, WHITE)
         _status_medallion(slide, x + 0.20, body_top + 0.10,
                           "✓" if positive else "×", positive=positive)
         add_text(slide, x + 0.76, body_top + 0.16, col_w - 0.98, 0.28, label,
@@ -516,18 +517,18 @@ def _swimlane_step_rects(spec, x0, y0, stage_w, lane_h):
     for (lane_id, stage_id), steps in grouped.items():
         cell_x = x0 + stage_index[stage_id] * stage_w
         cell_y = y0 + lane_index[lane_id] * lane_h
-        gap = 0.08
+        gap = 0.10
         if len(spec["stages"]) <= 2:
-            max_node_w = 2.62
+            max_node_w = 2.36
         elif len(spec["stages"]) <= 3:
-            max_node_w = 2.12
+            max_node_w = 1.92
         else:
-            max_node_w = 1.72
+            max_node_w = 1.44
         width = min(max_node_w,
-                    (stage_w - 0.22 - gap * (len(steps) - 1)) / len(steps))
+                    (stage_w - 0.28 - gap * (len(steps) - 1)) / len(steps))
         total_w = len(steps) * width + gap * (len(steps) - 1)
         start_x = cell_x + (stage_w - total_w) / 2
-        node_h = min(0.68 if lane_h >= 1.20 else 0.56, lane_h - 0.20)
+        node_h = min(0.62 if lane_h >= 1.20 else 0.50, lane_h - 0.24)
         for index, step in enumerate(steps):
             rects[step["id"]] = (
                 start_x + index * (width + gap),
@@ -544,8 +545,8 @@ def s_swimlane(slide, spec, page):
     lanes, stages = spec["lanes"], spec["stages"]
     takeaway = spec.get("takeaway")
     takeaway_h = 0.72 if takeaway else 0.0
-    top = area.top + 0.12
-    stage_h, lane_label_w = 0.54, 1.72
+    top = area.top + 0.08
+    stage_h, lane_label_w = 0.42, 1.52
     stage_index = {stage["id"]: index for index, stage in enumerate(stages)}
     step_by_id = {step["id"]: step for step in spec["steps"]}
     has_feedback = any(
@@ -567,8 +568,6 @@ def s_swimlane(slide, spec, page):
         font=11.5, min_font=9.0, reserve=feedback_h,
     )
     lane_h = fitted.values["row_h"]
-    used_h = len(lanes) * lane_h + feedback_h
-    top += max(0.0, available_h - used_h) * 0.30
     x0 = MARGIN + lane_label_w
     stage_w = (BODY_W - lane_label_w) / len(stages)
     lane_y0 = top + stage_h
@@ -576,14 +575,15 @@ def s_swimlane(slide, spec, page):
         x = x0 + index * stage_w
         shape = slide.shapes.add_shape(
             MSO_SHAPE.CHEVRON, Inches(x), Inches(top),
-            Inches(stage_w + (0.06 if index < len(stages) - 1 else 0)),
+            Inches(stage_w + (0.04 if index < len(stages) - 1 else 0)),
             Inches(stage_h))
         shape.fill.solid()
-        shape.fill.fore_color.rgb = LIGHT if index % 2 else ZEBRA
-        shape.line.fill.background()
+        shape.fill.fore_color.rgb = WHITE
+        shape.line.color.rgb = RULE
+        shape.line.width = Pt(0.6)
         _flatten_shape(shape)
-        add_text(slide, x + 0.14, top + 0.10, stage_w - 0.28, 0.28,
-                 stage["label"], 11.5, bold=True, color=NAVY,
+        add_text(slide, x + 0.14, top + 0.06, stage_w - 0.28, 0.26,
+                 stage["label"], 10.5, bold=True, color=NAVY,
                  align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
     if show_line_legend:
         legend_x = MARGIN + 0.10
@@ -607,8 +607,7 @@ def s_swimlane(slide, spec, page):
         y = lane_y0 + index * lane_h
         _flat_rect(slide, MARGIN, y, lane_label_w, lane_h,
                    LIGHT if index % 2 == 0 else ZEBRA)
-        _flat_rect(slide, x0, y, BODY_W - lane_label_w, lane_h,
-                   WHITE if index % 2 == 0 else CANVAS)
+        _flat_rect(slide, x0, y, BODY_W - lane_label_w, lane_h, WHITE)
         lane_text_w = lane_label_w - 0.22
         lane_font = 13.0
         while (lane_font > 8.0
@@ -639,6 +638,7 @@ def s_swimlane(slide, spec, page):
         x = x0 + index * stage_w
         plain_line(slide, x, lane_y0, x, lane_y0 + len(lanes) * lane_h,
                    color=RULE, width=0.55)
+    # 接続線を先に描き、ノードを上から重ねて線の貫通を隠す。
     for edge in spec["edges"]:
         sx, sy, sw, sh = rects[edge["from"]]
         tx, ty, tw, th = rects[edge["to"]]
@@ -649,7 +649,7 @@ def s_swimlane(slide, spec, page):
             if abs(start[1] - end[1]) < 0.02:
                 points = [start, end]
             else:
-                boundary = x0 + target_stage * stage_w
+                boundary = x0 + target_stage * stage_w - 0.04
                 points = [start, (boundary, start[1]), (boundary, end[1]), end]
         elif target_stage == source_stage:
             source_lane = lane_index[step_by_id[edge["from"]]["lane"]]
@@ -663,7 +663,9 @@ def s_swimlane(slide, spec, page):
                 downward = ty > sy
                 start = (sx + sw / 2, sy + sh if downward else sy)
                 end = (tx + tw / 2, ty if downward else ty + th)
-                points = [start, end]
+                channel_y = (start[1] + end[1]) / 2
+                points = [start, (start[0], channel_y),
+                          (end[0], channel_y), end]
             else:
                 # 中間レーンのノードを貫通しないよう工程セル右端を通し、
                 # 対象ノードの上下辺へ最後の短い縦線で接続する。
@@ -685,12 +687,12 @@ def s_swimlane(slide, spec, page):
             points = [start, (start[0], channel_y), (end[0], channel_y), end]
         route(slide, points,
               dash="dash" if edge.get("kind") == "feedback" else None,
-              width=1.15)
+              width=1.05)
     for index, step in enumerate(spec["steps"]):
         x, y, w, h = rects[step["id"]]
         _flat_rect(slide, x, y, w, h,
                    LIGHT if step.get("style") == "accent" else WHITE,
-                   line=ACCENT if step.get("style") == "accent" else None)
+                   line=ACCENT)
         one_line_size = min(11.5, fitted.values["font"])
         while (one_line_size >= 7.5
                and text_width_in(step["name"], one_line_size, "bold") > w - 0.20):
