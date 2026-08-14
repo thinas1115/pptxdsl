@@ -245,6 +245,13 @@ def _rgb(shape):
         return None
 
 
+def _fill_rgb(shape):
+    try:
+        return shape.fill.fore_color.rgb
+    except (AttributeError, TypeError):
+        return None
+
+
 def _assert_scope_panel_integration():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
@@ -304,6 +311,22 @@ def _assert_swimlane_stage_surface_contrast():
         )
 
 
+def _assert_swimlane_body_uses_canvas():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    lane_bodies = [
+        shape for shape in slide.shapes
+        if shape.width >= Inches(8.0)
+        and shape.width <= Inches(12.0)
+        and shape.height >= Inches(0.5)
+    ]
+    assert len(lane_bodies) == len(spec["lanes"])
+    assert all(_fill_rgb(shape) == generate.CANVAS for shape in lane_bodies)
+
+
 def main():
     errors = validate(deepcopy(PATTERN_DECK), allow_sample_content=True)
     assert not errors, "\n".join(errors)
@@ -357,6 +380,7 @@ def main():
     _assert_scope_panel_integration()
     _assert_swimlane_node_frames_and_routes()
     _assert_swimlane_stage_surface_contrast()
+    _assert_swimlane_body_uses_canvas()
     print("candidate renderer tests: OK")
 
 

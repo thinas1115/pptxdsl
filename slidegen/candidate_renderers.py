@@ -603,7 +603,7 @@ def s_swimlane(slide, spec, page):
     for index, lane in enumerate(lanes):
         y = lane_y0 + index * lane_h
         _flat_rect(slide, frame_x, y, lane_label_w, lane_h, LIGHT)
-        _flat_rect(slide, x0, y, frame_w - lane_label_w, lane_h, WHITE)
+        _flat_rect(slide, x0, y, frame_w - lane_label_w, lane_h, CANVAS)
         lane_text_w = lane_label_w - 0.22
         lane_font = 13.0
         while (lane_font > 8.0
