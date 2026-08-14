@@ -45,6 +45,25 @@ _TYPE_KEYS = {
     },
     "org": _BASE_SLIDE_KEYS | {"org", "note"},
     "diagram": _BASE_SLIDE_KEYS | {"diagram", "note"},
+    "scope": _BASE_SLIDE_KEYS | {
+        "in_label", "out_label", "in_scope", "out_of_scope", "assumptions",
+    },
+    "summary": _BASE_SLIDE_KEYS | {
+        "sections", "conclusion", "conclusion_label",
+    },
+    "paired_comparison": _BASE_SLIDE_KEYS | {
+        "left_label", "right_label", "criterion_label", "rows", "takeaway",
+    },
+    "mapping": _BASE_SLIDE_KEYS | {
+        "left_label", "right_label", "left_items", "right_items", "links",
+        "takeaway",
+    },
+    "swimlane": _BASE_SLIDE_KEYS | {
+        "lanes", "stages", "steps", "edges", "takeaway",
+    },
+    "sequence": _BASE_SLIDE_KEYS | {
+        "participants", "messages", "phases", "takeaway",
+    },
 }
 
 
@@ -742,6 +761,211 @@ def _v_diagram(s):
             s.err(f"edges[{i}].from_row はfromが@コンテナ名の場合だけ指定できます")
 
 
+def _string_list(s, key, min_n, max_n):
+    values = s.req_list(key, min_n, max_n, "空でない文字列")
+    if values is not None and not all(_is_str(value) for value in values):
+        s.err(f"{key} は空でない文字列の配列にしてください")
+    return values or []
+
+
+def _v_scope(s):
+    _string_list(s, "in_scope", 1, 6)
+    _string_list(s, "out_of_scope", 1, 6)
+    for key in ("in_label", "out_label"):
+        if key in s.spec and not _is_str(s.spec[key]):
+            s.err(f"{key} は空でない文字列にしてください")
+    if "assumptions" in s.spec:
+        _string_list(s, "assumptions", 1, 4)
+
+
+def _v_summary(s):
+    sections = s.req_list("sections", 2, 4, "論点") or []
+    for index, section in enumerate(sections):
+        if not isinstance(section, dict):
+            s.err(f"sections[{index}] はオブジェクトにしてください")
+            continue
+        s.allow_keys(section, {"heading", "body"}, f"sections[{index}]")
+        for key in ("heading", "body"):
+            if not _is_str(section.get(key)):
+                s.err(f"sections[{index}].{key} は空でない文字列にしてください")
+    if "conclusion" in s.spec and not _is_str(s.spec["conclusion"]):
+        s.err("conclusion は空でない文字列にしてください")
+    if "conclusion_label" in s.spec:
+        if "conclusion" not in s.spec:
+            s.err("conclusion_label はconclusionを指定した場合だけ使用できます")
+        elif not _is_str(s.spec["conclusion_label"]):
+            s.err("conclusion_label は空でない文字列にしてください")
+
+
+def _v_paired_comparison(s):
+    for key in ("left_label", "right_label"):
+        s.req_str(key)
+    if "criterion_label" in s.spec and not _is_str(s.spec["criterion_label"]):
+        s.err("criterion_label は空でない文字列にしてください")
+    rows = s.req_list("rows", 2, 6, "比較行") or []
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            s.err(f"rows[{index}] はオブジェクトにしてください")
+            continue
+        s.allow_keys(row, {"criterion", "left", "right"}, f"rows[{index}]")
+        for key in ("criterion", "left", "right"):
+            if not _is_str(row.get(key)):
+                s.err(f"rows[{index}].{key} は空でない文字列にしてください")
+    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
+        s.err("takeaway は空でない文字列にしてください")
+
+
+def _mapping_items(s, key):
+    items = s.req_list(key, 2, 6, "対応項目") or []
+    ids = set()
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            s.err(f"{key}[{index}] はオブジェクトにしてください")
+            continue
+        s.allow_keys(item, {"id", "text"}, f"{key}[{index}]")
+        if not _is_str(item.get("id")) or not _is_str(item.get("text")):
+            s.err(f"{key}[{index}] にはid / text (文字列) が必要です")
+            continue
+        if item["id"] in ids:
+            s.err(f"{key}[{index}].id={item['id']!r} が重複しています")
+        ids.add(item["id"])
+    return ids
+
+
+def _v_mapping(s):
+    for key in ("left_label", "right_label"):
+        s.req_str(key)
+    left_ids = _mapping_items(s, "left_items")
+    right_ids = _mapping_items(s, "right_items")
+    links = s.req_list("links", 1, 10, "対応線") or []
+    seen = set()
+    for index, link in enumerate(links):
+        if not isinstance(link, dict):
+            s.err(f"links[{index}] はオブジェクトにしてください")
+            continue
+        s.allow_keys(link, {"from", "to", "emphasis"}, f"links[{index}]")
+        source, target = link.get("from"), link.get("to")
+        if source not in left_ids or target not in right_ids:
+            s.err(f"links[{index}] がleft_items / right_itemsの未定義idを参照しています")
+        if (source, target) in seen:
+            s.err(f"links[{index}] の対応が重複しています")
+        seen.add((source, target))
+        if "emphasis" in link and not isinstance(link["emphasis"], bool):
+            s.err(f"links[{index}].emphasis は真偽値にしてください")
+    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
+        s.err("takeaway は空でない文字列にしてください")
+
+
+def _id_label_list(s, key, min_n, max_n):
+    values = s.req_list(key, min_n, max_n, "id / labelを持つ項目") or []
+    ids = set()
+    for index, value in enumerate(values):
+        if not isinstance(value, dict):
+            s.err(f"{key}[{index}] はオブジェクトにしてください")
+            continue
+        s.allow_keys(value, {"id", "label"}, f"{key}[{index}]")
+        if not _is_str(value.get("id")) or not _is_str(value.get("label")):
+            s.err(f"{key}[{index}] にはid / label (文字列) が必要です")
+            continue
+        if value["id"] in ids:
+            s.err(f"{key}[{index}].id={value['id']!r} が重複しています")
+        ids.add(value["id"])
+    return values, ids
+
+
+def _v_swimlane(s):
+    lanes, lane_ids = _id_label_list(s, "lanes", 2, 6)
+    stages, stage_ids = _id_label_list(s, "stages", 2, 6)
+    stage_index = {stage.get("id"): index for index, stage in enumerate(stages)}
+    steps = s.req_list("steps", 2, 14, "工程") or []
+    step_ids, cell_counts, step_stage = set(), {}, {}
+    for index, step in enumerate(steps):
+        if not isinstance(step, dict):
+            s.err(f"steps[{index}] はオブジェクトにしてください")
+            continue
+        s.allow_keys(step, {"id", "name", "lane", "stage", "style"},
+                     f"steps[{index}]")
+        if not _is_str(step.get("id")) or not _is_str(step.get("name")):
+            s.err(f"steps[{index}] にはid / name (文字列) が必要です")
+            continue
+        if step["id"] in step_ids:
+            s.err(f"steps[{index}].id={step['id']!r} が重複しています")
+        step_ids.add(step["id"])
+        if step.get("lane") not in lane_ids or step.get("stage") not in stage_ids:
+            s.err(f"steps[{index}] がlanes / stagesの未定義idを参照しています")
+        cell = (step.get("lane"), step.get("stage"))
+        cell_counts[cell] = cell_counts.get(cell, 0) + 1
+        if cell_counts[cell] > 2:
+            s.err(f"steps[{index}] と同じlane / stageには最大2工程までです")
+        if step.get("style", "standard") not in {"standard", "accent"}:
+            s.err(f"steps[{index}].style はstandard / accentにしてください")
+        step_stage[step["id"]] = stage_index.get(step.get("stage"), -1)
+    edges = s.req_list("edges", 1, 20, "工程接続") or []
+    seen = set()
+    for index, edge in enumerate(edges):
+        if not isinstance(edge, dict):
+            s.err(f"edges[{index}] はオブジェクトにしてください")
+            continue
+        s.allow_keys(edge, {"from", "to", "kind"}, f"edges[{index}]")
+        source, target = edge.get("from"), edge.get("to")
+        if source not in step_ids or target not in step_ids:
+            s.err(f"edges[{index}] が未定義stepを参照しています")
+            continue
+        if source == target:
+            s.err(f"edges[{index}] は同じ工程へ接続できません")
+        if (source, target) in seen:
+            s.err(f"edges[{index}] の接続が重複しています")
+        seen.add((source, target))
+        kind = edge.get("kind", "forward")
+        if kind not in {"forward", "feedback"}:
+            s.err(f"edges[{index}].kind はforward / feedbackにしてください")
+        if step_stage.get(target, -1) < step_stage.get(source, -1) and kind != "feedback":
+            s.err(f"edges[{index}] の前フェーズへの接続にはkind=feedbackが必要です")
+    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
+        s.err("takeaway は空でない文字列にしてください")
+
+
+def _v_sequence(s):
+    participants, participant_ids = _id_label_list(s, "participants", 2, 6)
+    messages = s.req_list("messages", 2, 12, "メッセージ") or []
+    message_ids = set()
+    message_index = {}
+    for index, message in enumerate(messages):
+        if not isinstance(message, dict):
+            s.err(f"messages[{index}] はオブジェクトにしてください")
+            continue
+        s.allow_keys(message, {"id", "from", "to", "label", "kind"},
+                     f"messages[{index}]")
+        if not _is_str(message.get("id")) or not _is_str(message.get("label")):
+            s.err(f"messages[{index}] にはid / label (文字列) が必要です")
+            continue
+        if message["id"] in message_ids:
+            s.err(f"messages[{index}].id={message['id']!r} が重複しています")
+        message_ids.add(message["id"])
+        message_index[message["id"]] = index
+        if message.get("from") not in participant_ids or message.get("to") not in participant_ids:
+            s.err(f"messages[{index}] が未定義participantを参照しています")
+        if message.get("kind", "request") not in {"request", "return", "async"}:
+            s.err(f"messages[{index}].kind はrequest / return / asyncにしてください")
+    phases = s.spec.get("phases", [])
+    if not isinstance(phases, list) or len(phases) > 3:
+        s.err("phases は最大3件の配列にしてください")
+        phases = []
+    for index, phase in enumerate(phases):
+        if not isinstance(phase, dict):
+            s.err(f"phases[{index}] はオブジェクトにしてください")
+            continue
+        s.allow_keys(phase, {"label", "from", "to"}, f"phases[{index}]")
+        if not _is_str(phase.get("label")):
+            s.err(f"phases[{index}].label は空でない文字列にしてください")
+        if phase.get("from") not in message_ids or phase.get("to") not in message_ids:
+            s.err(f"phases[{index}] が未定義messageを参照しています")
+        elif message_index[phase["from"]] > message_index[phase["to"]]:
+            s.err(f"phases[{index}] はfromより後のmessageをtoへ指定してください")
+    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
+        s.err("takeaway は空でない文字列にしてください")
+
+
 VALIDATORS = {
     "title": _v_title, "bullets": _v_bullets, "cards": _v_cards,
     "table": _v_table, "twocol": _v_twocol, "chart": _v_chart,
@@ -749,6 +973,9 @@ VALIDATORS = {
     "process": _v_process, "program_roadmap": _v_program_roadmap,
     "matrix": _v_matrix,
     "org": _v_org, "diagram": _v_diagram,
+    "scope": _v_scope, "summary": _v_summary,
+    "paired_comparison": _v_paired_comparison, "mapping": _v_mapping,
+    "swimlane": _v_swimlane, "sequence": _v_sequence,
 }
 
 

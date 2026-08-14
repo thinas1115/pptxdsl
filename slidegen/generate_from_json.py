@@ -19,6 +19,9 @@ from org_layout import s_org
 from diagrams2 import s_matrix, s_process, s_program_roadmap
 from diagram_layout import render_diagram
 from image_slide import s_image
+from candidate_renderers import (
+    s_mapping, s_paired_comparison, s_scope, s_sequence, s_summary, s_swimlane,
+)
 from validate_content import validate
 
 
@@ -37,7 +40,10 @@ RENDER = dict(generate.RENDER,
               org=s_org,
               process=s_process, program_roadmap=s_program_roadmap,
               matrix=s_matrix,
-              diagram=s_diagram, image=s_image)
+              diagram=s_diagram, image=s_image,
+              scope=s_scope, summary=s_summary,
+              paired_comparison=s_paired_comparison, mapping=s_mapping,
+              swimlane=s_swimlane, sequence=s_sequence)
 
 
 def main(json_path, out_path, cover_footer_config=None):

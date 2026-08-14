@@ -551,6 +551,214 @@ python slidegen/validate_content.py content.json
 }
 ```
 
+### scope
+
+用途: 実施範囲と対象外を左右に分け、責任境界を明確にする。必要な場合だけ前提条件を下部へ示す。
+
+必須:
+
+- `type`: `"scope"`
+- `kicker` / `title`: string
+- `in_scope`: 実施範囲の文字列配列(1〜6件)
+- `out_of_scope`: 対象外の文字列配列(1〜6件)
+
+任意:
+
+- `in_label` / `out_label`: 左右の見出し
+- `assumptions`: 前提条件の文字列配列(1〜4件)
+
+```json
+{
+  "type": "scope",
+  "kicker": "対象範囲",
+  "title": "実施範囲と対象外を分ける",
+  "in_scope": ["実施する作業"],
+  "out_of_scope": ["実施しない作業"],
+  "assumptions": ["成立に必要な前提条件"]
+}
+```
+
+### summary
+
+用途: 2〜4個の論点を読み順に並べ、必要なら最終判断を1文で示す。
+
+必須:
+
+- `type`: `"summary"`
+- `kicker` / `title`: string
+- `sections`: 2〜4件
+  - `heading`: 論点見出し
+  - `body`: 論点の説明
+
+任意:
+
+- `conclusion`: 最終判断
+- `conclusion_label`: 結論帯の短いラベル。`conclusion`指定時だけ使用できる
+
+```json
+{
+  "type": "summary",
+  "kicker": "意思決定",
+  "title": "背景・判断・提案を要約する",
+  "sections": [
+    {"heading": "背景", "body": "判断の前提となる事実。"},
+    {"heading": "判断", "body": "比較して得られた示唆。"},
+    {"heading": "提案", "body": "次に実施する内容。"}
+  ],
+  "conclusion": "最終判断を1文で記載する。"
+}
+```
+
+### paired_comparison
+
+用途: 2案を共通の評価軸で1行ずつ対応させて比較する。
+
+必須:
+
+- `type`: `"paired_comparison"`
+- `kicker` / `title`: string
+- `left_label` / `right_label`: 比較対象名
+- `rows`: 2〜6件
+  - `criterion`: 評価軸
+  - `left` / `right`: 各対象の評価内容
+
+任意:
+
+- `criterion_label`: 評価軸列の見出し。省略時は`評価軸`
+- `takeaway`: 比較から得られる判断
+
+```json
+{
+  "type": "paired_comparison",
+  "kicker": "方式比較",
+  "title": "2案を同じ評価軸で比較する",
+  "left_label": "案A",
+  "right_label": "案B",
+  "rows": [
+    {"criterion": "導入期間", "left": "短い", "right": "準備期間が必要"},
+    {"criterion": "運用負荷", "left": "個別対応", "right": "共通化できる"}
+  ]
+}
+```
+
+### mapping
+
+用途: 課題と施策、要件と機能など、左右項目の対応漏れと一対多・多対多の関係を確認する。
+
+必須:
+
+- `type`: `"mapping"`
+- `kicker` / `title`: string
+- `left_label` / `right_label`: 左右の見出し
+- `left_items` / `right_items`: 各2〜6件
+  - `id`: スライド内で一意な参照ID
+  - `text`: 表示文
+- `links`: 1〜10件
+  - `from`: `left_items`のID
+  - `to`: `right_items`のID
+
+任意:
+
+- `links[*].emphasis`: trueなら主要な対応線を強調する
+- `takeaway`: 対応関係から得られる判断
+
+同じ対応を重複指定できない。未定義IDへの接続はvalidatorが拒否する。工程順やシステム境界を表す
+typeではないため、その場合は`process`、`swimlane`、`diagram`を選ぶ。
+
+```json
+{
+  "type": "mapping",
+  "kicker": "対応関係",
+  "title": "課題と施策の対応漏れを確認する",
+  "left_label": "課題",
+  "right_label": "施策",
+  "left_items": [{"id": "issue_a", "text": "課題A"}, {"id": "issue_b", "text": "課題B"}],
+  "right_items": [{"id": "action_a", "text": "施策A"}, {"id": "action_b", "text": "施策B"}],
+  "links": [
+    {"from": "issue_a", "to": "action_a", "emphasis": true},
+    {"from": "issue_a", "to": "action_b"},
+    {"from": "issue_b", "to": "action_b"}
+  ]
+}
+```
+
+### swimlane
+
+用途: 担当レーンと工程段階を同時に示し、作業の分岐・合流・引き継ぎを確認する。
+
+必須:
+
+- `type`: `"swimlane"`
+- `kicker` / `title`: string
+- `lanes`: 2〜6件。`id` / `label`を持つ
+- `stages`: 2〜6件。`id` / `label`を持つ
+- `steps`: 2〜14件
+  - `id` / `name`: 参照IDと表示名
+  - `lane` / `stage`: 所属するレーンIDと段階ID
+- `edges`: 1〜20件。`from` / `to`でstep IDを接続する
+
+任意:
+
+- `steps[*].style`: `"standard" | "accent"`
+- `edges[*].kind`: `"forward" | "feedback"`。前段階へ戻る線は`feedback`必須
+- `takeaway`: フローから得られる示唆
+
+同じlane / stageセルへ配置できるstepは最大2件。座標や線の経由点は入力せず、rendererがレーン境界を
+使って配線する。厳密な時刻や期間が主役なら`program_roadmap`、機器間メッセージなら`sequence`を使う。
+`forward`と`feedback`が同じスライドに存在する場合は、rendererが実線と破線の凡例を自動表示する。
+
+```json
+{
+  "type": "swimlane",
+  "kicker": "業務フロー",
+  "title": "担当と引き継ぎを確認する",
+  "lanes": [{"id": "requester", "label": "申請部門"}, {"id": "reviewer", "label": "審査部門"}],
+  "stages": [{"id": "apply", "label": "申請"}, {"id": "review", "label": "審査"}],
+  "steps": [
+    {"id": "submit", "name": "申請", "lane": "requester", "stage": "apply"},
+    {"id": "check", "name": "確認", "lane": "reviewer", "stage": "review"}
+  ],
+  "edges": [{"from": "submit", "to": "check"}]
+}
+```
+
+### sequence
+
+用途: 関係者・機器間のメッセージを上から時系列に並べ、送信者・受信者・戻り応答を示す。
+
+必須:
+
+- `type`: `"sequence"`
+- `kicker` / `title`: string
+- `participants`: 2〜6件。`id` / `label`を持つ
+- `messages`: 2〜12件
+  - `id`: メッセージID
+  - `from` / `to`: participant ID。同一participantなら自己処理として描画する
+  - `label`: メッセージ名
+
+任意:
+
+- `messages[*].kind`: `"request" | "return" | "async"`
+- `phases`: 最大3件。`label`と、範囲の先頭・末尾message IDを`from` / `to`へ指定する
+- `takeaway`: シーケンスから得られる示唆
+
+`messages`の配列順が上から下への実行順になる。rendererは同じ順序を重複して示す通番を表示しない。
+工程のまとまりを読み手へ示す必要がある場合だけ`phases`を指定する。
+
+```json
+{
+  "type": "sequence",
+  "kicker": "処理シーケンス",
+  "title": "依頼と応答を実行順に確認する",
+  "participants": [{"id": "user", "label": "利用者"}, {"id": "system", "label": "システム"}],
+  "messages": [
+    {"id": "request", "from": "user", "to": "system", "label": "処理依頼"},
+    {"id": "response", "from": "system", "to": "user", "label": "処理結果", "kind": "return"}
+  ],
+  "phases": [{"label": "実行", "from": "request", "to": "response"}]
+}
+```
+
 ### org
 
 用途: 組織図・プロジェクト体制図・責任分担図。複数の責任者、複数階層、

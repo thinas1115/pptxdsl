@@ -56,7 +56,10 @@ def main():
     else:
         raise AssertionError("過密なleadを拒否しませんでした")
 
-    dense = deepcopy(LEAD_PATTERN_DECK["slides"][-1])
+    dense = deepcopy(next(
+        spec for spec in reversed(LEAD_PATTERN_DECK["slides"])
+        if spec["type"] == "diagram"
+    ))
     dense["lead"] = LEADS["diagram"]
     dense["diagram"]["rows"].append("overflow")
     overflow = deepcopy(next(iter(dense["diagram"]["nodes"].values())))

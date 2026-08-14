@@ -9,7 +9,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 
-CANVAS_SIZE = (1920, 1080)
+CANVAS_SIZE = (1920, 1240)
 BG = "#DCE8EE"
 INK = "#10283A"
 MUTED = "#536D7C"
@@ -26,11 +26,16 @@ GROUPS = (
     ("image", (12,), 835, 382, 235),
     ("twocol", (8,), 1100, 382, 235),
     ("process ×2", (13, 14), 1365, 382, 235),
-    ("roadmap", (15,), 80, 592, 235),
-    ("program roadmap", (16,), 345, 592, 235),
+    ("program roadmap ×2", (15, 16), 80, 592, 235),
     ("matrix", (17,), 610, 592, 235),
     ("org", (18,), 875, 592, 235),
     ("diagram ×4", (19, 20, 21, 22), 475, 800, 235),
+    ("scope", (23,), 80, 1008, 235),
+    ("summary", (24,), 345, 1008, 235),
+    ("paired", (25,), 610, 1008, 235),
+    ("mapping", (26,), 875, 1008, 235),
+    ("swimlane", (27,), 1140, 1008, 235),
+    ("sequence", (28,), 1405, 1008, 235),
 )
 
 
@@ -76,7 +81,7 @@ def build(png_dir: Path, output: Path) -> None:
 
     draw.text((80, 34), "pptxdsl", fill=INK, font=title_font)
     draw.line((370, 65, 370, 130), fill="#87A3B2", width=3)
-    draw.text((410, 69), "13 TYPES  /  22 EXAMPLES", fill=ACCENT, font=count_font)
+    draw.text((410, 69), "18 TYPES  /  28 EXAMPLES", fill=ACCENT, font=count_font)
     draw.text((414, 119), "GROUPED BY TYPE", fill=MUTED, font=small_font)
 
     for label, pages, x, label_y, thumb_width in GROUPS:

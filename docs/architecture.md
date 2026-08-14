@@ -58,7 +58,7 @@
 | 層 | 責務 | 主な実装 | 再利用範囲 |
 |---|---|---|---|
 | L0 測定・描画部品 | 文字計測、収容候補の選択、矩形、線、矢印、アイコン、ラベル | `textfit.py`、`layout_fit.py`、`generate.py`、`diagrams.py` | 全type |
-| L1 レイアウト計算 | ジャンル固有の位置・サイズ・配線計算 | `diagram_layout.py`、`org_layout.py`、`timeline_layout.py`、`image_slide.py`、`diagrams2.py`、各renderer | 同一ジャンル内 |
+| L1 レイアウト計算 | ジャンル固有の位置・サイズ・配線計算 | `diagram_layout.py`、`org_layout.py`、`timeline_layout.py`、`image_slide.py`、`diagrams2.py`、`candidate_renderers.py`、各renderer | 同一ジャンル内 |
 | L2 入力境界 | schema、入力検証、renderer選択 | `CONTENT_SCHEMA.md`、`validate_content.py`、`generate_from_json.py` | 全type |
 | L3 品質保証 | PPTX検査、PNG化、一覧確認 | `check_layout.py`、`render.ps1`、`contact_sheet.py` | 全type |
 
