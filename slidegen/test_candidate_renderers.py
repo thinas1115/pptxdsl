@@ -20,8 +20,10 @@ from candidate_renderers import (
     s_swimlane,
 )
 from candidate_review_cases import REVIEW_DECK
+from check_layout import contrast_ratio
 from content_patterns import PATTERN_DECK
 from layout_fit import FitError
+from quality_markers import MIN_SURFACE_CONTRAST, SURFACE_ON_CANVAS_PREFIX
 from validate_content import validate
 
 
@@ -276,6 +278,25 @@ def _assert_swimlane_node_frames_and_routes():
     assert not diagonal_lines
 
 
+def _assert_swimlane_stage_surface_contrast():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    stages = [
+        shape for shape in slide.shapes
+        if shape.name.startswith(SURFACE_ON_CANVAS_PREFIX)
+    ]
+    assert len(stages) == len(spec["stages"])
+    for shape in stages:
+        surface_rgb = tuple(shape.fill.fore_color.rgb)
+        assert (
+            contrast_ratio(surface_rgb, tuple(generate.CANVAS))
+            >= MIN_SURFACE_CONTRAST
+        )
+
+
 def main():
     errors = validate(deepcopy(PATTERN_DECK), allow_sample_content=True)
     assert not errors, "\n".join(errors)
@@ -311,6 +332,7 @@ def main():
     _assert_swimlane_legend()
     _assert_scope_panel_integration()
     _assert_swimlane_node_frames_and_routes()
+    _assert_swimlane_stage_surface_contrast()
     print("candidate renderer tests: OK")
 
 

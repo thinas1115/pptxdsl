@@ -9,6 +9,7 @@
   L-T: 矢印・線×テキストグリフ(白塗りマスクラベルは除外)
   CELL-OOB: 表セルからのテキストはみ出し
   OOB: スライド境界からの図形・画像・表・グラフのはみ出し
+  VIS-CONTRAST: 背景に接する意味面とキャンバスの分離不足
 """
 import sys
 
@@ -16,6 +17,7 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from cover_footer import COVER_BACKGROUND_NAME
+from quality_markers import MIN_SURFACE_CONTRAST, SURFACE_ON_CANVAS_PREFIX
 from textfit import line_height_in, wrap_text
 
 EMU = 914400
@@ -154,6 +156,46 @@ def has_solid_fill(sh):
         return False
 
 
+def solid_fill_rgb(sh):
+    if not has_solid_fill(sh):
+        return None
+    try:
+        return tuple(sh.fill.fore_color.rgb)
+    except (AttributeError, TypeError):
+        return None
+
+
+def relative_luminance(rgb):
+    values = [value / 255 for value in rgb]
+    linear = [
+        value / 12.92 if value <= 0.04045
+        else ((value + 0.055) / 1.055) ** 2.4
+        for value in values
+    ]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def contrast_ratio(first, second):
+    high, low = sorted(
+        (relative_luminance(first), relative_luminance(second)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def canvas_fill_rgb(slide, slide_w, slide_h):
+    """全画面を覆う最背面の塗り図形をキャンバスとして扱う。"""
+    for sh in slide.shapes:
+        if sh.shape_type != MSO_SHAPE_TYPE.AUTO_SHAPE:
+            continue
+        bounds = rect_of(sh)
+        if (bounds[0] <= EPS and bounds[1] <= EPS
+                and bounds[2] >= slide_w - EPS
+                and bounds[3] >= slide_h - EPS):
+            color = solid_fill_rgb(sh)
+            if color is not None:
+                return color
+    return None
+
+
 def snippet(t):
     t = t.replace("\n", " ")
     return t[:16] + ("…" if len(t) > 16 else "")
@@ -165,6 +207,7 @@ def check(path):
     slide_h = prs.slide_height / EMU
     findings = []
     for si, slide in enumerate(prs.slides, 1):
+        canvas_rgb = canvas_fill_rgb(slide, slide_w, slide_h)
         texts, pics, solids, frames, segs = [], [], [], [], []
         for z, sh in enumerate(slide.shapes):  # zは描画順(後勝ち)
             st = sh.shape_type
@@ -175,6 +218,17 @@ def check(path):
                 if sh.name != COVER_BACKGROUND_NAME:
                     pics.append((bounds, sh.name))
             elif st in (MSO_SHAPE_TYPE.AUTO_SHAPE,):
+                if sh.name.startswith(SURFACE_ON_CANVAS_PREFIX):
+                    surface_rgb = solid_fill_rgb(sh)
+                    if surface_rgb is None or canvas_rgb is None:
+                        findings.append((si, "VIS-CONTRAST", sh.name,
+                                         "塗りまたはキャンバス色を取得できません"))
+                    else:
+                        ratio = contrast_ratio(surface_rgb, canvas_rgb)
+                        if ratio < MIN_SURFACE_CONTRAST:
+                            findings.append((
+                                si, "VIS-CONTRAST", sh.name,
+                                f"{ratio:.3f} < {MIN_SURFACE_CONTRAST:.2f}"))
                 if not sh.name.startswith(BACKGROUND_PREFIX):
                     (solids if has_solid_fill(sh) else frames).append(
                         (bounds, sh.name, z))
@@ -247,7 +301,7 @@ if __name__ == "__main__":
     path = sys.argv[1]
     fs = check(path)
     if not fs:
-        print(f"OK: no layout collisions in {path}")
+        print(f"OK: no layout or visual QA findings in {path}")
         sys.exit(0)
     print(f"NG: {len(fs)} finding(s) in {path}")
     for si, kind, a, b in fs:

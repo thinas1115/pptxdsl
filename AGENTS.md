@@ -95,3 +95,5 @@ git status --short
 
 `check_layout.py`の合格だけでは完成扱いにしない。文字の視認性、余白、コントラスト、線の見え方、
 内容の正確性はPNGと情報源を使って確認する。
+背景に接する矢羽根・工程帯などの意味面は`qa-surface-on-canvas:`品質マーカーを設定し、
+背景との面分離を`check_layout.py`でも検証する。

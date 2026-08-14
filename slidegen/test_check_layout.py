@@ -4,10 +4,13 @@ from tempfile import TemporaryDirectory
 
 from pptx import Presentation
 from pptx.chart.data import ChartData
+from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE
+from pptx.enum.shapes import MSO_SHAPE
 from pptx.util import Inches, Pt
 
 from check_layout import check
+from quality_markers import SURFACE_ON_CANVAS_PREFIX
 
 
 def save(prs, path):
@@ -70,5 +73,25 @@ with TemporaryDirectory() as td:
     merged.text = "結合セルの幅全体を使う見出し"
     findings = save(prs, out / "merged_table_ok.pptx")
     assert not any(kind == "CELL-OOB" for _, kind, _, _ in findings), findings
+
+    prs = Presentation()
+    prs.slide_width = Inches(13.333)
+    prs.slide_height = Inches(7.5)
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    canvas = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, prs.slide_height)
+    canvas.fill.solid()
+    canvas.fill.fore_color.rgb = RGBColor(0xF7, 0xF5, 0xEF)
+    stage = slide.shapes.add_shape(
+        MSO_SHAPE.CHEVRON, Inches(1), Inches(1), Inches(3), Inches(0.5))
+    stage.name = f"{SURFACE_ON_CANVAS_PREFIX}test-stage"
+    stage.fill.solid()
+    stage.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFC)
+    findings = save(prs, out / "surface_contrast_ng.pptx")
+    assert any(kind == "VIS-CONTRAST" for _, kind, _, _ in findings), findings
+
+    stage.fill.fore_color.rgb = RGBColor(0xDF, 0xEB, 0xE8)
+    findings = save(prs, out / "surface_contrast_ok.pptx")
+    assert not any(kind == "VIS-CONTRAST" for _, kind, _, _ in findings), findings
 
 print("check_layout broken-PPTX regression: ALL OK")

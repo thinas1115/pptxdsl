@@ -28,6 +28,7 @@ from generate import (
     header,
 )
 from layout_fit import FitError, fit_text_or_raise, select_fit, stepped
+from quality_markers import SURFACE_ON_CANVAS_PREFIX
 from textfit import text_width_in, wrap_natural
 
 
@@ -578,9 +579,11 @@ def s_swimlane(slide, spec, page):
             Inches(stage_w + (0.04 if index < len(stages) - 1 else 0)),
             Inches(stage_h))
         shape.fill.solid()
-        shape.fill.fore_color.rgb = WHITE
+        shape.fill.fore_color.rgb = LIGHT
         shape.line.color.rgb = RULE
         shape.line.width = Pt(0.6)
+        shape.name = (
+            f"{SURFACE_ON_CANVAS_PREFIX}swimlane-stage:{stage['id']}")
         _flatten_shape(shape)
         add_text(slide, x + 0.14, top + 0.06, stage_w - 0.28, 0.26,
                  stage["label"], 10.5, bold=True, color=NAVY,
