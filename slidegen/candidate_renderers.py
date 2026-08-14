@@ -33,11 +33,9 @@ from quality_markers import SURFACE_ON_CANVAS_PREFIX
 from textfit import text_width_in, wrap_natural
 
 
-# 参照デザインから採取したswimlane専用パレット。全体テーマ変更の影響を受けさせない。
-SWIMLANE_CANVAS = RGBColor(0xFA, 0xF9, 0xF6)
+# 参照デザインから採取したswimlane本文用パレット。背景とヘッダーは全体テーマを使う。
 SWIMLANE_ACCENT = RGBColor(0x10, 0x84, 0x90)
 SWIMLANE_NAVY = RGBColor(0x0F, 0x2A, 0x46)
-SWIMLANE_GRAY = RGBColor(0x66, 0x77, 0x8D)
 SWIMLANE_LIGHT = RGBColor(0xEA, 0xF0, 0xEF)
 SWIMLANE_RULE = RGBColor(0xBB, 0xBA, 0xBA)
 SWIMLANE_WHITE = RGBColor(0xFE, 0xFE, 0xFE)
@@ -526,22 +524,22 @@ def _swimlane_step_label(step, index):
 
 def _swimlane_header(slide, spec):
     """参照デザインの縦リズムを保つswimlane専用ヘッダー。"""
-    _flat_rect(slide, 0, 0, 13.333, 7.5, SWIMLANE_CANVAS)
+    _flat_rect(slide, 0, 0, 13.333, 7.5, CANVAS)
     plain_line(slide, 0.19, 0.20, 13.08, 0.20,
-               color=SWIMLANE_ACCENT, width=3.0)
+               color=ACCENT, width=3.0)
     title_size, title_lines = fit_text_or_raise(
         "swimlane", "title", spec["title"], 12.25, 0.48, 25.5,
         min_pt=19.0, weight="bold", spacing=1.08,
     )
     add_text(slide, 0.53, 0.54, 12.25, 0.48, "\n".join(title_lines),
-             title_size, bold=True, color=SWIMLANE_NAVY, spacing=1.08)
+             title_size, bold=True, color=NAVY, spacing=1.08)
     if spec.get("lead"):
         lead_size, lead_lines = fit_text_or_raise(
             "swimlane", "lead", spec["lead"], 12.25, 0.34, 14.0,
             min_pt=11.5, spacing=1.12,
         )
         add_text(slide, 0.53, 1.05, 12.25, 0.34, "\n".join(lead_lines),
-                 lead_size, color=SWIMLANE_GRAY, spacing=1.12)
+                 lead_size, color=GRAY, spacing=1.12)
 
 
 def s_swimlane(slide, spec, page):
@@ -584,7 +582,7 @@ def s_swimlane(slide, spec, page):
             Inches(stage_w + (0.04 if index < len(stages) - 1 else 0)),
             Inches(stage_h))
         shape.fill.solid()
-        shape.fill.fore_color.rgb = SWIMLANE_CANVAS
+        shape.fill.fore_color.rgb = CANVAS
         shape.line.color.rgb = SWIMLANE_RULE
         shape.line.width = Pt(0.85)
         shape.name = (
@@ -596,7 +594,7 @@ def s_swimlane(slide, spec, page):
     if show_line_legend:
         legend_x = frame_x + 0.08
         add_text(slide, legend_x, top + 0.01, 0.28, 0.18,
-                 "凡例", 7.5, bold=True, color=SWIMLANE_GRAY,
+                 "凡例", 7.5, bold=True, color=GRAY,
                  anchor=MSO_ANCHOR.MIDDLE)
         add_arrow(slide, legend_x + 0.36, top + 0.13,
                   legend_x + 0.62, top + 0.13, color=SWIMLANE_ACCENT, width=1.15)
@@ -614,8 +612,7 @@ def s_swimlane(slide, spec, page):
     for index, lane in enumerate(lanes):
         y = lane_y0 + index * lane_h
         _flat_rect(slide, frame_x, y, lane_label_w, lane_h, SWIMLANE_LIGHT)
-        _flat_rect(slide, x0, y, frame_w - lane_label_w, lane_h,
-                   SWIMLANE_CANVAS)
+        _flat_rect(slide, x0, y, frame_w - lane_label_w, lane_h, CANVAS)
         lane_text_w = lane_label_w - 0.22
         lane_font = 13.0
         while (lane_font > 8.0
