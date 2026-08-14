@@ -97,6 +97,20 @@ _TYPE_KEYS = {
     },
 }
 
+# 下部の注記帯を廃止したfieldは、汎用的な「未対応」ではなく移行先を返す。
+# 移行エラーを出すためだけに_TYPE_KEYSには残し、rendererでは描画しない。
+_LEAD_ONLY_FIELDS = {
+    "scope": {"assumptions"},
+    "summary": {"conclusion", "conclusion_label"},
+    "paired_comparison": {"takeaway"},
+    "mapping": {"takeaway"},
+    "swimlane": {"takeaway"},
+    "sequence": {"takeaway"},
+    "protocol_state_flow": {"takeaway"},
+    "protocol_anatomy": {"takeaway"},
+    "code_lab": {"takeaway"},
+}
+
 
 def _is_str(v):
     return isinstance(v, str) and v.strip() != ""
@@ -834,8 +848,6 @@ def _v_scope(s):
     for key in ("in_label", "out_label"):
         if key in s.spec and not _is_str(s.spec[key]):
             s.err(f"{key} は空でない文字列にしてください")
-    if "assumptions" in s.spec:
-        _string_list(s, "assumptions", 1, 4)
 
 
 def _v_summary(s):
@@ -854,13 +866,6 @@ def _v_summary(s):
             elif not resolve_icon_path(
                     f"icons/fluent/{section['icon']}.png").is_file():
                 s.err(f"sections[{index}].icon={section['icon']!r} が見つかりません")
-    if "conclusion" in s.spec and not _is_str(s.spec["conclusion"]):
-        s.err("conclusion は空でない文字列にしてください")
-    if "conclusion_label" in s.spec:
-        if "conclusion" not in s.spec:
-            s.err("conclusion_label はconclusionを指定した場合だけ使用できます")
-        elif not _is_str(s.spec["conclusion_label"]):
-            s.err("conclusion_label は空でない文字列にしてください")
 
 
 def _v_paired_comparison(s):
@@ -877,8 +882,6 @@ def _v_paired_comparison(s):
         for key in ("criterion", "left", "right"):
             if not _is_str(row.get(key)):
                 s.err(f"rows[{index}].{key} は空でない文字列にしてください")
-    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
-        s.err("takeaway は空でない文字列にしてください")
 
 
 def _mapping_items(s, key):
@@ -918,8 +921,6 @@ def _v_mapping(s):
         seen.add((source, target))
         if "emphasis" in link and not isinstance(link["emphasis"], bool):
             s.err(f"links[{index}].emphasis は真偽値にしてください")
-    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
-        s.err("takeaway は空でない文字列にしてください")
 
 
 def _id_label_list(s, key, min_n, max_n):
@@ -995,8 +996,6 @@ def _v_swimlane(s):
             s.err(f"edges[{index}].kind はforward / feedbackにしてください")
         if step_stage.get(target, -1) < step_stage.get(source, -1) and kind != "feedback":
             s.err(f"edges[{index}] の前フェーズへの接続にはkind=feedbackが必要です")
-    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
-        s.err("takeaway は空でない文字列にしてください")
 
 
 def _v_sequence(s):
@@ -1036,8 +1035,6 @@ def _v_sequence(s):
             s.err(f"phases[{index}] が未定義messageを参照しています")
         elif message_index[phase["from"]] > message_index[phase["to"]]:
             s.err(f"phases[{index}] はfromより後のmessageをtoへ指定してください")
-    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
-        s.err("takeaway は空でない文字列にしてください")
 
 
 def _v_network(s):
@@ -1279,8 +1276,6 @@ def _v_protocol_state_flow(s):
             s.err(
                 f"{path}.states は全stageを1件ずつ指定してください "
                 f"(期待={len(stages)}件, 実際={len(states)}件)")
-    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
-        s.err("takeaway は空でない文字列にしてください")
 
 
 def _v_protocol_anatomy(s):
@@ -1331,8 +1326,6 @@ def _v_protocol_anatomy(s):
             s.allow_keys(annotation, {"field", "text"}, annotation_path)
             if annotation.get("field") not in field_ids or not _is_str(annotation.get("text")):
                 s.err(f"{annotation_path} には定義済みfieldとtextが必要です")
-    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
-        s.err("takeaway は空でない文字列にしてください")
 
 
 def _v_code_lab(s):
@@ -1348,7 +1341,7 @@ def _v_code_lab(s):
         elif len(section["code"].splitlines()) > 16:
             s.err(f"{path}.code は16行以内にしてください")
     _string_list(s, "checks", 2, 5)
-    for key in ("check_label", "takeaway"):
+    for key in ("check_label",):
         if key in s.spec and not _is_str(s.spec[key]):
             s.err(f"{key} は空でない文字列にしてください")
 
@@ -1449,6 +1442,11 @@ def validate(deck, *, allow_sample_content=False):
             s.err(
                 f"{key}: 未対応のフィールドです。"
                 "CONTENT_SCHEMA.mdに記載されたフィールドだけを使用してください")
+        for key in sorted(_LEAD_ONLY_FIELDS.get(t, set())):
+            if key in spec:
+                s.err(
+                    f'"{key}" は下部の注記帯とともに廃止しました。'
+                    '内容は共通フィールド "lead" へ移してください')
         if not allow_sample_content:
             title_error = _title_policy_error(spec.get("title"))
             if title_error:

@@ -568,7 +568,7 @@ def s_network(slide, spec, page):
         x += width + 0.24
 
 
-def _fit_protocol_state_flow(area, stages, flows, has_takeaway):
+def _fit_protocol_state_flow(area, stages, flows):
     rail_w = 1.42
     available = area.height - 0.08
 
@@ -629,7 +629,7 @@ def _fit_protocol_state_flow(area, stages, flows, has_takeaway):
         total = (
             header_h + 0.18 + sum(row_heights)
             + max(0, len(flows) - 1) * values["row_gap"]
-            + (0.62 if has_takeaway else 0.06)
+            + 0.06
         )
         result = dict(values)
         result.update({
@@ -719,8 +719,7 @@ def s_protocol_state_flow(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     stages = spec["stages"]
     flows = spec["flows"]
-    takeaway = spec.get("takeaway")
-    fitted = _fit_protocol_state_flow(area, stages, flows, bool(takeaway))
+    fitted = _fit_protocol_state_flow(area, stages, flows)
     values = fitted.values
 
     rail_w = 1.42
@@ -865,28 +864,7 @@ def s_protocol_state_flow(slide, spec, page):
                 )
         row_y += row_h + values["row_gap"]
 
-    if takeaway:
-        takeaway_y = area.bottom - 0.50
-        add_rect(slide, MARGIN, takeaway_y, BODY_W, 0.42, LIGHT)
-        add_text(
-            slide, MARGIN + 0.18, takeaway_y + 0.08, 0.62, 0.24,
-            "要点", 9.5, bold=True, color=ACCENT,
-            align=PP_ALIGN.CENTER, spacing=1.0,
-        )
-        takeaway_size, takeaway_lines = fit_text_or_raise(
-            "protocol_state_flow", "takeaway", takeaway,
-            BODY_W - 1.08, 0.28, 10.5, min_pt=9.0,
-            weight="bold", spacing=1.0, role="compact",
-        )
-        add_text(
-            slide, MARGIN + 0.92, takeaway_y + 0.07,
-            BODY_W - 1.08, 0.29, "\n".join(takeaway_lines),
-            takeaway_size, bold=True, color=NAVY,
-            anchor=MSO_ANCHOR.MIDDLE, spacing=1.0,
-        )
-
-
-def _fit_protocol(area, frames, annotation_count, has_takeaway):
+def _fit_protocol(area, frames, annotation_count):
     available = area.height
     annotation_rows = math.ceil(annotation_count / 4)
 
@@ -897,8 +875,7 @@ def _fit_protocol(area, frames, annotation_count, has_takeaway):
             0.28 + annotation_rows * values["annotation_row_h"]
             if annotation_rows else 0.0
         )
-        bottom_reserve = 0.62 if has_takeaway else 0.08
-        return 0.30 + frame_block + annotation_block + bottom_reserve
+        return 0.30 + frame_block + annotation_block + 0.08
 
     def candidates():
         for gap in stepped(0.28, 0.12, 0.04):
@@ -930,7 +907,7 @@ def s_protocol_anatomy(slide, spec, page):
         for frame_index, frame in enumerate(frames)
         for annotation in frame.get("annotations", [])
     ]
-    fitted = _fit_protocol(area, frames, len(annotations), bool(spec.get("takeaway")))
+    fitted = _fit_protocol(area, frames, len(annotations))
     values = fitted.values
     frame_h, gap, font = values["frame_h"], values["gap"], values["font"]
     label_w = 1.25
@@ -1057,14 +1034,6 @@ def s_protocol_anatomy(slide, spec, page):
                      values["annotation_text_h"],
                      "\n".join(lines), fit_size, color=TEXT, spacing=1.08)
 
-    if spec.get("takeaway"):
-        y = area.bottom - 0.55
-        add_rect(slide, MARGIN, y, BODY_W, 0.46, LIGHT)
-        add_text(slide, MARGIN + 0.18, y + 0.11, BODY_W - 0.36, 0.24,
-                 spec["takeaway"], 11.5, bold=True, color=NAVY,
-                 anchor=MSO_ANCHOR.MIDDLE)
-
-
 def _fit_code_text(code, width, height):
     for size in stepped(13.0, 9.5, 0.5):
         widest = max(text_width_in(line or " ", size) for line in code.splitlines())
@@ -1095,7 +1064,7 @@ def s_code_lab(slide, spec, page):
     sections = spec["sections"]
     checks = spec["checks"]
     top = area.top + 0.30
-    bottom = area.bottom - (0.62 if spec.get("takeaway") else 0.15)
+    bottom = area.bottom - 0.15
     panel_h = bottom - top
     left_w = 7.55
     right_x = MARGIN + left_w + 0.42
@@ -1137,14 +1106,6 @@ def s_code_lab(slide, spec, page):
         if index < len(checks) - 1:
             add_rect(slide, right_x + 0.44, y + row_h - 0.04,
                      right_w - 0.44, 0.008, RULE)
-
-    if spec.get("takeaway"):
-        y = area.bottom - 0.50
-        add_rect(slide, MARGIN, y, BODY_W, 0.42, LIGHT)
-        add_text(slide, MARGIN + 0.18, y + 0.09, BODY_W - 0.36, 0.24,
-                 spec["takeaway"], 11.5, bold=True, color=NAVY,
-                 anchor=MSO_ANCHOR.MIDDLE)
-
 
 def _layout_options(question, size, mode, width):
     option_size = size - 1.5

@@ -72,26 +72,26 @@ def _base(type_):
 def _dense_specs():
     scope = dict(
         _base("scope"),
+        lead="着手前に必要な前提条件を確認する。",
         in_scope=[f"実施対象{i + 1}の要件と作業範囲" for i in range(6)],
         out_of_scope=[f"対象外{i + 1}の責任範囲" for i in range(6)],
-        assumptions=[f"前提条件{i + 1}" for i in range(4)],
     )
     summary = dict(
         _base("summary"),
+        lead="複数の論点を踏まえて次の判断へ進む。",
         sections=[
             {"heading": f"論点{i + 1}", "body": "判断に必要な事実と示唆を簡潔に整理する。"}
             for i in range(4)
         ],
-        conclusion="複数の論点を踏まえて次の判断へ進む。",
     )
     paired = dict(
         _base("paired_comparison"), left_label="現行", right_label="将来",
+        lead="評価軸ごとの差を踏まえて採用方針を判断する。",
         rows=[
             {"criterion": f"評価軸{i + 1}", "left": "現行方式の特徴を記載する",
              "right": "将来方式の特徴を記載する"}
             for i in range(6)
         ],
-        takeaway="評価軸ごとの差を踏まえて採用方針を判断する。",
     )
     left = [{"id": f"l{i}", "text": f"課題{i + 1}"} for i in range(6)]
     right = [{"id": f"r{i}", "text": f"施策{i + 1}"} for i in range(6)]
@@ -321,6 +321,23 @@ def main():
     for spec in samples + review_specs + _dense_specs():
         slide = _render(prs, spec)
         _assert_in_slide(slide)
+
+    legacy_fields = {
+        "scope": ("assumptions", ["前提条件"]),
+        "summary": ("conclusion", "結論"),
+        "paired_comparison": ("takeaway", "判断"),
+        "mapping": ("takeaway", "判断"),
+        "swimlane": ("takeaway", "判断"),
+        "sequence": ("takeaway", "判断"),
+    }
+    for type_, (field, value) in legacy_fields.items():
+        legacy = deepcopy(next(spec for spec in samples if spec["type"] == type_))
+        legacy[field] = value
+        errors = validate(
+            {"meta": {"title": "検証"}, "slides": [legacy]},
+            allow_sample_content=True,
+        )
+        assert any(field in error and '"lead"' in error for error in errors), errors
 
     bad_mapping = deepcopy(next(spec for spec in samples if spec["type"] == "mapping"))
     bad_mapping["links"][0]["to"] = "undefined"

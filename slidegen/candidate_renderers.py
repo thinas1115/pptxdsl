@@ -146,28 +146,12 @@ def _number_medallion(slide, x, y, number, *, size=0.46):
              anchor=MSO_ANCHOR.MIDDLE)
 
 
-def _takeaway(slide, renderer, text, y, *, label="示唆", icon="check"):
-    _flat_rect(slide, MARGIN, y, BODY_W, 0.58, LIGHT)
-    _icon_medallion(slide, MARGIN + 0.16, y + 0.08, icon, size=0.42)
-    add_text(slide, MARGIN + 0.68, y + 0.15, 0.62, 0.24, label, 10.5,
-             bold=True, color=ACCENT, align=PP_ALIGN.CENTER)
-    plain_line(slide, MARGIN + 1.38, y + 0.11, MARGIN + 1.38, y + 0.47,
-               color=RULE, width=0.8)
-    _text_in_box(
-        slide, renderer, "takeaway", MARGIN + 1.46, y + 0.11,
-        BODY_W - 1.72, 0.34, text, 15, 11.5,
-        bold=True, color=NAVY, anchor=MSO_ANCHOR.MIDDLE,
-    )
-
-
 def s_scope(slide, spec, page):
-    """対象範囲・対象外・前提条件を2列で整理する。"""
+    """対象範囲と対象外を2列で整理する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     left_items, right_items = spec["in_scope"], spec["out_of_scope"]
-    assumptions = spec.get("assumptions", [])
-    assumptions_h = 0.78 if assumptions else 0.0
     body_top = area.top + 0.20
-    body_bottom = area.bottom - assumptions_h - 0.14
+    body_bottom = area.bottom - 0.14
     max_count = max(len(left_items), len(right_items))
     sparse = max_count <= 2
     row_h = 1.04 if sparse else 0.58
@@ -223,26 +207,14 @@ def s_scope(slide, spec, page):
     column(MARGIN, spec.get("in_label", "対象"), left_items, True)
     column(MARGIN + col_w + col_gap,
            spec.get("out_label", "対象外"), right_items, False)
-    if assumptions:
-        y = area.bottom - 0.64
-        _flat_rect(slide, MARGIN, y, BODY_W, 0.54, LIGHT)
-        _icon_medallion(slide, MARGIN + 0.16, y + 0.07, "info", size=0.40)
-        add_text(slide, MARGIN + 0.68, y + 0.14, 0.82, 0.24, "前提条件", 10.5,
-                 bold=True, color=ACCENT)
-        text = " / ".join(assumptions)
-        _text_in_box(slide, "scope", "assumptions", MARGIN + 1.52, y + 0.08,
-                     BODY_W - 1.76, 0.38, text, 11.0, 8.8,
-                     color=TEXT, anchor=MSO_ANCHOR.MIDDLE, role="compact")
 
 
 def s_summary(slide, spec, page):
-    """少数の論点と結論を、視線順が明確な要約面へまとめる。"""
+    """少数の論点を、視線順が明確な要約面へまとめる。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     sections = spec["sections"]
-    conclusion = spec.get("conclusion")
-    conclusion_h = 0.74 if conclusion else 0.0
     top = area.top + 0.26
-    available = area.bottom - top - conclusion_h - 0.22
+    available = area.bottom - top - 0.22
     count = len(sections)
     if count <= 3:
         cols, rows = count, 1
@@ -254,9 +226,9 @@ def s_summary(slide, spec, page):
     natural_h = (2.70 if count == 2 else 2.46) if rows == 1 else 1.78
     cell_h = min(natural_h, (available - gap_y * (rows - 1)) / rows)
     if cell_h < 1.22:
-        raise FitError("summary: 結論を含む本文領域へ論点を配置できません。論点を減らしてください。")
+        raise FitError("summary: 本文領域へ論点を配置できません。論点を減らしてください。")
 
-    block_h = rows * cell_h + (rows - 1) * gap_y + conclusion_h
+    block_h = rows * cell_h + (rows - 1) * gap_y
     extra = max(0.0, area.bottom - top - block_h)
     top += extra * 0.34
 
@@ -292,33 +264,23 @@ def s_summary(slide, spec, page):
         _text_in_box(slide, "summary", f"sections[{index}].body",
                      x + 0.26, y + 1.00, cell_w - 0.52, cell_h - 1.18,
                      section["body"], body_pt, 10.0, color=TEXT, spacing=1.22)
-    if conclusion:
-        conclusion_y = top + rows * cell_h + (rows - 1) * gap_y + 0.24
-        if conclusion_y + 0.58 > area.bottom:
-            raise FitError("summary: 結論を含む本文領域へ論点を配置できません。文言を短くしてください。")
-        _takeaway(slide, "summary", conclusion, conclusion_y,
-                  label=spec.get("conclusion_label", "結論"))
-
-
 def s_paired_comparison(slide, spec, page):
     """同一観点で左右を比較し、対応関係を行単位で固定する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     rows = spec["rows"]
-    takeaway = spec.get("takeaway")
     top = area.top + 0.20
-    takeaway_h = 0.72 if takeaway else 0.0
     sparse = len(rows) <= 2
     row_h = 0.88 if sparse else 0.68
     row_gap = 0.0
     font = 15.0 if sparse else 13.5
     fitted = _fit_rows(
-        "paired_comparison", area.bottom - top - takeaway_h - 0.54,
+        "paired_comparison", area.bottom - top - 0.54,
         len(rows), row_h=row_h, min_row_h=0.46, gap=row_gap, min_gap=0.0,
         font=font, min_font=10.0,
     )
     values = fitted.values
     rows_h = len(rows) * values["row_h"] + max(0, len(rows) - 1) * values["gap"]
-    block_h = 0.70 + rows_h + (0.72 if takeaway else 0.0)
+    block_h = 0.70 + rows_h
     top += max(0.0, area.bottom - top - block_h) * 0.34
     left_x, left_w = MARGIN, 4.95
     criterion_x, criterion_w = left_x + left_w + 0.20, 1.68
@@ -367,10 +329,6 @@ def s_paired_comparison(slide, spec, page):
                      right_x + 0.20, y, right_w - 0.40, values["row_h"], row["right"],
                      values["font"], 9.5, anchor=MSO_ANCHOR.MIDDLE)
         y += values["row_h"] + values["gap"]
-    if takeaway:
-        _takeaway(slide, "paired_comparison", takeaway, area.bottom - 0.62)
-
-
 def _mapping_items_by_min_crossings(left_items, right_items, links):
     """関係を変えずに左右項目を並べ替え、直接結線の交差数を最小化する。"""
     left_ids = [item["id"] for item in left_items]
@@ -419,10 +377,8 @@ def s_mapping(slide, spec, page):
     links = spec["links"]
     left_items, right_items, _crossings = _mapping_items_by_min_crossings(
         left_items, right_items, links)
-    takeaway = spec.get("takeaway")
     top = area.top + 0.22
-    takeaway_h = 0.72 if takeaway else 0.0
-    body_bottom = area.bottom - takeaway_h - 0.10
+    body_bottom = area.bottom - 0.10
     max_count = max(len(left_items), len(right_items))
     sparse = max_count <= 2
     fitted = _fit_rows(
@@ -504,10 +460,6 @@ def s_mapping(slide, spec, page):
         color = endpoint_colors.get(("right", item["id"]), GRAY)
         _dot(slide, gap_right, right_y[item["id"]] + values["row_h"] / 2,
              color, 0.08)
-    if takeaway:
-        _takeaway(slide, "mapping", takeaway, area.bottom - 0.62)
-
-
 def _swimlane_step_rects(spec, x0, y0, stage_w, lane_h):
     grouped = defaultdict(list)
     lane_index = {lane["id"]: index for index, lane in enumerate(spec["lanes"])}
@@ -581,33 +533,10 @@ def _swimlane_header(slide, spec):
                  lead_size, color=GRAY, spacing=1.12)
 
 
-def _swimlane_takeaway(slide, text, y, x, w):
-    """参照デザインと同じ、ラベルを挟まない簡潔な示唆帯。"""
-    _flat_rect(slide, x, y, w, 0.66, LIGHT)
-    disk_size = 0.38
-    disk_x, disk_y = x + 0.17, y + 0.14
-    disk = slide.shapes.add_shape(
-        MSO_SHAPE.OVAL, Inches(disk_x), Inches(disk_y),
-        Inches(disk_size), Inches(disk_size))
-    disk.fill.solid()
-    disk.fill.fore_color.rgb = ACCENT
-    disk.line.fill.background()
-    _flatten_shape(disk)
-    add_text(slide, disk_x, disk_y - 0.01, disk_size, disk_size, "i", 16,
-             bold=True, color=WHITE, align=PP_ALIGN.CENTER,
-             anchor=MSO_ANCHOR.MIDDLE)
-    _text_in_box(
-        slide, "swimlane", "takeaway", x + 0.68, y + 0.11,
-        w - 0.92, 0.42, text, 12.5, 10.0,
-        bold=True, color=NAVY, anchor=MSO_ANCHOR.MIDDLE,
-    )
-
-
 def s_swimlane(slide, spec, page):
     """担当レーンと工程フェーズを持つ業務フローを描く。"""
     _swimlane_header(slide, spec)
     lanes, stages = spec["lanes"], spec["stages"]
-    takeaway = spec.get("takeaway")
     frame_x, frame_w = 0.37, 12.59
     top = 1.64
     stage_h, lane_label_w = 0.37, 1.27
@@ -624,7 +553,7 @@ def s_swimlane(slide, spec, page):
     }
     feedback_h = 0.30 if has_feedback else 0.0
     show_line_legend = len(edge_kinds) > 1
-    body_bottom = 5.82 if takeaway else 6.48
+    body_bottom = 6.48
     available_h = body_bottom - top - stage_h
     standard_lane_h = (
         1.34 if len(lanes) == 2 else 0.98 if len(lanes) == 3 else 0.95)
@@ -777,24 +706,18 @@ def s_swimlane(slide, spec, page):
                          fitted.values["font"], 7.5, bold=True, color=NAVY,
                          align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
                          role="compact")
-    if takeaway:
-        _swimlane_takeaway(slide, takeaway, 6.02, frame_x, frame_w)
-
-
 def s_sequence(slide, spec, page):
     """参加者間のメッセージを上から下へ時系列表示する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     participants, messages = spec["participants"], spec["messages"]
     phases = spec.get("phases", [])
-    takeaway = spec.get("takeaway")
     kinds = {message.get("kind", "request") for message in messages}
     show_legend = len(kinds) > 1
-    takeaway_h = 0.72 if takeaway else 0.0
     legend_h = 0.16 if show_legend else 0.0
     top = area.top + 0.16
     header_h = 0.46
     message_top = top + header_h + 0.14
-    available = area.bottom - message_top - takeaway_h - legend_h - 0.12
+    available = area.bottom - message_top - legend_h - 0.12
     sparse = len(messages) <= 4
     fitted = _fit_rows(
         "sequence", available, len(messages),
@@ -892,7 +815,7 @@ def s_sequence(slide, spec, page):
         tb.fill.solid()
         tb.fill.fore_color.rgb = message_fill[message["id"]]
     if show_legend:
-        legend_y = area.bottom - takeaway_h - 0.17
+        legend_y = area.bottom - 0.17
         legend_x = MARGIN + 0.10
         add_text(slide, legend_x, legend_y, 0.38, 0.18, "凡例", 7.5,
                  bold=True, color=GRAY, anchor=MSO_ANCHOR.MIDDLE)
@@ -905,5 +828,3 @@ def s_sequence(slide, spec, page):
                       color=color, width=1.0, dash=dash)
             add_text(slide, x + 0.34, legend_y, 0.56, 0.18, label, 7.5,
                      color=TEXT, anchor=MSO_ANCHOR.MIDDLE)
-    if takeaway:
-        _takeaway(slide, "sequence", takeaway, area.bottom - 0.62)

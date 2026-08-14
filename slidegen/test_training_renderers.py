@@ -236,7 +236,6 @@ def _assert_protocol_state_flow_contract(samples):
 
     maximum = deepcopy(protocol_state_flow)
     maximum.pop("lead", None)
-    maximum.pop("takeaway", None)
     maximum["title"] = "最大構成"
     maximum["stages"].append({
         "id": "archive", "label": "記録先",
@@ -268,7 +267,6 @@ def _assert_protocol_state_flow_contract(samples):
                 result = _fit_protocol_state_flow(
                     SimpleNamespace(height=height),
                     spec["stages"], spec["flows"],
-                    bool(spec.get("takeaway")),
                 )
             except FitError:
                 continue
@@ -289,12 +287,12 @@ def _assert_protocol_state_flow_contract(samples):
     ))
     icon_stress = deepcopy(maximum)
     icon_stress["flows"] = [icon_stress["flows"][0]]
-    icon_stress["takeaway"] = "追跡対象の状態変化を段階ごとに確認します。"
+    icon_stress["lead"] = "追跡対象の状態変化を段階ごとに確認する。"
     for stage in icon_stress["stages"]:
         stage["label"] = "非常に長い処理段階の表示名称と補足情報"
     observed_fit_stages.update(observed_stages(
         icon_stress,
-        (3.2 - index * 0.01 for index in range(100)),
+        (3.2 - index * 0.01 for index in range(140)),
     ))
     assert {"standard", "gap", "icon", "font"} <= observed_fit_stages, (
         observed_fit_stages
@@ -456,7 +454,6 @@ def _assert_protocol_contract(samples):
 
     dense = deepcopy(samples["protocol_anatomy"])
     dense.pop("lead", None)
-    dense.pop("takeaway", None)
     template = dense["frames"][0]
     annotations = [
         {"field": field["id"], "text": f"{field['name']}の役割"}
@@ -518,6 +515,18 @@ def main():
     prs = _presentation()
     for spec in samples.values():
         _assert_in_slide(_render(prs, deepcopy(spec)))
+
+    for type_ in ("protocol_state_flow", "protocol_anatomy", "code_lab"):
+        legacy = deepcopy(samples[type_])
+        legacy["takeaway"] = "下部注記帯へ表示していた要点"
+        legacy_errors = validate(
+            {"meta": {"title": "検証"}, "slides": [legacy]},
+            allow_sample_content=True,
+        )
+        assert any(
+            '"takeaway"' in error and '"lead"' in error
+            for error in legacy_errors
+        ), legacy_errors
 
     _assert_network_contract(deck, samples)
     _assert_concept_contract(samples)

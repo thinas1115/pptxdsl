@@ -518,7 +518,7 @@ PATTERN_DECK = {
             "type": "protocol_state_flow",
             "kicker": "IPパケット状態の追跡",
             "title": "NAT前後の送信元IPを、処理段階ごとに追跡する",
-            "lead": "端末から送ったIPパケットがルーターで変換され、外部サーバーへ届くまでの送信元情報を比較します。",
+            "lead": "NATでは送信元IPを書き換え、宛先IPは維持したまま外部へ転送する。",
             "stages": [
                 {"id": "client", "label": "社内端末", "icon": "icons/fluent/laptop.png", "role": "endpoint"},
                 {"id": "inside", "label": "ルーター内側", "icon": "icons/fluent/ethernet.png", "role": "processor"},
@@ -550,12 +550,12 @@ PATTERN_DECK = {
                     ],
                 },
             ],
-            "takeaway": "NATでは送信元IPを書き換え、宛先IPは維持したまま外部へ転送します。",
         },
         {
             "type": "protocol_anatomy",
             "kicker": "プロトコル構造",
             "title": "TCPセグメントを分解し、制御情報とデータの位置を読む",
+            "lead": "フィールドを位置で捉え、パケットキャプチャの値を役割へ結び付ける。",
             "frames": [
                 {
                     "label": "TCP",
@@ -575,12 +575,12 @@ PATTERN_DECK = {
                     ],
                 }
             ],
-            "takeaway": "フィールドを位置で捉えると、パケットキャプチャの値を役割へ結び付けやすくなります。",
         },
         {
             "type": "code_lab",
             "kicker": "設定と確認",
             "title": "設定例と確認コマンドを並べ、変更後の状態まで検証する",
+            "lead": "コマンドの実行ではなく、期待状態の確認までを作業単位とする。",
             "sections": [
                 {"label": "設定例", "code": "service:\n  image: example/app:2.4\n  replicas: 3\n  healthcheck:\n    path: /health"},
                 {"label": "確認コマンド", "code": "deploy --file service.yml\nstatus service\nlogs service --tail 50"},
@@ -592,7 +592,6 @@ PATTERN_DECK = {
                 "直近ログに起動失敗や設定エラーがない",
                 "切り戻し用の直前バージョンを特定できる",
             ],
-            "takeaway": "コマンドの実行ではなく、期待状態の確認までを作業単位にします。",
         },
         {
             "type": "knowledge_check",
@@ -609,6 +608,7 @@ PATTERN_DECK = {
             "type": "scope",
             "kicker": "対象範囲",
             "title": "実施範囲と対象外を分け、責任境界を明確にする",
+            "lead": "必要なデータ、関係部門のレビュー体制、既存基盤の安定稼働を着手条件とする。",
             "in_label": "実施範囲",
             "out_label": "対象外",
             "in_scope": [
@@ -623,16 +623,12 @@ PATTERN_DECK = {
                 "初期運用期間終了後の長期保守業務",
                 "移行元データの名寄せと内容補正",
             ],
-            "assumptions": [
-                "必要なデータを所定形式で受領できる",
-                "関係部門のレビュー担当を確保できる",
-                "既存基盤が計画期間中も安定稼働する",
-            ],
         },
         {
             "type": "summary",
             "kicker": "経営判断",
             "title": "背景・判断・提案を整理し、意思決定を1枚で支援する",
+            "lead": "限定導入で効果と運用条件を確認した後、対象業務を段階的に拡大する。",
             "sections": [
                 {
                     "heading": "背景",
@@ -650,13 +646,12 @@ PATTERN_DECK = {
                     "body": "対象部門で標準レイアウトを試行し、品質・作成時間・運用負荷を測定して展開可否を判断する。",
                 },
             ],
-            "conclusion_label": "結論",
-            "conclusion": "限定導入で効果と運用条件を確認した後、対象業務を段階的に拡大する。",
         },
         {
             "type": "paired_comparison",
             "kicker": "方式比較",
             "title": "現行方式と標準方式を、同じ評価軸で比較する",
+            "lead": "短期の立ち上げは現行方式、中長期の横展開は標準方式が優位となる。",
             "left_label": "現行方式",
             "right_label": "標準方式",
             "rows": [
@@ -671,7 +666,6 @@ PATTERN_DECK = {
                 {"criterion": "拡張性", "left": "対象拡大に比例して運用負荷が増える",
                  "right": "共通基盤を再利用して対象を追加できる"},
             ],
-            "takeaway": "短期の立ち上げは現行方式、中長期の横展開は標準方式が優位となる。",
         },
         {
             "type": "mapping",
@@ -706,7 +700,7 @@ PATTERN_DECK = {
             "type": "swimlane",
             "kicker": "障害対応フロー",
             "title": "障害対応スイムレーン",
-            "lead": "役割ごとの対応手順と引き継ぎを整理する",
+            "lead": "担当境界と引き継ぎ点を明示し、対応漏れを防止する。",
             "lanes": [
                 {"id": "user", "label": "利用部門"},
                 {"id": "ops", "label": "運用担当"},
@@ -746,12 +740,12 @@ PATTERN_DECK = {
                 {"from": "result", "to": "notify"},
                 {"from": "notify", "to": "close"},
             ],
-            "takeaway": "担当境界と引き継ぎ点を明示し、対応漏れを防止する。",
         },
         {
             "type": "sequence",
             "kicker": "変更作業シーケンス",
             "title": "関係者・機器・確認ポイントを、実行順に整理する",
+            "lead": "メッセージの順序と送受信者を分けて確認し、作業前の認識差を減らす。",
             "participants": [
                 {"id": "ops", "label": "運用担当"},
                 {"id": "monitor", "label": "監視システム"},
@@ -773,7 +767,6 @@ PATTERN_DECK = {
                 {"label": "調査フェーズ", "from": "request", "to": "carrier"},
                 {"label": "復旧フェーズ", "from": "recover", "to": "report"},
             ],
-            "takeaway": "メッセージの順序と送受信者を分けて確認し、作業前の認識差を減らす。",
         },
     ],
 }
