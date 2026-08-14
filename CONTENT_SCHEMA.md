@@ -603,6 +603,7 @@ python slidegen/validate_content.py content.json
 
 任意:
 
+- `sections[*].icon`: 内容を直接表すFluentアイコン名。装飾目的では指定しない
 - `conclusion`: 最終判断
 - `conclusion_label`: 結論帯の短いラベル。`conclusion`指定時だけ使用できる
 
@@ -612,9 +613,9 @@ python slidegen/validate_content.py content.json
   "kicker": "意思決定",
   "title": "エグゼクティブサマリー",
   "sections": [
-    {"heading": "背景", "body": "判断の前提となる事実。"},
-    {"heading": "判断", "body": "比較して得られた示唆。"},
-    {"heading": "提案", "body": "次に実施する内容。"}
+    {"heading": "背景", "icon": "info", "body": "判断の前提となる事実。"},
+    {"heading": "判断", "icon": "check", "body": "比較して得られた示唆。"},
+    {"heading": "提案", "icon": "send", "body": "次に実施する内容。"}
   ],
   "conclusion": "最終判断を1文で記載する。"
 }

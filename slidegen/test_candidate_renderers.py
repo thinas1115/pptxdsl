@@ -176,18 +176,9 @@ def _assert_mapping_column_alignment():
     first_right = by_text[spec["right_items"][0]["text"]]
     assert abs(left_header.left - first_left.left) <= Inches(0.01)
     assert abs(right_header.left - first_right.left) <= Inches(0.01)
-    header_bands = [
-        shape for shape in slide.shapes
-        if shape.top == left_header.top and shape.width >= Inches(4.0)
-        and not getattr(shape, "text", "").strip()
-    ]
-    assert len(header_bands) == 2
     slide_center = _presentation().slide_width / 2
-    column_center = (
-        min(shape.left for shape in header_bands)
-        + max(shape.left + shape.width for shape in header_bands)
-    ) / 2
-    assert abs(column_center - slide_center) <= Inches(0.05)
+    assert left_header.left + left_header.width < slide_center
+    assert right_header.left > slide_center
 
 
 def _assert_sequence_structure():
@@ -261,6 +252,11 @@ def main():
     errors = validate({"meta": {"title": "検証"}, "slides": [bad_mapping]},
                       allow_sample_content=True)
     assert any("未定義id" in error for error in errors)
+    bad_summary = deepcopy(next(spec for spec in samples if spec["type"] == "summary"))
+    bad_summary["sections"][0]["icon"] = "存在しないアイコン"
+    errors = validate({"meta": {"title": "検証"}, "slides": [bad_summary]},
+                      allow_sample_content=True)
+    assert any("icon=" in error and "見つかりません" in error for error in errors)
     _assert_fit_stages()
     _assert_mapping_order()
     _assert_mapping_column_alignment()

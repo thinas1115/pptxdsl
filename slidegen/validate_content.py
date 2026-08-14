@@ -844,10 +844,16 @@ def _v_summary(s):
         if not isinstance(section, dict):
             s.err(f"sections[{index}] はオブジェクトにしてください")
             continue
-        s.allow_keys(section, {"heading", "body"}, f"sections[{index}]")
+        s.allow_keys(section, {"heading", "body", "icon"}, f"sections[{index}]")
         for key in ("heading", "body"):
             if not _is_str(section.get(key)):
                 s.err(f"sections[{index}].{key} は空でない文字列にしてください")
+        if "icon" in section:
+            if not _is_str(section["icon"]):
+                s.err(f"sections[{index}].icon はFluentアイコン名にしてください")
+            elif not resolve_icon_path(
+                    f"icons/fluent/{section['icon']}.png").is_file():
+                s.err(f"sections[{index}].icon={section['icon']!r} が見つかりません")
     if "conclusion" in s.spec and not _is_str(s.spec["conclusion"]):
         s.err("conclusion は空でない文字列にしてください")
     if "conclusion_label" in s.spec:
