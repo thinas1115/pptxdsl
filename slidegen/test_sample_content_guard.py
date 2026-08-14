@@ -28,7 +28,9 @@ def main():
     errors = validate(_deck(normalized_copy))
     assert any("回帰検証サンプルの文言" in error for error in errors), errors
 
-    assert not validate(_deck("拠点ネットワーク更改の判断基準を整理する"))
+    errors = validate(_deck("拠点ネットワーク更改の判断基準を整理する"))
+    assert any("名詞句または短い疑問形" in error for error in errors), errors
+    assert not validate(_deck("拠点ネットワーク更改の判断基準"))
     assert not validate(_deck("資料作成"))
 
     for sample_deck in (

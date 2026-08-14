@@ -59,12 +59,14 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/diagrams3.py` | route() 直角配線 |
 | `slidegen/diagram_layout.py` | 宣言的レイアウトエンジン (グリッド仕様→座標。diagram type の本体) |
 | `slidegen/diagram_specs.py` | 公開diagramスキーマだけで書いた構成図の回帰試験用サンプル |
+| `slidegen/training_renderers.py` | concept / network / protocol_anatomy / code_lab / knowledge_check renderer |
 | `slidegen/validate_content.py` | content.json の生成前検証。typeごとの `_v_*` 関数 |
 | `slidegen/generate_from_json.py` | content.json→PPTX。**新規資料の正式経路** |
 | `slidegen/generate_patterns.py` + `content_patterns.py` | 全typeの検証ギャラリー |
 | `slidegen/check_layout.py` | 生成済みPPTXの重なり・はみ出し機械検知 |
 | `slidegen/textfit.py` | フォント実測 (游ゴシックをPillowで測る) |
 | `slidegen/layout_fit.py` | 標準→裁量余白圧縮→要素縮小→明示停止の共通契約 |
+| `slidegen/test_training_renderers.py` | 技術研修rendererの意味検証、標準入力、過密入力、明示停止 |
 | `slidegen/fetch_fluent_icons.py` / `extract_aws_icons.py` | アイコン素材の追加取得 (`slidegen/assets/icons/fluent/`・`slidegen/assets/icons/aws/` に同梱済み。条件は `slidegen/assets/CREDITS.md`。Fluentは要 svglib+reportlab+rlPyCairo) |
 
 ## 絶対に守る不変条件(全て実際の不具合から学んだもの)
@@ -189,9 +191,13 @@ render_diagram(slide, spec, note, content_area=None) # 描画一式
 5. **AI_DECK_PROMPT.md**: 対応済みtype一覧に追加。
 6. **ギャラリー**: `content_patterns.py` に検証スライドを1枚追加
    (これが将来のリグレッション検知網になる)。
-7. **収容ポリシー**: 標準→裁量余白圧縮→ジャンル固有要素縮小→`FitError`停止を実装し、
+7. **選択境界**: AIが選ぶ条件、選ばない条件、隣接typeとの違いを`docs/type-selection-guide.md`へ書く。
+   動機となった資料固有の題材だけで説明せず、別題材でも成立する情報構造として定義する。
+8. **収容ポリシー**: 標準→裁量余白圧縮→ジャンル固有要素縮小→`FitError`停止を実装し、
    各段階と最小値超過の過密入力テストを追加する。
-8. **品質ゲート**(下記)を全部通し、全PNGを一覧と原寸で目視してから完了報告。
+9. **契約テスト**: 最小件数、最大件数、未知キー、参照切れ、重複、不正な列挙値を検証する。
+   ギャラリーの題材とは異なる入力でも、Type固有の意味と見た目が保たれることを確認する。
+10. **品質ゲート**(下記)を全部通し、全PNGを一覧と原寸で目視してから完了報告。
 
 ## レシピB: diagram エンジン(diagram_layout.py)を拡張する
 

@@ -1,0 +1,763 @@
+{
+  "meta": {
+    "title": "VLAN基礎研修",
+    "footer": "新入社員向けネットワーク基礎研修",
+    "date": "2026年8月",
+    "organization": "IT基盤部",
+    "author": "ネットワーク研修担当"
+  },
+  "slides": [
+    {
+      "type": "title",
+      "title": "VLAN基礎研修",
+      "subtitle": "物理的な配線と、論理的な通信範囲を分けて理解する"
+    },
+    {
+      "type": "bullets",
+      "style": "checklist",
+      "kicker": "学習目標",
+      "title": "研修の目的",
+      "lead": "一般的な企業LANの静的なAccess・Trunk構成を対象に、構成図からVLAN境界と通信経路を説明できる状態を目指します。",
+      "bullets": [
+        {"text": "VLANとブロードキャストドメインを、自分の言葉で説明できる"},
+        {"text": "同じVLANと異なるVLANで、フレームの届き方がどう変わるか説明できる"},
+        {"text": "IEEE 802.1Qの役割と、タグ付き・タグなし、Access・Trunkの関係を説明できる"},
+        {"text": "製品初期VLAN、ネイティブVLAN、VLAN 0、デフォルトゲートウェイを区別できる"},
+        {"text": "MACアドレス表とルーティングテーブルの役割を区別できる"},
+        {"text": "SVI・RP・ルーターサブインターフェースの役割を、Cisco設定とshow出力から確認できる"}
+      ]
+    },
+    {
+      "type": "table",
+      "kicker": "前提知識",
+      "title": "通信単位と識別子",
+      "columns": ["用語", "定義"],
+      "rows": [
+        ["Ethernetフレーム", "Ethernetで送受信するデータ単位。送信元・宛先MACアドレス、上位プロトコルの識別値、データなどで構成する。"],
+        ["MACアドレス", "Ethernetフレームの送信元・宛先を示す識別子。通常はネットワークインターフェースに割り当てる48ビットの値。"],
+        ["IPパケット", "IPで送受信するデータ単位。送信元・宛先IPアドレスなどを持ち、異なるIPネットワーク間でも転送できる。"]
+      ]
+    },
+    {
+      "type": "table",
+      "kicker": "前提知識",
+      "title": "通信範囲と転送階層",
+      "columns": ["用語", "定義"],
+      "rows": [
+        ["IPサブネット", "同じネットワークプレフィックスを共有するIPアドレスの範囲。端末はサブネットマスクまたはプレフィックス長で判定する。"],
+        ["ARP", "IPv4アドレスに対応する、同一リンク上のMACアドレスを解決するプロトコル。ARP要求はブロードキャストで送信する。"],
+        ["L2（データリンク層）", "同一リンク内でフレームを転送する階層。EthernetではMACアドレスを転送判断に使用する。"],
+        ["L3（ネットワーク層）", "異なるIPネットワーク間でパケットを転送する階層。IPアドレスとルーティング情報を転送判断に使用する。"]
+      ],
+      "note": "Voice VLAN、Private VLAN、Q-in-Q、VLAN自動配布などは発展事項として本研修の対象外。"
+    },
+    {
+      "type": "concept",
+      "kicker": "前提となる言葉",
+      "title": "ブロードキャストドメイン",
+      "lead": "VLANによる分割を理解するため、最初にL2でブロードキャストが届く範囲を確認します。",
+      "term": "ブロードキャストドメイン",
+      "definition": "ブロードキャストフレームが届くL2の範囲です。同じ範囲にいる端末は、ARPなどの一斉送信を受け取ります。",
+      "icon": "icons/fluent/ethernet.png",
+      "points": [
+        {"label": "ブロードキャスト", "text": "同じ通信範囲にいる全端末へ届けるフレームです。"},
+        {"label": "L2スイッチの動作", "text": "受信したブロードキャストを、同じLANに属する他のポートへ複製します。"},
+        {"label": "境界が必要な理由", "text": "範囲が大きいほど不要な一斉送信が増え、用途や管理単位も分けにくくなります。"}
+      ],
+      "misconception": "ブロードキャストは同じ通信範囲の全端末へ、ユニキャストは特定の宛先へ転送されます。ここでは一斉送信の範囲に注目します。"
+    },
+    {
+      "type": "network",
+      "kicker": "分割していないLAN",
+      "title": "フラットLAN内のARP",
+      "lead": "PC AはPC BのMACアドレスを知るため、ARP要求をブロードキャストで送ります。L2スイッチは受信ポート以外へ複製し、PC Bだけが自分宛てと判断します。応答はユニキャストのため省略しています。",
+      "lanes": [
+        {"id": "flat", "label": "同一LAN", "sub": "1つのブロードキャストドメイン"}
+      ],
+      "columns": [
+        {"id": "source", "label": "送信元"},
+        {"id": "switch", "label": "L2スイッチ"},
+        {"id": "peer", "label": "同じLAN"},
+        {"id": "printer", "label": "同じLAN"}
+      ],
+      "nodes": [
+        {"id": "pc_a", "label": "PC A", "sub": "PC BのMACを問い合わせ", "icon": "icons/fluent/laptop.png", "column": "source", "lanes": ["flat"]},
+        {"id": "switch", "label": "L2スイッチ", "sub": "受信ポート以外へ複製", "icon": "icons/fluent/switch.png", "column": "switch", "lanes": ["flat"]},
+        {"id": "pc_b", "label": "PC B", "sub": "自分宛てと判断", "icon": "icons/fluent/desktop.png", "column": "peer", "lanes": ["flat"]},
+        {"id": "printer", "label": "プリンタ", "sub": "自分宛てでないため破棄", "icon": "icons/fluent/printer.png", "column": "printer", "lanes": ["flat"]}
+      ],
+      "links": [
+        {"from": "pc_a", "to": "switch", "kind": "broadcast", "lanes": ["flat"], "label": "① ARP要求"},
+        {"from": "switch", "to": "pc_b", "kind": "broadcast", "lanes": ["flat"], "label": "② 他ポートへ複製"},
+        {"from": "switch", "to": "printer", "kind": "broadcast", "lanes": ["flat"]}
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "言葉の定義",
+      "title": "VLANとは",
+      "term": "VLAN",
+      "definition": "VLANはVirtual LANの略で、スイッチ上の通信範囲を論理的に分けます。VLANごとにブロードキャストドメインが分かれます。",
+      "icon": "icons/fluent/switch.png",
+      "points": [
+        {"label": "物理構成", "text": "同じスイッチや同じ配線を共有したまま、通信範囲を分けられます。"},
+        {"label": "識別方法", "text": "各論理LANをVLAN IDで識別します。例: VLAN 10、VLAN 20。"},
+        {"label": "起きる変化", "text": "ブロードキャストは同じVLAN内だけに届き、別のVLANには広がりません。"}
+      ],
+      "misconception": "VLANはL2の通信範囲を論理的に分割します。暗号化、通信制御、IPアドレス設計は、それぞれ別の機能として組み合わせます。"
+    },
+    {
+      "type": "network",
+      "kicker": "論理分割の効果",
+      "title": "VLAN内のブロードキャスト",
+      "lead": "営業PC AのARP要求を追います。同じ物理スイッチ上でも、ブロードキャストはVLAN 10内だけへ複製され、VLAN 20の端末には届きません。",
+      "lanes": [
+        {"id": "v10", "label": "VLAN 10", "sub": "営業"},
+        {"id": "v20", "label": "VLAN 20", "sub": "開発"}
+      ],
+      "columns": [
+        {"id": "left", "label": "送信側"},
+        {"id": "switch", "label": "同じ物理スイッチ"},
+        {"id": "right", "label": "受信側"}
+      ],
+      "nodes": [
+        {"id": "sales_a", "label": "営業PC A", "sub": "VLAN 10でARP要求", "icon": "icons/fluent/laptop.png", "column": "left", "lanes": ["v10"]},
+        {"id": "dev_a", "label": "開発PC A", "icon": "icons/fluent/desktop.png", "column": "left", "lanes": ["v20"]},
+        {"id": "switch", "label": "L2スイッチ", "sub": "VLAN単位で分離", "icon": "icons/fluent/switch.png", "column": "switch", "lanes": ["v10", "v20"]},
+        {"id": "sales_b", "label": "営業PC B", "sub": "同じVLANなので受信", "icon": "icons/fluent/laptop.png", "column": "right", "lanes": ["v10"]},
+        {"id": "dev_b", "label": "開発PC B", "sub": "別VLANなので受信しない", "icon": "icons/fluent/desktop.png", "column": "right", "lanes": ["v20"]}
+      ],
+      "links": [
+        {"from": "sales_a", "to": "switch", "kind": "broadcast", "lanes": ["v10"], "label": "① VLAN 10のARP要求"},
+        {"from": "switch", "to": "sales_b", "kind": "broadcast", "lanes": ["v10"]},
+        {"from": "switch", "to": "dev_b", "kind": "blocked", "lanes": ["v10"]}
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "通信できる範囲",
+      "title": "デフォルトゲートウェイ",
+      "term": "デフォルトゲートウェイ",
+      "definition": "端末が異なるIPサブネットへ通信するとき、最初にIPパケットを渡すL3機器のIPアドレスです。VLANごとに、到達可能なゲートウェイを設定します。",
+      "icon": "icons/fluent/router.png",
+      "points": [
+        {"label": "同じIPサブネット", "text": "端末は宛先端末のMACアドレスを調べ、宛先へ直接フレームを送ります。"},
+        {"label": "異なるIPサブネット", "text": "端末はゲートウェイのMACアドレスを調べ、IPパケットをL3機器へ渡します。"},
+        {"label": "VLAN境界", "text": "L2スイッチだけでは越えられないため、ルータまたはL3スイッチが中継します。"}
+      ],
+      "misconception": "デフォルトゲートウェイはL3の次ホップです。初期VLANはポートの初期所属、ネイティブVLANはTrunk上のタグなし転送を扱います。"
+    },
+    {
+      "type": "concept",
+      "kicker": "VLAN識別の標準",
+      "title": "IEEE 802.1Q",
+      "lead": "複数のVLANを同じEthernetリンクで運ぶために、フレームの所属VLANを識別する仕組みを確認します。",
+      "term": "IEEE 802.1Q",
+      "definition": "MACブリッジとVLANブリッジを含むブリッジネットワークの動作、プロトコル、管理などを定めるIEEE規格です。VLANを識別する仕組みとして、Ethernetフレームへ4バイトのVLANタグを挿入します。",
+      "icon": "icons/fluent/ethernet.png",
+      "points": [
+        {"label": "VLANタグ", "text": "送信元MACアドレスの後ろへ4バイトを挿入し、優先度やVLAN IDなどを格納します。"},
+        {"label": "VLAN ID", "text": "タグ内の12ビットの値で、フレームが属するVLANを識別します。"},
+        {"label": "使われる区間", "text": "複数VLANを運ぶスイッチ間リンクなどでタグを使い、端末接続区間では通常タグを外して送受信します。"}
+      ],
+      "misconception": "802.1QはブリッジネットワークとVLAN識別の標準です。Access、Trunk、ネイティブVLANは製品設定で使われる名称です。"
+    },
+    {
+      "type": "protocol_anatomy",
+      "kicker": "フレーム形式",
+      "title": "802.1Qタグの構造",
+      "frames": [
+        {
+          "label": "タグなし",
+          "fields": [
+            {"id": "dst", "name": "宛先MAC", "bits": 48},
+            {"id": "src", "name": "送信元MAC", "bits": 48},
+            {"id": "type", "name": "上位種別", "bits": 16},
+            {"id": "payload", "name": "データ", "bits": 368, "size_label": "可変長", "role": "muted"},
+            {"id": "fcs", "name": "誤り検査", "bits": 32, "role": "muted"}
+          ]
+        },
+        {
+          "label": "802.1Q",
+          "fields": [
+            {"id": "dst", "name": "宛先MAC", "bits": 48},
+            {"id": "src", "name": "送信元MAC", "bits": 48},
+            {"id": "tpid", "name": "TPID", "bits": 16, "role": "highlight"},
+            {"id": "pcp", "name": "PCP", "bits": 3, "role": "highlight"},
+            {"id": "dei", "name": "DEI", "bits": 1, "role": "highlight"},
+            {"id": "vid", "name": "VLAN ID", "bits": 12, "role": "highlight"},
+            {"id": "type", "name": "上位種別", "bits": 16},
+            {"id": "payload", "name": "データ", "bits": 368, "size_label": "可変長", "role": "muted"},
+            {"id": "fcs", "name": "誤り検査", "bits": 32, "role": "muted"}
+          ],
+          "annotations": [
+            {"field": "tpid", "text": "タグ付きフレームを識別。代表値は0x8100。"},
+            {"field": "pcp", "text": "通信の優先度を示す3 bit。"},
+            {"field": "dei", "text": "輻輳時の破棄可否を示す1 bit。"},
+            {"field": "vid", "text": "所属VLANを識別する12 bit。"}
+          ]
+        }
+      ],
+      "takeaway": "同じデータ長なら802.1Qタグ付きは4 byte長く、Ethernetフレームの最大長も1518 byteから1522 byteへ増えます（FCS含む）。"
+    },
+    {
+      "type": "table",
+      "kicker": "フレームの分類",
+      "title": "タグ付きフレーム・タグなしフレーム・PVID",
+      "columns": ["項目", "説明", "受信時の扱い"],
+      "rows": [
+        ["タグ付きフレーム", "802.1Qタグを持つEthernetフレーム。", "タグ内のVLAN IDを使って所属VLANを判断する。"],
+        ["タグなしフレーム", "802.1Qタグを持たないEthernetフレーム。", "受信ポートのPVIDなど、ポート設定から所属VLANを判断する。"],
+        ["PVID", "Port VLAN Identifier。タグなし受信などを分類するVLAN ID。", "端末接続ポートでは、設定した所属VLANが通常この役割を持つ。"],
+        ["タグなしフレームの所属判定", "フレーム自体にはVLAN IDがない。", "受信ポートのPVIDなど、ポート設定によって所属VLANを決定する。"]
+      ],
+      "note": "※ IEEE 802.1Qは、MACブリッジとVLANブリッジの動作などを定める規格。詳細:",
+      "note_link": {
+        "label": "IEEE 802.1Q-2022（IEEE公式）",
+        "url": "https://standards.ieee.org/ieee/802.1Q/10323/"
+      }
+    },
+    {
+      "type": "network",
+      "kicker": "端末を収容するポート",
+      "title": "Accessポート",
+      "lead": "左から右へ追います。①端末はタグなしフレームを送り、②スイッチは受信したAccessポートの設定からVLAN 10へ分類し、③送信側のAccessポートからタグなしで出します。",
+      "lanes": [
+        {"id": "v10", "label": "VLAN 10", "sub": "営業"}
+      ],
+      "columns": [
+        {"id": "pc", "label": "端末"},
+        {"id": "switch", "label": "Accessポート"},
+        {"id": "peer", "label": "同じVLAN"}
+      ],
+      "nodes": [
+        {"id": "pc", "label": "営業PC", "sub": "タグなし", "icon": "icons/fluent/laptop.png", "column": "pc", "lanes": ["v10"]},
+        {"id": "switch", "label": "L2スイッチ", "sub": "② VLAN 10へ分類", "icon": "icons/fluent/switch.png", "column": "switch", "lanes": ["v10"]},
+        {"id": "peer", "label": "営業プリンタ", "sub": "タグなし", "icon": "icons/fluent/printer.png", "column": "peer", "lanes": ["v10"]}
+      ],
+      "links": [
+        {"from": "pc", "to": "switch", "kind": "access", "lanes": ["v10"], "label": "① タグなしで受信"},
+        {"from": "switch", "to": "peer", "kind": "access", "lanes": ["v10"], "label": "③ タグなしで送信"}
+      ]
+    },
+    {
+      "type": "network",
+      "kicker": "スイッチ間のポート",
+      "title": "Trunkポート",
+      "lead": "左右の端末区間はタグなし、中央のTrunk区間は802.1Qタグ付きです。スイッチは受信ポートでVLANを判定し、TrunkではVLAN IDを付けて複数VLANを1本のリンクへ多重化します。",
+      "lanes": [
+        {"id": "v10", "label": "VLAN 10", "sub": "営業"},
+        {"id": "v20", "label": "VLAN 20", "sub": "開発"}
+      ],
+      "columns": [
+        {"id": "left", "label": "フロアA"},
+        {"id": "sw_a", "label": "スイッチA"},
+        {"id": "sw_b", "label": "スイッチB"},
+        {"id": "right", "label": "フロアB"}
+      ],
+      "nodes": [
+        {"id": "sales_a", "label": "営業PC A", "icon": "icons/fluent/laptop.png", "column": "left", "lanes": ["v10"]},
+        {"id": "dev_a", "label": "開発PC A", "icon": "icons/fluent/desktop.png", "column": "left", "lanes": ["v20"]},
+        {"id": "sw_a", "label": "スイッチA", "icon": "icons/fluent/switch.png", "column": "sw_a", "lanes": ["v10", "v20"]},
+        {"id": "sw_b", "label": "スイッチB", "icon": "icons/fluent/switch.png", "column": "sw_b", "lanes": ["v10", "v20"]},
+        {"id": "sales_b", "label": "営業PC B", "icon": "icons/fluent/laptop.png", "column": "right", "lanes": ["v10"]},
+        {"id": "dev_b", "label": "開発PC B", "icon": "icons/fluent/desktop.png", "column": "right", "lanes": ["v20"]}
+      ],
+      "links": [
+        {"from": "sales_a", "to": "sw_a", "kind": "access", "lanes": ["v10"], "label": "① タグなし"},
+        {"from": "dev_a", "to": "sw_a", "kind": "access", "lanes": ["v20"], "label": "① タグなし"},
+        {"from": "sw_a", "to": "sw_b", "kind": "trunk", "lanes": ["v10", "v20"], "label": "② 802.1Qタグ付き"},
+        {"from": "sw_b", "to": "sales_b", "kind": "access", "lanes": ["v10"], "label": "③ タグなし"},
+        {"from": "sw_b", "to": "dev_b", "kind": "access", "lanes": ["v20"], "label": "③ タグなし"}
+      ]
+    },
+    {
+      "type": "protocol_state_flow",
+      "kicker": "Trunkのタグ処理",
+      "title": "ネイティブVLANのタグ処理",
+      "lead": "タグなしフレーム自身にはVLAN IDがありません。VLAN 10側はPC接続ポートもTrunk native 10とし、受信ポートのnative VLAN設定によって内部VLAN 10へ割り当てます。Access VLAN設定は使いません。VLAN 20側はAccessポートで分類し、スイッチ間Trunkを802.1Qタグ付きで通します。",
+      "stages": [
+        {"id": "tx", "label": "送信端末", "icon": "icons/fluent/laptop.png", "role": "endpoint"},
+        {"id": "sw_a", "label": "スイッチA", "icon": "icons/fluent/switch.png", "role": "processor"},
+        {"id": "trunk", "label": "スイッチ間Trunk", "icon": "icons/fluent/link.png", "role": "link"},
+        {"id": "sw_b", "label": "スイッチB", "icon": "icons/fluent/switch.png", "role": "processor"},
+        {"id": "rx", "label": "受信端末", "icon": "icons/fluent/laptop.png", "role": "endpoint"}
+      ],
+      "flows": [
+        {
+          "label": "VLAN 10",
+          "sub": "native VLAN",
+          "states": [
+            {"stage": "tx", "label": "タグなし", "detail": "PCから送信", "appearance": "plain"},
+            {"stage": "sw_a", "label": "VLAN 10", "detail": "受信ポートのnative設定で割当", "appearance": "internal"},
+            {"stage": "trunk", "label": "タグなし", "detail": "native VLAN 10", "appearance": "plain"},
+            {"stage": "sw_b", "label": "VLAN 10", "detail": "タグなしをnativeへ分類", "appearance": "internal"},
+            {"stage": "rx", "label": "タグなし", "detail": "TrunkからPCへ送出", "appearance": "plain"}
+          ]
+        },
+        {
+          "label": "VLAN 20",
+          "sub": "通常のVLAN",
+          "states": [
+            {"stage": "tx", "label": "タグなし", "detail": "PCから送信", "appearance": "plain"},
+            {"stage": "sw_a", "label": "VLAN 20", "detail": "Accessポートで分類", "appearance": "internal"},
+            {"stage": "trunk", "label": "802.1Qタグ付き", "detail": "VLAN ID 20", "appearance": "encapsulated", "encapsulation": "TAG"},
+            {"stage": "sw_b", "label": "VLAN 20", "detail": "タグのVLAN IDで分類", "appearance": "internal"},
+            {"stage": "rx", "label": "タグなし", "detail": "PCへ送出", "appearance": "plain"}
+          ]
+        }
+      ],
+      "takeaway": "VLAN 10経路ではAccess VLAN設定を使わず、Trunkのnative VLAN設定がタグなしフレームの所属を決めます。"
+    },
+    {
+      "type": "sequence",
+      "kicker": "Trunk両端の設定不一致",
+      "title": "ネイティブVLAN不一致時の誤分類",
+      "lead": "PC AのタグなしフレームをSW-AのAccessポートでVLAN 10へ分類した後、native VLANが異なるTrunkへ送る例です。SW-Aはnative VLAN 10をタグなしで送りますが、SW-Bはタグなし受信をnative VLAN 20へ誤分類します。",
+      "participants": [
+        {"id": "pc_a", "label": "営業PC A"},
+        {"id": "sw_a", "label": "SW-A（Access 10 / native 10）"},
+        {"id": "sw_b", "label": "SW-B（native 20 / Access 20）"},
+        {"id": "pc_b", "label": "開発PC B"}
+      ],
+      "messages": [
+        {"id": "access_in", "from": "pc_a", "to": "sw_a", "label": "① タグなし受信をAccess VLAN 10へ分類"},
+        {"id": "untagged_native", "from": "sw_a", "to": "sw_b", "label": "② native 10なのでタグなしで送出"},
+        {"id": "wrong_classify", "from": "sw_b", "to": "sw_b", "label": "③ タグなし受信をnative 20へ分類"},
+        {"id": "wrong_forward", "from": "sw_b", "to": "pc_b", "label": "④ Access VLAN 20からタグなしで送出"}
+      ],
+      "phases": [
+        {"label": "送信側ではVLAN 10", "from": "access_in", "to": "untagged_native"},
+        {"label": "受信側ではVLAN 20", "from": "wrong_classify", "to": "wrong_forward"}
+      ],
+      "takeaway": "PC側ではAccess VLAN、Trunk受信側ではnative VLANがタグなしフレームの所属を決めます。両端のnative VLANを一致させます。"
+    },
+    {
+      "type": "table",
+      "kicker": "混同しやすい用語",
+      "title": "製品初期VLAN・ネイティブVLAN・VLAN 0",
+      "columns": ["用語", "意味", "注意点"],
+      "rows": [
+        ["初期VLAN（Cisco: デフォルトVLAN）", "工場出荷時にポートが所属する製品上の初期VLAN。CiscoスイッチではVLAN 1。", "製品固有の初期設定名として、機種ごとの仕様を確認する。"],
+        ["ネイティブVLAN（Cisco等の製品用語）", "802.1Q Trunkでタグなし受信を分類するVLAN。Cisco IOSの既定動作ではタグなしで送出する。", "vlan dot1q tag nativeを有効にするとnative VLANもタグ付きになる。両端の設定を一致させる。"],
+        ["VLAN 0（802.1Q）", "VLAN所属を示さず、優先度情報だけを運ぶタグで使用する予約値。", "通常VLANの識別には1～4094を使用する。"],
+        ["許可VLAN（製品設定）", "そのTrunkで転送を許可するVLAN IDの一覧。", "許可一覧に含まれるVLANだけがTrunkを通過する。"],
+        ["通常のVLAN ID（802.1Q）", "VLAN所属の識別には1～4094を使用できる。", "0は優先度タグ用、4095は予約値として扱う。"]
+      ],
+      "note": "対象の違い: 初期VLAN=ポート初期所属 / ネイティブVLAN=Trunkのタグなし転送 / デフォルトゲートウェイ=L3次ホップ。"
+    },
+    {
+      "type": "sequence",
+      "kicker": "同じVLAN内の転送",
+      "title": "Trunk区間のタグ処理",
+      "lead": "左から右へ、Access区間で受信したタグなしフレームをVLAN 10へ分類し、Trunk区間だけタグを付け、宛先側のAccess区間ではタグを外す流れを追います。",
+      "participants": [
+        {"id": "pc_a", "label": "営業PC A"},
+        {"id": "sw_a", "label": "スイッチA"},
+        {"id": "sw_b", "label": "スイッチB"},
+        {"id": "pc_b", "label": "営業PC B"}
+      ],
+      "messages": [
+        {"id": "untagged_in", "from": "pc_a", "to": "sw_a", "label": "① タグなしで受信"},
+        {"id": "classify", "from": "sw_a", "to": "sw_a", "label": "② 受信ポートからVLAN 10へ分類"},
+        {"id": "tagged", "from": "sw_a", "to": "sw_b", "label": "③ VLAN 10タグを付けてTrunkへ"},
+        {"id": "lookup", "from": "sw_b", "to": "sw_b", "label": "④ 宛先MACから出力ポートを決定"},
+        {"id": "untagged_out", "from": "sw_b", "to": "pc_b", "label": "⑤ タグを外してAccessへ送出"}
+      ],
+      "phases": [
+        {"label": "送信側", "from": "untagged_in", "to": "classify"},
+        {"label": "Trunk", "from": "tagged", "to": "tagged"},
+        {"label": "受信側", "from": "lookup", "to": "untagged_out"}
+      ],
+      "takeaway": "802.1Qタグが現れるのはTrunk区間です。端末側のAccess区間ではタグなしフレームとして送受信します。"
+    },
+    {
+      "type": "table",
+      "kicker": "通信機器の判断材料",
+      "title": "ARPキャッシュ・MACアドレス表・ルーティングテーブル",
+      "columns": ["観点", "ARPキャッシュ", "MACアドレス表", "ルーティングテーブル"],
+      "rows": [
+        ["主に持つ機器", "端末、ルータ、L3スイッチ", "L2スイッチ、L3スイッチ", "ルータ、L3スイッチ"],
+        ["対応関係", "次に渡す相手のIPアドレス → MACアドレス", "VLAN ID + 宛先MACアドレス → 出力ポート", "宛先IPプレフィックス → 次ホップ / 出力先"],
+        ["通信での役割", "フレームの宛先MACアドレスを決める。", "同じVLAN内でフレームの出力ポートを決める。", "異なるIPネットワークへIPパケットを中継する。"],
+        ["未登録の場合", "ARP要求でMACアドレスを問い合わせる。", "同じVLAN内へフレームを広げて宛先を探す。", "最終候補の経路であるデフォルトルートを使うか、経路がなければ破棄する。"]
+      ],
+      "note": "MACアドレス表はVLANごとに独立しており、MACエントリを追加するだけではVLAN境界を越えられない。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "異なるVLAN間の通信",
+      "title": "VLAN間ルーティング",
+      "lead": "左上から右下へ追います。①端末はデフォルトゲートウェイのMACアドレス宛てに送り、②VLAN 10タグでL3スイッチへ渡し、③宛先IPの経路を検索した後、④VLAN 20向けの新しいL2フレームを作り、⑤宛先端末へタグなしで送ります。",
+      "diagram": {
+        "cols": ["host10", "switch10", "gateway", "switch20", "host20"],
+        "rows": ["vlan10", "routing", "vlan20"],
+        "nodes": {
+          "pc10": {"col": "host10", "row": "vlan10", "icon": "icons/fluent/laptop.png", "title": "営業PC", "sub": "192.168.10.10"},
+          "switch10": {"col": "switch10", "row": "vlan10", "icon": "icons/fluent/switch.png", "title": "L2スイッチ", "sub": "VLAN 10を転送"},
+          "gateway": {"col": "gateway", "row": "routing", "icon": "icons/fluent/router.png", "title": "L3スイッチ", "sub": "③ IP経路を検索"},
+          "switch20": {"col": "switch20", "row": "vlan20", "icon": "icons/fluent/switch.png", "title": "L2スイッチ", "sub": "VLAN 20を転送"},
+          "pc20": {"col": "host20", "row": "vlan20", "icon": "icons/fluent/desktop.png", "title": "開発PC", "sub": "192.168.20.20"}
+        },
+        "containers": [
+          {"name": "vlan10", "label": "VLAN 10 / 192.168.10.0/24", "members": ["pc10", "switch10"]},
+          {"name": "vlan20", "label": "VLAN 20 / 192.168.20.0/24", "members": ["switch20", "pc20"]}
+        ],
+        "channels": {},
+        "edges": [
+          {"from": "pc10", "to": "switch10", "label": "① ゲートウェイのMAC宛て"},
+          {"from": "switch10", "to": "gateway", "label": "② タグ10でL3へ"},
+          {"from": "gateway", "to": "switch20", "label": "④ タグ20でL2へ"},
+          {"from": "switch20", "to": "pc20", "label": "⑤ タグなしで送信"}
+        ]
+      },
+      "note": "L2スイッチは同じVLAN内だけを転送します。VLAN境界を越えるのはL3スイッチであり、受信したL2ヘッダーを外してIP経路を選び、送信側VLAN向けのL2ヘッダーを新しく作ります。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "SVI・RP・転送エンジン",
+      "title": "L3スイッチ内部の転送",
+      "lead": "横方向はデータ転送です。SVI（VLANごとのL3インターフェース）で受信し、転送エンジンがFIB（転送先表）から出力先を選びます。縦方向はRP（Route Processor）が作る経路・隣接情報の反映です。",
+      "diagram": {
+        "cols": ["host10", "svi10", "forwarding", "svi20", "host20"],
+        "rows": ["control", "data"],
+        "nodes": {
+          "pc10": {"col": "host10", "row": "data", "icon": "icons/fluent/laptop.png", "title": "営業PC", "sub": "192.168.10.10"},
+          "svi10": {"col": "svi10", "row": "data", "icon": "icons/fluent/gateway.png", "title": "SVI Vlan10", "sub": "VLAN 10の受信L3インターフェース"},
+          "forwarding": {"col": "forwarding", "row": "data", "icon": "icons/fluent/switch.png", "title": "転送エンジン", "sub": "FIB検索・L2ヘッダー更新"},
+          "svi20": {"col": "svi20", "row": "data", "icon": "icons/fluent/gateway.png", "title": "SVI Vlan20", "sub": "VLAN 20の送信L3インターフェース"},
+          "pc20": {"col": "host20", "row": "data", "icon": "icons/fluent/desktop.png", "title": "開発PC", "sub": "192.168.20.20"},
+          "rp": {"col": "forwarding", "row": "control", "icon": "icons/fluent/settings.png", "title": "RP", "sub": "RIBを作る制御プレーン"}
+        },
+        "containers": [
+          {"name": "l3switch", "label": "L3スイッチ", "members": ["svi10", "forwarding", "svi20", "rp"]}
+        ],
+        "channels": {},
+        "edges": [
+          {"from": "pc10", "to": "svi10", "label": "① ゲートウェイMAC宛て"},
+          {"from": "svi10", "to": "forwarding", "label": "② IPパケットをL3受信"},
+          {"from": "forwarding", "to": "svi20", "label": "③ FIBで出力先を決定"},
+          {"from": "svi20", "to": "pc20", "label": "④ 新しいL2ヘッダーで送出"},
+          {"from": "rp", "to": "forwarding", "exit": "bottom", "enter": "top", "dash": "dash", "label": "制御情報を反映"}
+        ]
+      },
+      "note": "SVIはVLANごとの論理L3インターフェースです。RP（Route Processor）は経路情報をRIB（Routing Information Base）へまとめ、転送用のFIB（Forwarding Information Base）と隣接情報を転送エンジンへ反映します。通常のデータパケットは転送エンジンが処理します。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "外部ルーターによる中継",
+      "title": "ルーターの802.1Qサブインターフェース",
+      "lead": "左側のL2スイッチは端末フレームをVLAN 10または20へ分類し、Trunkでタグを付けて送ります。右側の物理ポートGi0/0はVLAN IDを判別し、VLANごとの論理L3インターフェースへ渡します。",
+      "diagram": {
+        "cols": ["host", "switch", "router"],
+        "rows": ["vlan10", "physical", "vlan20"],
+        "nodes": {
+          "pc10": {"col": "host", "row": "vlan10", "icon": "icons/fluent/laptop.png", "title": "営業PC", "sub": "VLAN 10"},
+          "switch10": {"col": "switch", "row": "vlan10", "icon": "icons/fluent/switch.png", "title": "Access VLAN 10"},
+          "trunk": {"col": "switch", "row": "physical", "icon": "icons/fluent/link.png", "title": "802.1Q Trunk", "sub": "VLAN 10・20を1本で運ぶ"},
+          "switch20": {"col": "switch", "row": "vlan20", "icon": "icons/fluent/switch.png", "title": "Access VLAN 20"},
+          "sub10": {"col": "router", "row": "vlan10", "icon": "icons/fluent/gateway.png", "title": "Gi0/0.10", "sub": "VLAN 10 / GW 192.168.10.1"},
+          "parent": {"col": "router", "row": "physical", "icon": "icons/fluent/ethernet.png", "title": "Gi0/0（物理ポート）", "sub": "802.1Qタグを判別"},
+          "sub20": {"col": "router", "row": "vlan20", "icon": "icons/fluent/gateway.png", "title": "Gi0/0.20", "sub": "VLAN 20 / GW 192.168.20.1"},
+          "pc20": {"col": "host", "row": "vlan20", "icon": "icons/fluent/desktop.png", "title": "開発PC", "sub": "VLAN 20"}
+        },
+        "containers": [
+          {"name": "l2switch", "label": "L2スイッチ", "members": ["switch10", "trunk", "switch20"]},
+          {"name": "router", "label": "ルーター", "members": ["sub10", "parent", "sub20"]}
+        ],
+        "channels": {},
+        "edges": [
+          {"from": "pc10", "to": "switch10", "both": true, "label": "タグなし"},
+          {"from": "pc20", "to": "switch20", "both": true, "label": "タグなし"},
+          {"from": "switch10", "to": "trunk", "exit": "bottom", "enter": "top", "both": true, "label": "VLAN 10"},
+          {"from": "switch20", "to": "trunk", "exit": "top", "enter": "bottom", "both": true, "label": "VLAN 20"},
+          {"from": "trunk", "to": "parent", "both": true, "label": "802.1Qタグ 10 / 20"},
+          {"from": "parent", "to": "sub10", "exit": "top", "enter": "bottom", "both": true, "label": "VLAN ID 10で分類"},
+          {"from": "parent", "to": "sub20", "exit": "bottom", "enter": "top", "both": true, "label": "VLAN ID 20で分類"}
+        ]
+      },
+      "note": "サブインターフェースは、1本の物理ポート上に作る論理L3インターフェースです。Gi0/0.10とGi0/0.20は、それぞれVLAN 10と20を終端し、各VLANのデフォルトゲートウェイIPを持ちます。"
+    },
+    {
+      "type": "sequence",
+      "kicker": "VLAN 10からVLAN 20",
+      "title": "サブインターフェース間の転送",
+      "lead": "受信したVLAN 10のL2フレームをそのままVLAN 20へ渡すのではありません。ルーターはIPパケットを取り出して経路を選び、VLAN 20向けの送信元・宛先MACアドレスとタグを持つ新しいL2フレームを作ります。",
+      "participants": [
+        {"id": "pc10", "label": "営業PC"},
+        {"id": "switch", "label": "L2スイッチ"},
+        {"id": "sub10", "label": "Gi0/0.10"},
+        {"id": "routing", "label": "IPルーティング"},
+        {"id": "sub20", "label": "Gi0/0.20"},
+        {"id": "pc20", "label": "開発PC"}
+      ],
+      "messages": [
+        {"id": "m1", "from": "pc10", "to": "switch", "label": "① ゲートウェイ宛て・タグなし"},
+        {"id": "m2", "from": "switch", "to": "sub10", "label": "② VLAN 10タグでGi0/0.10へ"},
+        {"id": "m3", "from": "sub10", "to": "routing", "label": "③ タグを外してIPパケットを受信"},
+        {"id": "m4", "from": "routing", "to": "sub20", "label": "④ 経路検索・Gi0/0.20を選択"},
+        {"id": "m5", "from": "sub20", "to": "switch", "label": "⑤ 新しいMAC・VLAN 20タグで送出"},
+        {"id": "m6", "from": "switch", "to": "pc20", "label": "⑥ タグを外してAccessへ送出"}
+      ],
+      "phases": [
+        {"label": "受信", "from": "m1", "to": "m2"},
+        {"label": "ルーティング", "from": "m3", "to": "m4"},
+        {"label": "送信", "from": "m5", "to": "m6"}
+      ],
+      "takeaway": "送信元・宛先IPアドレスは維持し、MACアドレスとVLANタグはルーティング区間ごとに作り直します。"
+    },
+    {
+      "type": "table",
+      "kicker": "VLAN間ルーティング方式",
+      "title": "SVIとルーターサブインターフェース",
+      "columns": ["観点", "L3スイッチのSVI", "ルーターのサブインターフェース"],
+      "rows": [
+        ["論理インターフェース", "interface Vlan10", "interface Gi0/0.10"],
+        ["VLANとの結び付け", "SVI番号をVLAN IDへ対応", "encapsulation dot1Q 10で指定"],
+        ["物理接続", "スイッチ内部のVLANとL3転送を接続", "1本のルーターポートで複数VLANを終端"],
+        ["転送処理", "転送エンジンがSVI間を中継", "ルーターの転送機能がサブインターフェース間を中継"],
+        ["主な利用場面", "L3スイッチで多数VLANを収容", "外部ルーターへVLAN間中継を集約"]
+      ],
+      "note": "どちらもVLANごとのL3インターフェースへIPアドレスを持たせ、端末のデフォルトゲートウェイとして使います。"
+    },
+    {
+      "type": "code_lab",
+      "kicker": "Cisco IOS XE設定例",
+      "title": "L3スイッチのSVI設定",
+      "lead": "VLAN 10と20へゲートウェイを作り、L3スイッチ内のIPルーティングを有効にする例です。",
+      "sections": [
+        {
+          "label": "SVIを作成してL3転送を有効化",
+          "code": "ip routing\nvlan 10\n name SALES\nvlan 20\n name DEV\n!\ninterface Vlan10\n ip address 192.168.10.1 255.255.255.0\n no shutdown\ninterface Vlan20\n ip address 192.168.20.1 255.255.255.0\n no shutdown"
+        }
+      ],
+      "check_label": "設定の読み方",
+      "checks": [
+        "ip routingは、L3スイッチのIPルーティングを有効にする",
+        "interface Vlan10とVlan20は、各VLANのL3インターフェースを作る",
+        "192.168.10.1と192.168.20.1は、各VLANの端末が使うデフォルトゲートウェイになる"
+      ],
+      "takeaway": "VLANの作成、SVIのIP設定、IPルーティング有効化を一組で構成します。"
+    },
+    {
+      "type": "code_lab",
+      "kicker": "Cisco IOS XE show出力例",
+      "title": "SVIの状態と直結経路",
+      "lead": "表示は代表的な抜粋です。インターフェース名と出力形式は機種・IOS XEリリースで異なります。",
+      "sections": [
+        {
+          "label": "SVIのIPアドレスと稼働状態",
+          "code": "Switch# show ip int brief | include Vlan\nVlan10  192.168.10.1  YES manual  up  up\nVlan20  192.168.20.1  YES manual  up  up"
+        },
+        {
+          "label": "ルーティングテーブルの直結経路",
+          "code": "Switch# show ip route connected | include ^C\nC 192.168.10.0/24 is directly connected, Vlan10\nC 192.168.20.0/24 is directly connected, Vlan20"
+        }
+      ],
+      "check_label": "出力から読む状態",
+      "checks": [
+        "Vlan10とVlan20がup / upで、L3インターフェースとして利用できる",
+        "SVIのline protocolは、対応VLANと接続ポートの状態にも連動する",
+        "Cで始まる直結経路が、対応するVlanインターフェースへ登録されている",
+        "端末のデフォルトゲートウェイが、所属VLANのSVIアドレスを指している"
+      ],
+      "takeaway": "SVIはIPアドレスだけでなく、up / upと直結経路の両方を確認します。"
+    },
+    {
+      "type": "code_lab",
+      "kicker": "Cisco IOS XE設定例",
+      "title": "ルーターサブインターフェースの設定",
+      "lead": "1本の物理ポートでVLAN 10と20を終端する、Router-on-a-Stickの代表例です。",
+      "sections": [
+        {
+          "label": "物理ポートをVLAN別の論理IFへ分割",
+          "code": "interface Gi0/0\n no ip address\n no shutdown\n!\ninterface Gi0/0.10\n encapsulation dot1Q 10\n ip address 192.168.10.1 255.255.255.0\n!\ninterface Gi0/0.20\n encapsulation dot1Q 20\n ip address 192.168.20.1 255.255.255.0"
+        }
+      ],
+      "check_label": "設定の読み方",
+      "checks": [
+        "親インターフェースGi0/0は、VLANを運ぶ物理リンクとして使う",
+        "encapsulation dot1Q 10と20は、各論理IFへ対応するVLAN IDを指定する",
+        "Gi0/0.10とGi0/0.20のIPアドレスは、各VLANのデフォルトゲートウェイになる",
+        "対向スイッチのTrunkでも、VLAN 10と20を作成・許可する"
+      ],
+      "takeaway": "親ポート、802.1Q VLAN ID、IPアドレス、対向Trunkを一組で構成します。"
+    },
+    {
+      "type": "code_lab",
+      "kicker": "Cisco IOS XE show出力例",
+      "title": "サブインターフェースの状態と直結経路",
+      "lead": "表示は代表的な抜粋です。インターフェース名と出力形式は機種・IOS XEリリースで異なります。",
+      "sections": [
+        {
+          "label": "親ポートとサブインターフェース",
+          "code": "Router# show ip int brief | include GigabitEthernet0/0\nGigabitEthernet0/0     unassigned      YES unset   up  up\nGigabitEthernet0/0.10  192.168.10.1   YES manual  up  up\nGigabitEthernet0/0.20  192.168.20.1   YES manual  up  up"
+        },
+        {
+          "label": "ルーティングテーブルの直結経路",
+          "code": "Router# show ip route connected | include ^C\nC 192.168.10.0/24 is directly connected, GigabitEthernet0/0.10\nC 192.168.20.0/24 is directly connected, GigabitEthernet0/0.20"
+        }
+      ],
+      "check_label": "出力から読む状態",
+      "checks": [
+        "親インターフェースGi0/0がup / upで、IPアドレスを持たない",
+        "Gi0/0.10とGi0/0.20がup / upで、それぞれゲートウェイIPを持つ",
+        "dot1QのVLAN IDが、対向スイッチのTrunkで許可するVLANと一致している",
+        "直結経路の出力先が、対応するサブインターフェースになっている"
+      ],
+      "takeaway": "サブインターフェースは親ポートの状態、論理IFのIP、直結経路を続けて確認します。"
+    },
+    {
+      "type": "table",
+      "kicker": "混同しやすい概念",
+      "title": "VLANとIPサブネット",
+      "columns": ["観点", "VLAN", "IPサブネット"],
+      "rows": [
+        ["主な層", "L2", "L3"],
+        ["識別子", "VLAN ID", "ネットワークアドレス / プレフィックス"],
+        ["分ける範囲", "ブロードキャストドメイン", "IPアドレスとルーティングの範囲"],
+        ["境界を越える方法", "L3機器へ渡す", "ルータが経路選択する"],
+        ["一般的な設計", "1 VLAN", "1 IPサブネットを対応させる"]
+      ]
+    },
+    {
+      "type": "code_lab",
+      "kicker": "設定と確認",
+      "title": "VLANの設定と確認",
+      "lead": "Cisco IOS形式の例です。実機では機種とOSのコマンド仕様を確認してください。",
+      "sections": [
+        {
+          "label": "Access: 端末ポートをVLAN 10へ所属",
+          "code": "vlan 10\n name SALES\n!\ninterface Gi1/0/1\n switchport mode access\n switchport access vlan 10"
+        },
+        {
+          "label": "Trunk: VLAN 10と20を許可",
+          "code": "interface Gi1/0/24\n switchport mode trunk\n switchport trunk allowed vlan 10,20"
+        }
+      ],
+      "check_label": "投入後に確認する状態",
+      "checks": [
+        "show vlan briefで、Gi1/0/1がVLAN 10に所属している",
+        "show interfaces trunkで、Gi1/0/24がTrunkとして動作している",
+        "VLAN 10と20が、Trunkの許可VLANへ含まれている",
+        "対向スイッチでも同じVLANが作成・許可されている"
+      ],
+      "takeaway": "設定後は、意図したVLAN所属、Trunkの許可VLAN、対向機器との一致を確認します。"
+    },
+    {
+      "type": "process",
+      "kicker": "障害切り分け",
+      "title": "VLAN障害の切り分け",
+      "lead": "疎通できないときは、物理、Access、Trunk、MACアドレス表、L3の順に境界を確認します。",
+      "steps": [
+        {"name": "物理", "desc": "リンク状態とポートエラーを確認する。"},
+        {"name": "Access", "desc": "端末ポートのVLAN IDを確認する。"},
+        {"name": "Trunk", "desc": "許可VLANとネイティブVLANを両端で比較する。"},
+        {"name": "MACアドレス表", "desc": "対象VLANで宛先MACと出力ポートを確認する。"},
+        {"name": "L3", "desc": "IP設定、ゲートウェイ、経路を確認する。"}
+      ],
+      "emph": [1, 2]
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "questions",
+      "kicker": "理解度チェック",
+      "title": "理解度チェック",
+      "questions": [
+        {
+          "question": "VLANの説明として最も適切なものはどれか。",
+          "options": ["L2のブロードキャストドメインを論理的に分ける", "通信内容を暗号化する", "IPアドレスを自動配布する"],
+          "answer": 0,
+          "explanation": "VLANは物理配線を共有しながら、L2の通信範囲を複数の論理LANへ分割します。"
+        },
+        {
+          "question": "2台のスイッチ間でVLAN 10と20を1本のリンクへ通すとき、使うポート種別はどれか。",
+          "options": ["1つのVLANへ収容するAccessポート", "複数VLANを運ぶTrunkポート", "IPネットワークを中継するL3ポート"],
+          "answer": 1,
+          "explanation": "Trunkは802.1QタグでVLAN IDを識別し、複数VLANを1本の物理リンクで運びます。"
+        }
+      ]
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "answers",
+      "kicker": "解答と解説",
+      "title": "解答と解説",
+      "questions": [
+        {
+          "question": "VLANの説明として最も適切なものはどれか。",
+          "options": ["L2のブロードキャストドメインを論理的に分ける", "通信内容を暗号化する", "IPアドレスを自動配布する"],
+          "answer": 0,
+          "explanation": "VLANは物理配線を共有しながら、L2の通信範囲を複数の論理LANへ分割します。"
+        },
+        {
+          "question": "2台のスイッチ間でVLAN 10と20を1本のリンクへ通すとき、使うポート種別はどれか。",
+          "options": ["1つのVLANへ収容するAccessポート", "複数VLANを運ぶTrunkポート", "IPネットワークを中継するL3ポート"],
+          "answer": 1,
+          "explanation": "Trunkは802.1QタグでVLAN IDを識別し、複数VLANを1本の物理リンクで運びます。"
+        }
+      ]
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "questions",
+      "kicker": "VLAN間通信とTrunk設定",
+      "title": "VLAN間通信とネイティブVLANの確認問題",
+      "questions": [
+        {
+          "question": "VLAN 10の端末からVLAN 20の端末へ通信するとき、必要な機能はどれか。",
+          "options": ["L3ルーティング", "同じAccess VLANの設定", "ケーブルの二重化"],
+          "answer": 0,
+          "explanation": "異なるVLANは別のL2ネットワークなので、ルータまたはL3スイッチが中継します。"
+        },
+        {
+          "question": "Trunk両端でネイティブVLANが異なるとき、タグなしフレームは受信側でどう分類されるか。",
+          "options": [
+            "受信側のネイティブVLANへ分類される",
+            "送信側のVLAN IDが復元される",
+            "必ず破棄される"
+          ],
+          "answer": 0,
+          "explanation": "タグなしフレームにはVLAN IDがないため、受信スイッチは自分のネイティブVLAN設定で分類します。"
+        }
+      ]
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "answers",
+      "kicker": "VLAN間通信とTrunk設定",
+      "title": "VLAN間通信とネイティブVLANの解答",
+      "questions": [
+        {
+          "question": "VLAN 10の端末からVLAN 20の端末へ通信するとき、必要な機能はどれか。",
+          "options": ["L3ルーティング", "同じAccess VLANの設定", "ケーブルの二重化"],
+          "answer": 0,
+          "explanation": "異なるVLANは別のL2ネットワークなので、ルータまたはL3スイッチが中継します。"
+        },
+        {
+          "question": "Trunk両端でネイティブVLANが異なるとき、タグなしフレームは受信側でどう分類されるか。",
+          "options": [
+            "受信側のネイティブVLANへ分類される",
+            "送信側のVLAN IDが復元される",
+            "必ず破棄される"
+          ],
+          "answer": 0,
+          "explanation": "タグなしフレームにはVLAN IDがないため、受信スイッチは自分のネイティブVLAN設定で分類します。"
+        }
+      ]
+    },
+    {
+      "type": "bullets",
+      "style": "numbered",
+      "kicker": "まとめ",
+      "title": "まとめ",
+      "bullets": [
+        {"text": "どの端末が同じVLAN、つまり同じブロードキャストドメインに属するか"},
+        {"text": "タグなし受信をどのPVIDへ分類し、どのTrunkでタグ付き転送するか"},
+        {"text": "MACアドレス表とルーティングテーブルが、どの転送判断に使われるか"},
+        {"text": "異なるVLAN間を、どのデフォルトゲートウェイとL3機器が中継するか"},
+        {"text": "L3スイッチではSVI、外部ルーターでは802.1Qサブインターフェースをどのように設定・確認するか"}
+      ]
+    }
+  ]
+}

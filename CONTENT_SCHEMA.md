@@ -70,17 +70,23 @@ python slidegen/validate_content.py content.json
 - この文書に記載のないフィールドは、トップレベル・meta・slide・入れ子objectのどこに書いてもvalidatorが拒否する。rendererが黙って無視するフィールドは作らない。
 - `type: "title"` は任意。表紙なし、任意位置、複数枚のいずれも使用できる。
 - `type: "title"` 以外は `kicker` と `title` が必須。
+- すべての`slides[*].title`は、`研修の目的`、`前提知識`、`VLANとは`、`同一VLAN内の通信`のような
+  **名詞句または短い疑問形の見出し**にする。結論・因果・行動を言い切る文章、読点・句点・改行、
+  文末の述語を含めず、疑問形にも疑問符を付けない。結論や読み方は`lead`、根拠は本文へ書く。
+- 文章型タイトルを許可するのは回帰検証ギャラリーの内部生成だけであり、通常の`content.json`は
+  `validate_content.py`が生成前に拒否する。
 - `type: "title"` 以外は `lead` (string) を任意指定できる。タイトル直下に要旨を置き、指定時だけ本文開始位置が下がる。未指定時の本文位置は変わらない。
 - `lead` は本文を読む前に伝える結論・前提・読み方を1〜2行で書く。単なるタイトルの言い換えや本文項目の列挙には使わない。文字数の固定上限はないが、最小フォントでも領域へ収まらない場合は生成を停止する。
 - JSONなので、Pythonのタプルではなく配列を使う。
 - `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `program_roadmap` / `matrix` / `org` / `diagram` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
-- 構成図は `diagram` type で書く(グリッド仕様のみ、座標の数値は書かない)。
+- 一般的なシステム構成・クラウド構成・データフローは`diagram`で書く。物理機器と論理セグメント、
+  Access・Trunk・L3接続を同時に示すネットワーク図は`network`で書く。どちらにも座標の数値は書かない。
 
 ```json
 {
   "type": "bullets",
   "kicker": "分類",
-  "title": "タイトル",
+  "title": "検討事項",
   "lead": "本文を読む前に必要な要旨を記載します。",
   "bullets": [
     ["箇条書き本文A", null],
@@ -208,6 +214,7 @@ python slidegen/validate_content.py content.json
 任意:
 
 - `note`: string
+- `note_link`: 注記に続けて表示するリンク。`label`と`https://`で始まる`url`を指定する
 制約:
 
 - `columns`と各`rows[*]`の要素数は同じにする(2〜8列)。
@@ -224,7 +231,11 @@ python slidegen/validate_content.py content.json
     ["値1", "説明1"],
     ["値2", "説明2"]
   ],
-  "note": "任意の注記"
+  "note": "※ 補足説明。参照先:",
+  "note_link": {
+    "label": "公式ドキュメント",
+    "url": "https://example.com/official-document"
+  }
 }
 ```
 
@@ -415,7 +426,7 @@ python slidegen/validate_content.py content.json
 {
   "type": "process",
   "kicker": "分岐フロー",
-  "title": "条件に応じた分岐と戻り経路を示す",
+  "title": "承認フロー",
   "flow": {
     "nodes": {
       "start": {"name": "開始"},
@@ -481,7 +492,7 @@ python slidegen/validate_content.py content.json
 {
   "type": "program_roadmap",
   "kicker": "複数テーマ計画",
-  "title": "複数テーマ内の並行作業を俯瞰する",
+  "title": "年間プログラム",
   "periods": ["期間1", "期間2", "期間3", "期間4"],
   "tracks": [
     {
@@ -571,7 +582,7 @@ python slidegen/validate_content.py content.json
 {
   "type": "scope",
   "kicker": "対象範囲",
-  "title": "実施範囲と対象外を分ける",
+  "title": "対象範囲",
   "in_scope": ["実施する作業"],
   "out_of_scope": ["実施しない作業"],
   "assumptions": ["成立に必要な前提条件"]
@@ -599,7 +610,7 @@ python slidegen/validate_content.py content.json
 {
   "type": "summary",
   "kicker": "意思決定",
-  "title": "背景・判断・提案を要約する",
+  "title": "エグゼクティブサマリー",
   "sections": [
     {"heading": "背景", "body": "判断の前提となる事実。"},
     {"heading": "判断", "body": "比較して得られた示唆。"},
@@ -631,7 +642,7 @@ python slidegen/validate_content.py content.json
 {
   "type": "paired_comparison",
   "kicker": "方式比較",
-  "title": "2案を同じ評価軸で比較する",
+  "title": "方式比較",
   "left_label": "案A",
   "right_label": "案B",
   "rows": [
@@ -669,7 +680,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 {
   "type": "mapping",
   "kicker": "対応関係",
-  "title": "課題と施策の対応漏れを確認する",
+  "title": "課題と対応施策",
   "left_label": "課題",
   "right_label": "施策",
   "left_items": [{"id": "issue_a", "text": "課題A"}, {"id": "issue_b", "text": "課題B"}],
@@ -711,7 +722,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 {
   "type": "swimlane",
   "kicker": "業務フロー",
-  "title": "担当と引き継ぎを確認する",
+  "title": "担当別業務フロー",
   "lanes": [{"id": "requester", "label": "申請部門"}, {"id": "reviewer", "label": "審査部門"}],
   "stages": [{"id": "apply", "label": "申請"}, {"id": "review", "label": "審査"}],
   "steps": [
@@ -749,13 +760,291 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 {
   "type": "sequence",
   "kicker": "処理シーケンス",
-  "title": "依頼と応答を実行順に確認する",
+  "title": "変更作業シーケンス",
   "participants": [{"id": "user", "label": "利用者"}, {"id": "system", "label": "システム"}],
   "messages": [
     {"id": "request", "from": "user", "to": "system", "label": "処理依頼"},
     {"id": "response", "from": "system", "to": "user", "label": "処理結果", "kind": "return"}
   ],
   "phases": [{"label": "実行", "from": "request", "to": "response"}]
+}
+```
+
+### concept
+
+用途: 専門用語や判断基準を初めて示すときに、定義、理解に必要な要点、誤解しやすい境界を一続きで説明する。
+研修資料では、未定義の用語を使った構成図や詳細手順より前へ置く。
+
+必須:
+
+- `type`: `"concept"`
+- `term`: 定義する用語または判断基準
+- `definition`: 用語の意味を単独で理解できる定義文
+- `points`: 2〜4件
+  - `label`: 観点名
+  - `text`: その観点で理解すべき説明
+
+任意:
+
+- `icon`: `slidegen/assets/`からの相対パス。用語の意味を補助できる場合だけ指定する
+- `misconception`: 読み手が混同しやすい概念、適用範囲外、誤った理解
+- `lead`: 定義を読む前に必要な前提
+
+制約:
+
+- `definition`は略語の展開だけで終わらせず、何を表し、どの境界を持つかまで書く。
+- `points`は定義の繰り返しではなく、識別方法、挙動、設計への反映など別の観点を置く。
+- 複数の独立項目を比較する用途には使わず、`cards`または`table`を選ぶ。
+
+```json
+{
+  "type": "concept",
+  "kicker": "言葉の定義",
+  "title": "RTOとは",
+  "term": "RTO",
+  "definition": "障害が起きてから、業務を再開するまでに許容する目標時間です。",
+  "points": [
+    {"label": "起点", "text": "業務へ影響する障害が発生した時点。"},
+    {"label": "終点", "text": "利用者が必要な業務を再開できる状態へ戻った時点。"}
+  ],
+  "misconception": "実際に要した復旧時間の実績値ではなく、事前に合意する目標値です。"
+}
+```
+
+### network
+
+用途: VLAN、セキュリティゾーン、テナント分離など、物理機器と論理セグメント、接続種別を同時に示すネットワーク図。
+一般的なシステム構成やクラウドのデータフローは`diagram`を使う。
+
+必須:
+
+- `type`: `"network"`
+- `lanes`: 1〜4件。論理セグメントを表す`id / label`の配列
+- `columns`: 2〜6件。物理的な読み順を表す`id / label`の配列
+- `nodes`: 2〜12件
+  - `id / label`: ノードIDと表示名
+  - `icon`: `slidegen/assets/`からの相対パス
+  - `column`: 所属する`columns[*].id`
+  - `lanes`: 所属する`lanes[*].id`を1件以上
+- `links`: 1〜18件
+  - `from / to`: 接続するnode ID
+  - `kind`: `"access" | "trunk" | "routed" | "control" | "broadcast" | "blocked"`
+  - `lanes`: その接続が運ぶ論理セグメント
+
+任意:
+
+- `lanes[*].sub`: セグメントの用途やアドレス帯
+- `nodes[*].sub`: 機器の役割、IPアドレスなどの短い補足
+- `links[*].label`: 物理インターフェース名などの短いラベル
+- `lead`: 読み方や結論
+
+制約:
+
+- `trunk`は`lanes`を2件以上、`access` / `broadcast` / `blocked`は1件指定する。
+- 同じ`column`かつ同じ`lanes`へ置けるnodeは2件まで。2件はセル内で自動分散し、3件以上は列を追加するかスライドを分ける。
+- `broadcast`は同じ送信元・laneから複数宛先へ指定すると、1つのフレームを複製する共通分岐として描画する。
+- `blocked`は接続元だけが所属し、接続先が所属しないlaneを1件指定する。線はlane境界で停止し、別セグメントへ届かないことを示す。
+- `blocked`以外のlinkの`lanes`は、接続元と接続先の両方が所属するlaneだけを指定する。
+- 座標、幅、高さ、線の経路、色は書かない。
+
+```json
+{
+  "type": "network",
+  "kicker": "論理分割",
+  "title": "Trunkポート",
+  "lanes": [
+    {"id": "staff", "label": "業務VLAN"},
+    {"id": "guest", "label": "ゲストVLAN"}
+  ],
+  "columns": [
+    {"id": "left", "label": "フロアA"},
+    {"id": "sw1", "label": "スイッチA"},
+    {"id": "sw2", "label": "スイッチB"},
+    {"id": "right", "label": "フロアB"}
+  ],
+  "nodes": [
+    {"id": "pc_a", "label": "業務PC A", "icon": "icons/fluent/laptop.png", "column": "left", "lanes": ["staff"]},
+    {"id": "sw_a", "label": "スイッチA", "icon": "icons/fluent/switch.png", "column": "sw1", "lanes": ["staff", "guest"]},
+    {"id": "sw_b", "label": "スイッチB", "icon": "icons/fluent/switch.png", "column": "sw2", "lanes": ["staff", "guest"]},
+    {"id": "pc_b", "label": "業務PC B", "icon": "icons/fluent/desktop.png", "column": "right", "lanes": ["staff"]}
+  ],
+  "links": [
+    {"from": "pc_a", "to": "sw_a", "kind": "access", "lanes": ["staff"]},
+    {"from": "sw_a", "to": "sw_b", "kind": "trunk", "lanes": ["staff", "guest"], "label": "1本の物理リンク"},
+    {"from": "sw_b", "to": "pc_b", "kind": "access", "lanes": ["staff"]}
+  ]
+}
+```
+
+### protocol_state_flow
+
+用途: 同じフレームやパケットが端末、装置内部、伝送区間を通る間に、どの情報を維持・追加・削除・変換するかを段階ごとに追跡する。
+
+必須:
+
+- `type`: `"protocol_state_flow"`
+- `stages`: 3〜6件。左から右へ並ぶ処理段階
+  - `id / label`: 段階IDと表示名
+  - `icon`: `slidegen/assets/`からの相対パス
+- `flows`: 1〜3件。比較する状態系列
+  - `label`: 系列名
+  - `states`: 全`stages`を1件ずつ指定する配列
+    - `stage`: 対応する`stages[*].id`
+    - `label`: その段階での状態
+
+任意:
+
+- `stages[*].role`: `"endpoint" | "processor" | "link"`。伝送区間は`link`を指定する
+- `flows[*].sub`: 系列の短い補足
+- `states[*].detail`: 状態になった理由や処理内容
+- `states[*].appearance`: 状態の見せ方。内容に合うものだけを指定する
+  - `plain`: 通常のフレーム、パケット、値
+  - `encapsulated`: タグまたはヘッダーが付与された状態
+  - `internal`: 装置内部の分類、変換、検索などの処理状態
+  - `alert`: 不一致、破棄、異常など注意が必要な状態
+- `states[*].encapsulation`: `appearance: "encapsulated"`で付加されたタグまたはヘッダーの短い名称。8文字以内で必須
+- `takeaway`: 各系列の比較から読み取る要点
+- `lead`: このページで追う単位と前提
+
+制約:
+
+- 物理接続や論理セグメントの全体構成は`network`、メッセージの時系列は`sequence`、ビット配置は`protocol_anatomy`を使う。
+- 各`flow`は全段階の状態を省略せず、同じ`stage`を重複させない。
+- `flows[*].label`は系列を区別できる名前にし、同じスライド内で重複させない。
+- 1枚で追う単位を統一する。L2の転送は「フレーム」、L3の転送は「IPパケット」など対象に合う語を使い、
+  「パケット」を通信データ全般の総称として使わない。
+- 各系列では同じ属性を追う。送信元IPと宛先IPのように属性が異なる場合は系列を分け、段階ごとに比較対象を変えない。
+- `appearance`は装飾目的で使わない。実際の状態が変わる段階だけ`encapsulated / internal / alert`を指定する。
+- `encapsulated`では`encapsulation`に`TAG`、`TLS`、`HDR`など実際に付加されたものを書く。rendererは固定の表示名を補わない。
+- 座標、段階幅、行高、色は書かない。
+
+```json
+{
+  "type": "protocol_state_flow",
+  "kicker": "IPパケット状態の追跡",
+  "title": "NAT前後の送信元IP",
+  "stages": [
+    {"id": "client", "label": "社内端末", "icon": "icons/fluent/laptop.png", "role": "endpoint"},
+    {"id": "router", "label": "NATルーター", "icon": "icons/fluent/switch.png", "role": "processor"},
+    {"id": "internet", "label": "インターネット区間", "icon": "icons/fluent/link.png", "role": "link"},
+    {"id": "server", "label": "外部サーバー", "icon": "icons/fluent/server.png", "role": "endpoint"}
+  ],
+  "flows": [{
+    "label": "送信元IP",
+    "states": [
+      {"stage": "client", "label": "10.0.0.25", "appearance": "plain"},
+      {"stage": "router", "label": "203.0.113.10", "detail": "送信元を書き換え", "appearance": "internal"},
+      {"stage": "internet", "label": "203.0.113.10", "appearance": "plain"},
+      {"stage": "server", "label": "203.0.113.10", "appearance": "plain"}
+    ]
+  }],
+  "takeaway": "NATルーターで送信元IPが変わり、変換後の値が外部へ届く。"
+}
+```
+
+### protocol_anatomy
+
+用途: フレームやパケットをフィールドへ分解し、ビット長と注目箇所を示す。
+
+必須:
+
+- `type`: `"protocol_anatomy"`
+- `frames`: 1〜3件
+  - `label`: フレームまたはパケット名
+  - `fields`: 3〜9件
+    - `id / name`: フィールドIDと表示名
+    - `bits`: 1〜65535の整数
+
+任意:
+
+- `fields[*].role`: `"standard" | "muted" | "highlight" | "alert"`
+- `fields[*].size_label`: フィールド下部へ表示する長さ。可変長フィールドでは`"可変長"`などを指定する。
+  `bits`は相対幅の計算に引き続き使用する
+- `frames[*].annotations`: 最大4件。`field`にfield ID、`text`に説明を書く
+- `takeaway`: 構造から読み取る結論
+
+複数の`frames`では同じ`bits`のフィールドを同じ幅で描画する。`bits`合計が異なる場合は、
+追加フィールドの分だけ全長を伸ばし、右端へ差分を表示する。
+可変長フィールドを含むフレーム同士の長さを比較するときは、同じデータ長を表す代表`bits`値を双方へ設定する。
+
+```json
+{
+  "type": "protocol_anatomy",
+  "kicker": "プロトコル構造",
+  "title": "サンプルフレームの構造",
+  "frames": [{
+    "label": "サンプルフレーム",
+    "fields": [
+      {"id": "dst", "name": "宛先", "bits": 48},
+      {"id": "src", "name": "送信元", "bits": 48},
+      {"id": "tag", "name": "識別タグ", "bits": 16, "role": "highlight"},
+      {"id": "payload", "name": "Payload", "bits": 368, "size_label": "可変長", "role": "muted"}
+    ],
+    "annotations": [{"field": "tag", "text": "論理的な通信範囲を識別する。"}]
+  }],
+  "takeaway": "注目するフィールドと、その役割を対応させる。"
+}
+```
+
+### code_lab
+
+用途: 設定例やコードと、実行後に確認する状態を同じページで示す。
+
+必須:
+
+- `type`: `"code_lab"`
+- `sections`: 1〜2件。`label / code`を持ち、`code`は1区画16行以内
+- `checks`: 2〜5件の文字列
+
+任意:
+
+- `check_label`: 確認観点の見出し
+- `takeaway`: 実行と確認を結ぶ結論
+- `lead`: 製品・OS・バージョンなどの前提
+
+```json
+{
+  "type": "code_lab",
+  "kicker": "設定と確認",
+  "title": "設定と状態確認",
+  "sections": [
+    {"label": "設定例", "code": "interface port1\n mode access\n segment 10"},
+    {"label": "確認例", "code": "show segment\nshow interface port1"}
+  ],
+  "check_label": "確認する状態",
+  "checks": ["対象ポートがsegment 10へ所属している", "意図しないポート変更がない"],
+  "takeaway": "コマンド終了ではなく、期待状態との一致を完了条件にする。"
+}
+```
+
+### knowledge_check
+
+用途: 研修内の選択式問題と、対応する正答・解説を示す。
+
+必須:
+
+- `type`: `"knowledge_check"`
+- `mode`: `"questions" | "answers"`
+- `questions`: 1〜3件
+  - `question`: 設問
+  - `options`: 2〜4件の選択肢
+  - `answer`: 正答の**0始まりindex**
+  - `explanation`: 正答の理由
+
+`questions`と`answers`を別スライドで使う場合は、同じ設問・選択肢・正答・解説を渡し、`mode`だけを変える。
+
+```json
+{
+  "type": "knowledge_check",
+  "mode": "questions",
+  "kicker": "理解度チェック",
+  "title": "理解度チェック",
+  "questions": [{
+    "question": "複数の論理セグメントを1本の物理リンクで運ぶ接続はどれか。",
+    "options": ["Access", "Trunk", "Loopback"],
+    "answer": 1,
+    "explanation": "Trunkは識別タグを使って複数セグメントを運ぶ。"
+  }]
 }
 ```
 
@@ -879,7 +1168,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 {
   "type": "diagram",
   "kicker": "構成図",
-  "title": "ノード間の接続関係を示す",
+  "title": "システム構成",
   "diagram": {
     "cols": ["left", "center", "right"],
     "rows": ["main"],

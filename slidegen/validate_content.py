@@ -26,6 +26,19 @@ NOTE_TYPES = {"table", "chart", "process", "program_roadmap",
               "matrix", "org", "diagram"}
 _PLACEHOLDER = re.compile(r"^<[^<>]+>$")
 _UNRESOLVED = re.compile(r"^(?:TBD|TODO|要確認|未定|仮入力|仮文言)$", re.IGNORECASE)
+_TITLE_SENTENCE_MARKS = re.compile(r"[、。！？!?；;]|\r|\n")
+_TITLE_PREDICATE_ENDING = re.compile(
+    r"(?:る|す|く|ぐ|む|ぶ|ぬ|つ|う|た|だ|ない|なかった|"
+    r"できます|できる|できない|必要です|不要です)$"
+)
+_TITLE_ASSERTIVE_NOUN = re.compile(
+    r"(?:を|が|は|では|には).*(?:短縮|削減|増加|減少|上昇|低下|改善|向上|"
+    r"実現|確立|統一|明確化|可視化|最適化|自動化)$"
+)
+_TITLE_ASSERTIVE_QUALITY = re.compile(
+    r"(?:が|は|では|には).*(?:重要|必要|不要|有効|無効|可能|不可能|最適|"
+    r"優位|劣位|高い|低い|大きい|小さい|困難|容易|べき)$"
+)
 
 _TOP_LEVEL_KEYS = {"meta", "slides"}
 _META_KEYS = {"title", "footer", "date", "organization", "author"}
@@ -34,7 +47,7 @@ _TYPE_KEYS = {
     "title": {"type", "title", "subtitle"},
     "bullets": _BASE_SLIDE_KEYS | {"style", "bullets"},
     "cards": _BASE_SLIDE_KEYS | {"style", "cards"},
-    "table": _BASE_SLIDE_KEYS | {"columns", "rows", "note"},
+    "table": _BASE_SLIDE_KEYS | {"columns", "rows", "note", "note_link"},
     "twocol": _BASE_SLIDE_KEYS | {"left", "right"},
     "chart": _BASE_SLIDE_KEYS | {"chart", "note"},
     "image": _BASE_SLIDE_KEYS | {"image", "fit", "shadow", "alt"},
@@ -64,6 +77,24 @@ _TYPE_KEYS = {
     "sequence": _BASE_SLIDE_KEYS | {
         "participants", "messages", "phases", "takeaway",
     },
+    "concept": _BASE_SLIDE_KEYS | {
+        "term", "definition", "points", "misconception", "icon",
+    },
+    "network": _BASE_SLIDE_KEYS | {
+        "lanes", "columns", "nodes", "links",
+    },
+    "protocol_state_flow": _BASE_SLIDE_KEYS | {
+        "stages", "flows", "takeaway",
+    },
+    "protocol_anatomy": _BASE_SLIDE_KEYS | {
+        "frames", "takeaway",
+    },
+    "code_lab": _BASE_SLIDE_KEYS | {
+        "sections", "checks", "check_label", "takeaway",
+    },
+    "knowledge_check": _BASE_SLIDE_KEYS | {
+        "mode", "questions",
+    },
 }
 
 
@@ -73,6 +104,22 @@ def _is_str(v):
 
 def _is_num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _title_policy_error(value):
+    """通常資料のページタイトルが、見出しではなく主張文なら理由を返す。"""
+    if not _is_str(value):
+        return None
+    title = value.strip()
+    if _TITLE_SENTENCE_MARKS.search(title):
+        return "読点・句点・改行を含む文章"
+    if _TITLE_PREDICATE_ENDING.search(title):
+        return "文末が述語になっている文章"
+    if _TITLE_ASSERTIVE_NOUN.search(title):
+        return "結論や効果を言い切る文章"
+    if _TITLE_ASSERTIVE_QUALITY.search(title):
+        return "評価や必要性を言い切る文章"
+    return None
 
 
 def _placeholder_paths(value, path=""):
@@ -190,6 +237,19 @@ def _v_table(s):
         if not (isinstance(row, list) and cols and len(row) == len(cols)
                 and all(isinstance(c, str) for c in row)):
             s.err(f"rows[{i}] は columns と同じ要素数の文字列配列にしてください")
+    link = s.spec.get("note_link")
+    if link is not None:
+        if not isinstance(link, dict):
+            s.err("note_link は label / url を持つオブジェクトにしてください")
+        else:
+            s.allow_keys(link, {"label", "url"}, "note_link")
+            if not _is_str(link.get("label")):
+                s.err("note_link.label は空でない文字列にしてください")
+            if not (_is_str(link.get("url"))
+                    and link["url"].startswith("https://")):
+                s.err("note_link.url は https:// で始まるURLにしてください")
+        if not _is_str(s.spec.get("note")):
+            s.err("note_link を指定する場合は note も指定してください")
 
 
 def _v_twocol(s):
@@ -966,6 +1026,344 @@ def _v_sequence(s):
         s.err("takeaway は空でない文字列にしてください")
 
 
+def _v_network(s):
+    lanes = s.req_list("lanes", 1, 4, "id / labelを持つ論理セグメント") or []
+    lane_ids = set()
+    for index, lane in enumerate(lanes):
+        if not isinstance(lane, dict):
+            s.err(f"lanes[{index}] はオブジェクトにしてください")
+            continue
+        s.allow_keys(lane, {"id", "label", "sub"}, f"lanes[{index}]")
+        if not _is_str(lane.get("id")) or not _is_str(lane.get("label")):
+            s.err(f"lanes[{index}] にはid / label (文字列) が必要です")
+            continue
+        if lane["id"] in lane_ids:
+            s.err(f"lanes[{index}].id={lane['id']!r} が重複しています")
+        lane_ids.add(lane["id"])
+        if "sub" in lane and not _is_str(lane["sub"]):
+            s.err(f"lanes[{index}].sub は空でない文字列にしてください")
+    columns, column_ids = _id_label_list(s, "columns", 2, 6)
+    for index, column in enumerate(columns):
+        s.allow_keys(column, {"id", "label"}, f"columns[{index}]")
+
+    nodes = s.req_list("nodes", 2, 12, "ネットワーク機器") or []
+    node_ids = set()
+    node_lanes = {}
+    placements = {}
+    for index, node in enumerate(nodes):
+        path = f"nodes[{index}]"
+        if not isinstance(node, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(node, {"id", "label", "sub", "icon", "column", "lanes"}, path)
+        if not _is_str(node.get("id")) or not _is_str(node.get("label")):
+            s.err(f"{path} にはid / label (文字列) が必要です")
+            continue
+        if node["id"] in node_ids:
+            s.err(f"{path}.id={node['id']!r} が重複しています")
+        node_ids.add(node["id"])
+        if node.get("column") not in column_ids:
+            s.err(f"{path}.column がcolumnsの未定義idを参照しています")
+        memberships = node.get("lanes")
+        if not (isinstance(memberships, list) and memberships
+                and all(lane in lane_ids for lane in memberships)
+                and len(set(memberships)) == len(memberships)):
+            s.err(f"{path}.lanes はlanesのidを1件以上、重複なしで指定してください")
+            memberships = []
+        node_lanes[node["id"]] = set(memberships)
+        if node.get("column") in column_ids and memberships:
+            placement = (node["column"], tuple(sorted(memberships)))
+            placements.setdefault(placement, []).append(path)
+        if "sub" in node and not _is_str(node["sub"]):
+            s.err(f"{path}.sub は空でない文字列にしてください")
+        if not _is_str(node.get("icon")):
+            s.err(f"{path}.icon は必須です")
+        else:
+            try:
+                icon_path = resolve_icon_path(node["icon"])
+            except ValueError:
+                s.err(f"{path}.icon は slidegen/assets/ 内の相対パスにしてください")
+            else:
+                if not icon_path.is_file():
+                    s.err(f"{path}.icon={node['icon']!r} がassets/にありません")
+
+    for placement, paths in placements.items():
+        if len(paths) > 2:
+            column, memberships = placement
+            s.err(
+                f"nodes: column={column!r}, lanes={list(memberships)!r} には"
+                "2件まで配置できます。列を追加するかスライドを分割してください")
+
+    links = s.req_list("links", 1, 18, "ネットワーク接続") or []
+    seen = set()
+    for index, link in enumerate(links):
+        path = f"links[{index}]"
+        if not isinstance(link, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(link, {"from", "to", "kind", "lanes", "label"}, path)
+        source, target = link.get("from"), link.get("to")
+        if source not in node_ids or target not in node_ids:
+            s.err(f"{path} が未定義nodeを参照しています")
+        if source == target:
+            s.err(f"{path} は同じnodeへ接続できません")
+        pair = tuple(sorted((source, target))) if source and target else (source, target)
+        if pair in seen:
+            s.err(f"{path} の接続が向きを問わず重複しています")
+        seen.add(pair)
+        kind = link.get("kind", "access")
+        if kind not in {"access", "trunk", "routed", "control", "broadcast", "blocked"}:
+            s.err(
+                f"{path}.kind はaccess / trunk / routed / control / broadcast / blockedにしてください"
+            )
+        memberships = link.get("lanes", [])
+        if not (isinstance(memberships, list)
+                and all(lane in lane_ids for lane in memberships)
+                and len(set(memberships)) == len(memberships)):
+            s.err(f"{path}.lanes はlanesのidを重複なしで指定してください")
+            memberships = []
+        if kind == "trunk" and len(memberships) < 2:
+            s.err(f"{path}: trunkは運ぶlanesを2件以上指定してください")
+        if kind in {"access", "broadcast", "blocked"} and len(memberships) != 1:
+            s.err(f"{path}: {kind}のlanesは1件指定してください")
+        if kind == "blocked" and source in node_lanes and target in node_lanes:
+            unavailable = [
+                lane for lane in memberships
+                if lane not in node_lanes[source] or lane in node_lanes[target]
+            ]
+            if unavailable:
+                s.err(
+                    f"{path}.lanes={unavailable!r} は接続元だけが所属し、"
+                    "接続先が所属しないlaneを指定してください")
+        elif source in node_lanes and target in node_lanes:
+            unavailable = [
+                lane for lane in memberships
+                if lane not in node_lanes[source] or lane not in node_lanes[target]
+            ]
+            if unavailable:
+                s.err(
+                    f"{path}.lanes={unavailable!r} は接続元・接続先の"
+                    "双方に所属するlaneを指定してください")
+        if "label" in link and not _is_str(link["label"]):
+            s.err(f"{path}.label は空でない文字列にしてください")
+
+
+def _v_concept(s):
+    for key in ("term", "definition"):
+        if not _is_str(s.spec.get(key)):
+            s.err(f"{key} は空でない文字列にしてください")
+    points = s.req_list("points", 2, 4, "概念の要点") or []
+    for index, point in enumerate(points):
+        path = f"points[{index}]"
+        if not isinstance(point, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(point, {"label", "text"}, path)
+        if not _is_str(point.get("label")) or not _is_str(point.get("text")):
+            s.err(f"{path} にはlabel / text (文字列) が必要です")
+    if "misconception" in s.spec and not _is_str(s.spec["misconception"]):
+        s.err("misconception は空でない文字列にしてください")
+    if "icon" in s.spec:
+        if not _is_str(s.spec["icon"]):
+            s.err("icon は空でない文字列にしてください")
+        else:
+            try:
+                icon_path = resolve_icon_path(s.spec["icon"])
+            except ValueError:
+                s.err("icon は slidegen/assets/ 内の相対パスにしてください")
+            else:
+                if not icon_path.is_file():
+                    s.err(f"icon={s.spec['icon']!r} がassets/にありません")
+
+
+def _v_protocol_state_flow(s):
+    stages = s.req_list("stages", 3, 6, "処理段階") or []
+    stage_ids = set()
+    for index, stage in enumerate(stages):
+        path = f"stages[{index}]"
+        if not isinstance(stage, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(stage, {"id", "label", "icon", "role"}, path)
+        if not _is_str(stage.get("id")) or not _is_str(stage.get("label")):
+            s.err(f"{path} にはid / label (文字列) が必要です")
+            continue
+        if stage["id"] in stage_ids:
+            s.err(f"{path}.id={stage['id']!r} が重複しています")
+        stage_ids.add(stage["id"])
+        if stage.get("role", "processor") not in {"endpoint", "processor", "link"}:
+            s.err(f"{path}.role はendpoint / processor / linkにしてください")
+        if not _is_str(stage.get("icon")):
+            s.err(f"{path}.icon は必須です")
+        else:
+            try:
+                icon_path = resolve_icon_path(stage["icon"])
+            except ValueError:
+                s.err(f"{path}.icon は slidegen/assets/ 内の相対パスにしてください")
+            else:
+                if not icon_path.is_file():
+                    s.err(f"{path}.icon={stage['icon']!r} がassets/にありません")
+
+    flows = s.req_list("flows", 1, 3, "状態を追うフロー") or []
+    flow_labels = set()
+    for flow_index, flow in enumerate(flows):
+        path = f"flows[{flow_index}]"
+        if not isinstance(flow, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(flow, {"label", "sub", "states"}, path)
+        if not _is_str(flow.get("label")):
+            s.err(f"{path}.label は空でない文字列にしてください")
+        else:
+            normalized_label = flow["label"].strip()
+            if normalized_label in flow_labels:
+                s.err(f"{path}.label={flow['label']!r} が重複しています")
+            flow_labels.add(normalized_label)
+        if "sub" in flow and not _is_str(flow["sub"]):
+            s.err(f"{path}.sub は空でない文字列にしてください")
+        states = flow.get("states")
+        if not isinstance(states, list):
+            s.err(f"{path}.states はstagesと同数の配列にしてください")
+            continue
+        seen_stages = set()
+        for state_index, state in enumerate(states):
+            state_path = f"{path}.states[{state_index}]"
+            if not isinstance(state, dict):
+                s.err(f"{state_path} はオブジェクトにしてください")
+                continue
+            s.allow_keys(state, {
+                "stage", "label", "detail", "appearance", "encapsulation",
+            },
+                         state_path)
+            stage_id = state.get("stage")
+            if stage_id not in stage_ids:
+                s.err(f"{state_path}.stage が未定義stageを参照しています")
+            elif stage_id in seen_stages:
+                s.err(f"{state_path}.stage={stage_id!r} が重複しています")
+            seen_stages.add(stage_id)
+            if not _is_str(state.get("label")):
+                s.err(f"{state_path}.label は空でない文字列にしてください")
+            if "detail" in state and not _is_str(state["detail"]):
+                s.err(f"{state_path}.detail は空でない文字列にしてください")
+            appearance = state.get("appearance", "plain")
+            if appearance not in {
+                    "plain", "encapsulated", "internal", "alert"}:
+                s.err(
+                    f"{state_path}.appearance はplain / encapsulated / "
+                    "internal / alertにしてください")
+            encapsulation = state.get("encapsulation")
+            if appearance == "encapsulated":
+                if not _is_str(encapsulation):
+                    s.err(
+                        f"{state_path}.encapsulation はencapsulatedで必須です")
+                elif len(encapsulation.strip()) > 8:
+                    s.err(f"{state_path}.encapsulation は8文字以内にしてください")
+            elif "encapsulation" in state:
+                s.err(
+                    f"{state_path}.encapsulation はappearance=encapsulatedでのみ指定できます")
+        if len(states) != len(stages) or seen_stages != stage_ids:
+            s.err(
+                f"{path}.states は全stageを1件ずつ指定してください "
+                f"(期待={len(stages)}件, 実際={len(states)}件)")
+    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
+        s.err("takeaway は空でない文字列にしてください")
+
+
+def _v_protocol_anatomy(s):
+    frames = s.req_list("frames", 1, 3, "フレームまたはパケット") or []
+    for frame_index, frame in enumerate(frames):
+        path = f"frames[{frame_index}]"
+        if not isinstance(frame, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(frame, {"label", "fields", "annotations"}, path)
+        if not _is_str(frame.get("label")):
+            s.err(f"{path}.label は空でない文字列にしてください")
+        fields = frame.get("fields")
+        if not (isinstance(fields, list) and 3 <= len(fields) <= 9):
+            s.err(f"{path}.fields は3〜9件の配列にしてください")
+            fields = []
+        field_ids = set()
+        for field_index, field in enumerate(fields):
+            field_path = f"{path}.fields[{field_index}]"
+            if not isinstance(field, dict):
+                s.err(f"{field_path} はオブジェクトにしてください")
+                continue
+            s.allow_keys(field, {"id", "name", "bits", "size_label", "role"},
+                         field_path)
+            if not _is_str(field.get("id")) or not _is_str(field.get("name")):
+                s.err(f"{field_path} にはid / name (文字列) が必要です")
+                continue
+            if field["id"] in field_ids:
+                s.err(f"{field_path}.id={field['id']!r} が重複しています")
+            field_ids.add(field["id"])
+            if not isinstance(field.get("bits"), int) or isinstance(field.get("bits"), bool) \
+                    or not 1 <= field["bits"] <= 65535:
+                s.err(f"{field_path}.bits は1〜65535の整数にしてください")
+            if "size_label" in field and not _is_str(field["size_label"]):
+                s.err(f"{field_path}.size_label は空でない文字列にしてください")
+            if field.get("role", "standard") not in {
+                    "standard", "muted", "highlight", "alert"}:
+                s.err(f"{field_path}.role はstandard / muted / highlight / alertにしてください")
+        annotations = frame.get("annotations", [])
+        if not isinstance(annotations, list) or len(annotations) > 4:
+            s.err(f"{path}.annotations は最大4件の配列にしてください")
+            annotations = []
+        for annotation_index, annotation in enumerate(annotations):
+            annotation_path = f"{path}.annotations[{annotation_index}]"
+            if not isinstance(annotation, dict):
+                s.err(f"{annotation_path} はオブジェクトにしてください")
+                continue
+            s.allow_keys(annotation, {"field", "text"}, annotation_path)
+            if annotation.get("field") not in field_ids or not _is_str(annotation.get("text")):
+                s.err(f"{annotation_path} には定義済みfieldとtextが必要です")
+    if "takeaway" in s.spec and not _is_str(s.spec["takeaway"]):
+        s.err("takeaway は空でない文字列にしてください")
+
+
+def _v_code_lab(s):
+    sections = s.req_list("sections", 1, 2, "コード区画") or []
+    for index, section in enumerate(sections):
+        path = f"sections[{index}]"
+        if not isinstance(section, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(section, {"label", "code"}, path)
+        if not _is_str(section.get("label")) or not _is_str(section.get("code")):
+            s.err(f"{path} にはlabel / code (文字列) が必要です")
+        elif len(section["code"].splitlines()) > 16:
+            s.err(f"{path}.code は16行以内にしてください")
+    _string_list(s, "checks", 2, 5)
+    for key in ("check_label", "takeaway"):
+        if key in s.spec and not _is_str(s.spec[key]):
+            s.err(f"{key} は空でない文字列にしてください")
+
+
+def _v_knowledge_check(s):
+    if s.spec.get("mode") not in {"questions", "answers"}:
+        s.err("mode はquestions / answersにしてください")
+    questions = s.req_list("questions", 1, 3, "設問") or []
+    for index, question in enumerate(questions):
+        path = f"questions[{index}]"
+        if not isinstance(question, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(question, {"question", "options", "answer", "explanation"}, path)
+        if not _is_str(question.get("question")):
+            s.err(f"{path}.question は空でない文字列にしてください")
+        options = question.get("options")
+        if not (isinstance(options, list) and 2 <= len(options) <= 4
+                and all(_is_str(option) for option in options)):
+            s.err(f"{path}.options は2〜4件の文字列配列にしてください")
+            options = []
+        answer = question.get("answer")
+        if not isinstance(answer, int) or isinstance(answer, bool) \
+                or not 0 <= answer < len(options):
+            s.err(f"{path}.answer はoptionsの0始まりindexにしてください")
+        if not _is_str(question.get("explanation")):
+            s.err(f"{path}.explanation は空でない文字列にしてください")
+
+
 VALIDATORS = {
     "title": _v_title, "bullets": _v_bullets, "cards": _v_cards,
     "table": _v_table, "twocol": _v_twocol, "chart": _v_chart,
@@ -976,6 +1374,10 @@ VALIDATORS = {
     "scope": _v_scope, "summary": _v_summary,
     "paired_comparison": _v_paired_comparison, "mapping": _v_mapping,
     "swimlane": _v_swimlane, "sequence": _v_sequence,
+    "concept": _v_concept, "network": _v_network,
+    "protocol_state_flow": _v_protocol_state_flow,
+    "protocol_anatomy": _v_protocol_anatomy,
+    "code_lab": _v_code_lab, "knowledge_check": _v_knowledge_check,
 }
 
 
@@ -1033,6 +1435,12 @@ def validate(deck, *, allow_sample_content=False):
             s.err(
                 f"{key}: 未対応のフィールドです。"
                 "CONTENT_SCHEMA.mdに記載されたフィールドだけを使用してください")
+        if not allow_sample_content:
+            title_error = _title_policy_error(spec.get("title"))
+            if title_error:
+                s.err(
+                    f'"title" は名詞句または短い疑問形の見出しにしてください '
+                    f"({title_error})。結論・因果・行動はsubtitle、leadまたは本文へ移してください")
         if t != "title":
             s.req_str("kicker")
             s.req_str("title")

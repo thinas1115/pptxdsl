@@ -167,12 +167,21 @@ def footer(slide, page):
                   add_text=add_text, add_rect=add_rect)
 
 
-def note_line(slide, note):
+def note_line(slide, note, link=None):
+    link_label = link["label"] if link else ""
+    display_text = f"{note} {link_label}" if link else note
     size, _ = fit_text_or_raise(
-        "note", "text", note, BODY_W, 0.25, 8.5,
+        "note", "text", display_text, BODY_W, 0.25, 8.5,
         min_pt=7, spacing=1.1)
-    add_text(slide, MARGIN, 6.62, BODY_W, 0.25, note, size,
-             color=GRAY, align=PP_ALIGN.RIGHT)
+    tb = add_text(slide, MARGIN, 6.62, BODY_W, 0.25, note, size,
+                  color=GRAY, align=PP_ALIGN.RIGHT)
+    if link:
+        p = tb.text_frame.paragraphs[0]
+        run = p.add_run()
+        set_run(run, size, color=ACCENT)
+        run.font.underline = True
+        run.text = f" {link_label}"
+        run.hyperlink.address = link["url"]
 
 
 # ---- スライド種別 ----
@@ -523,15 +532,15 @@ def s_table(slide, spec, page):
             "table", f"columns[{j}]", name, widths[j] - 0.18, hdr_h - 0.08,
             size, min_pt=10.5, weight="bold", spacing=1.15)
         _cell(table.cell(0, j), name, header_size, bold=True, color=WHITE, fill=NAVY,
-              center=j != len(cols) - 1 and j != 0)
+              center=False)
     for i, row in enumerate(rows):
         fill = WHITE if i % 2 else ZEBRA
         for j, val in enumerate(row):
             _cell(table.cell(i + 1, j), val, size,
                   bold=(j == 0), color=NAVY if j == 0 else TEXT, fill=fill,
-                  center=0 < j < len(cols) - 1 and len(val) <= 6)
+                  center=False)
     if spec.get("note"):
-        note_line(slide, spec["note"])
+        note_line(slide, spec["note"], spec.get("note_link"))
 
 
 def _cell(cell, text, size, *, bold=False, color=TEXT, fill=WHITE, center=False):
