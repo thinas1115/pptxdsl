@@ -21,6 +21,7 @@ from generate import (
     MARGIN,
     NAVY,
     RULE,
+    SURFACE,
     TEXT,
     WHITE,
     ZEBRA,
@@ -38,7 +39,6 @@ SWIMLANE_ACCENT = RGBColor(0x10, 0x84, 0x90)
 SWIMLANE_NAVY = RGBColor(0x0F, 0x2A, 0x46)
 SWIMLANE_LIGHT = RGBColor(0xEA, 0xF0, 0xEF)
 SWIMLANE_RULE = RGBColor(0xBB, 0xBA, 0xBA)
-SWIMLANE_WHITE = RGBColor(0xFE, 0xFE, 0xFE)
 
 
 def _flatten_shape(shape):
@@ -182,7 +182,7 @@ def s_scope(slide, spec, page):
     def column(x, label, items, positive):
         color = ACCENT if positive else GRAY
         # 見出しだけが白く浮かないよう、外周を持つ一枚のパネルとして描く。
-        _flat_rect(slide, x, body_top, col_w, panel_h, WHITE, line=RULE)
+        _flat_rect(slide, x, body_top, col_w, panel_h, SURFACE, line=RULE)
         _flat_rect(slide, x, body_top, col_w, 0.62,
                    LIGHT if positive else ZEBRA)
         _status_medallion(slide, x + 0.20, body_top + 0.10,
@@ -244,7 +244,7 @@ def s_summary(slide, spec, page):
     heading_pt = 18.5 if count == 2 else (16.5 if count == 3 else 15.5)
     body_pt = 15.0 if count == 2 else (13.0 if count == 3 else 12.0)
     if rows == 2:
-        _flat_rect(slide, MARGIN, top, BODY_W, rows * cell_h, WHITE)
+        _flat_rect(slide, MARGIN, top, BODY_W, rows * cell_h, SURFACE)
         plain_line(slide, MARGIN + BODY_W / 2, top + 0.18,
                    MARGIN + BODY_W / 2, top + rows * cell_h - 0.18,
                    color=RULE, width=0.65)
@@ -327,7 +327,7 @@ def s_paired_comparison(slide, spec, page):
                      left_x + 0.20, y, left_w - 0.40, values["row_h"], row["left"],
                      values["font"], 9.5, anchor=MSO_ANCHOR.MIDDLE)
         _flat_rect(slide, criterion_x + 0.06, y + 0.12,
-                   criterion_w - 0.12, values["row_h"] - 0.24, WHITE)
+                   criterion_w - 0.12, values["row_h"] - 0.24, SURFACE)
         _text_in_box(slide, "paired_comparison", f"rows[{index}].criterion",
                      criterion_x + 0.06, y + 0.12,
                      criterion_w - 0.12, values["row_h"] - 0.24, row["criterion"],
@@ -698,7 +698,7 @@ def s_swimlane(slide, spec, page):
         x, y, w, h = rects[step["id"]]
         _flat_rect(slide, x, y, w, h,
                    SWIMLANE_LIGHT if step.get("style") == "accent"
-                   else SWIMLANE_WHITE,
+                   else SURFACE,
                    line=SWIMLANE_ACCENT)
         display_name = _swimlane_step_label(step, index)
         one_line_size = min(11.5, fitted.values["font"])

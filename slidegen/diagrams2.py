@@ -4,7 +4,7 @@ from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
-from generate import (ACCENT, CORAL, GRAY, LIGHT, NAVY, RULE, TEXT, WHITE,
+from generate import (ACCENT, CORAL, GRAY, LIGHT, NAVY, RULE, SURFACE, TEXT, WHITE,
                       ZEBRA, ContentArea, add_rect, add_text, header, note_line)
 from diagrams import add_arrow, arrow_label
 from diagrams3 import route
@@ -294,7 +294,7 @@ def _s_process_flow(slide, spec, page):
     for node_id, (x, y, w, h) in rects.items():
         node = nodes[node_id]
         style = node.get("style", "standard")
-        fill = LIGHT if style == "decision" else WHITE
+        fill = LIGHT if style == "decision" else SURFACE
         line = ACCENT if style in {"accent", "decision"} else RULE
         add_rect(slide, x, y, w, h, fill, line=line)
         title_size, _ = fit_text_or_raise(
@@ -396,7 +396,7 @@ def s_program_roadmap(slide, spec, page):
     for index, row_h in enumerate(row_heights):
         row_tops.append(cursor)
         add_rect(slide, label_x, cursor, track_col_w + grid_w, row_h,
-                 WHITE if index % 2 == 0 else ZEBRA)
+                 SURFACE if index % 2 == 0 else ZEBRA)
         cursor += row_h + values["track_gap"]
 
     body_top = top + header_h
@@ -471,7 +471,7 @@ def s_program_roadmap(slide, spec, page):
                 bold=bool(activity.get("emph")), color=TEXT,
                 align=PP_ALIGN.CENTER, spacing=1.0, wrap=False)
             label.fill.solid()
-            label.fill.fore_color.rgb = WHITE if index % 2 == 0 else ZEBRA
+            label.fill.fore_color.rgb = SURFACE if index % 2 == 0 else ZEBRA
         milestone = track.get("milestone")
         if milestone:
             marker_x = grid_x + resolve_marker(milestone["at"], periods) * period_w
@@ -504,7 +504,7 @@ def s_program_roadmap(slide, spec, page):
                 align=PP_ALIGN.CENTER, spacing=1.0, wrap=False)
             milestone_label.fill.solid()
             milestone_label.fill.fore_color.rgb = (
-                WHITE if index % 2 == 0 else ZEBRA)
+                SURFACE if index % 2 == 0 else ZEBRA)
     _grid_line(slide, label_x, cursor - values["track_gap"],
                label_x + track_col_w + grid_w, cursor - values["track_gap"])
     if spec.get("note"):
@@ -528,7 +528,7 @@ def s_matrix(slide, spec, page):
     if quadrants:
         # Explicit region names make the highlighted quadrant semantic. Existing
         # matrix specs without them retain the neutral scatter-plot treatment.
-        add_rect(slide, ox, oy - ah, aw, ah, WHITE, line=RULE)
+        add_rect(slide, ox, oy - ah, aw, ah, SURFACE, line=RULE)
         add_rect(slide, mid_x, oy - ah, aw / 2, ah / 2, LIGHT)
         qlabels = [
             (ox + 0.18, oy - 0.42, 2.2, quadrants[0], PP_ALIGN.LEFT, GRAY),

@@ -20,6 +20,7 @@ from generate import (
     MARGIN,
     NAVY,
     RULE,
+    SURFACE,
     TEXT,
     WHITE,
     ZEBRA,
@@ -38,7 +39,7 @@ _LANE_PALETTE = (
     (RGBColor(0xEA, 0xE8, 0xE2), GRAY),
 )
 _FIELD_FILLS = {
-    "standard": (WHITE, NAVY),
+    "standard": (SURFACE, NAVY),
     "muted": (ZEBRA, GRAY),
     "highlight": (LIGHT, ACCENT),
     "alert": (RGBColor(0xF1, 0xE3, 0xDF), CORAL),

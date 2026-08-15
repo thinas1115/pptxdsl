@@ -28,7 +28,7 @@ rendererと共通部品の範囲に閉じ込めやすい。
 
 | 対象 | ファイル / シンボル | 変更内容 |
 |---|---|---|
-| 基本配色 | `slidegen/generate.py` の `NAVY`〜`RULE` | 背景、本文、アクセント、罫線、薄色面のカラートークン |
+| 基本配色 | `slidegen/generate.py` の `NAVY`〜`RULE` | 背景、本文、アクセント、罫線、薄色面のカラートークン。`WHITE`は濃色上の反転文字、`SURFACE`は通常の明るい塗り面に使い分ける |
 | 基本フォント | `slidegen/generate.py` の `FONT` / `set_run()` | PowerPointに設定する日本語フォント、言語、太字、文字色 |
 | フォント実測 | `slidegen/textfit.py` の `_font()` | `FONT` を変える場合に、Pillowが同じフォントファイルを測るよう変更 |
 | スライド寸法・本文領域 | `generate.py` の `SLIDE_W` / `SLIDE_H` / `MARGIN` / `BODY_*` | 画面比率、余白、本文の使用可能領域。変更影響が大きいため全rendererを再検証 |
@@ -56,6 +56,10 @@ rendererと共通部品の範囲に閉じ込めやすい。
 1. `generate.py` のカラートークンを変更する。
 2. AWS以外の図解線色を変える場合は `diagrams.py` の `LINE` を変更する。
 3. diagram specから新しい色名を使わせる場合だけ `diagram_layout.py` の `COLORS` を増やす。
+
+本文スライドの面を真っ白に戻さない。`WHITE`は濃色面上の文字や輪郭に限定し、カード、表セル、
+図解ノードなどの通常面には`SURFACE`を使う。`SURFACE`は`CANVAS`との差を小さく保ち、罫線や
+`ZEBRA`との濃淡で構造を示す。
 
 `content.json`、schema、validatorの変更は不要。
 

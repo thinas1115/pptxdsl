@@ -13,7 +13,6 @@ from candidate_renderers import (
     SWIMLANE_ACCENT,
     SWIMLANE_LIGHT,
     SWIMLANE_RULE,
-    SWIMLANE_WHITE,
     _fit_rows,
     _mapping_items_by_min_crossings,
     s_mapping,
@@ -352,7 +351,7 @@ def _assert_swimlane_reference_palette():
     assert len(lane_labels) == len(spec["lanes"])
     assert len(node_cards) >= len(spec["steps"])
     assert {_fill_rgb(shape) for shape in node_cards} <= {
-        SWIMLANE_WHITE, SWIMLANE_LIGHT,
+        generate.SURFACE, SWIMLANE_LIGHT,
     }
     stage_surfaces = [
         shape for shape in slide.shapes
