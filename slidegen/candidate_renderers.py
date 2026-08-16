@@ -309,20 +309,26 @@ def s_paired_comparison(slide, spec, page):
              anchor=MSO_ANCHOR.MIDDLE)
     _flat_rect(slide, left_x, top + 0.64, left_w, rows_h, ZEBRA)
     _flat_rect(slide, right_x, top + 0.64, right_w, rows_h, LIGHT)
-    y = top + 0.64
-    for index, row in enumerate(rows):
+    row_positions = [
+        top + 0.64 + index * (values["row_h"] + values["gap"])
+        for index in range(len(rows))
+    ]
+
+    # 接続線を先に描き、評価軸と接続点を必ず前面へ重ねる。
+    for index, y in enumerate(row_positions):
         if index > 0:
             plain_line(slide, left_x + 0.18, y,
                        left_x + left_w - 0.18, y, color=RULE, width=0.55)
             plain_line(slide, right_x + 0.18, y,
                        right_x + right_w - 0.18, y, color=RULE, width=0.55)
         cy = y + values["row_h"] / 2
-        _dot(slide, left_x + left_w, cy, GRAY, 0.08)
-        _dot(slide, right_x, cy, ACCENT, 0.08)
         plain_line(slide, left_x + left_w, cy, criterion_x, cy,
-                   color=RULE, width=0.8)
+                   color=GRAY, width=1.25)
         plain_line(slide, criterion_x + criterion_w, cy, right_x, cy,
-                   color=RULE, width=0.8)
+                   color=ACCENT, width=1.25)
+
+    for index, (row, y) in enumerate(zip(rows, row_positions)):
+        cy = y + values["row_h"] / 2
         _text_in_box(slide, "paired_comparison", f"rows[{index}].left",
                      left_x + 0.20, y, left_w - 0.40, values["row_h"], row["left"],
                      values["font"], 9.5, anchor=MSO_ANCHOR.MIDDLE)
@@ -337,7 +343,12 @@ def s_paired_comparison(slide, spec, page):
         _text_in_box(slide, "paired_comparison", f"rows[{index}].right",
                      right_x + 0.20, y, right_w - 0.40, values["row_h"], row["right"],
                      values["font"], 9.5, anchor=MSO_ANCHOR.MIDDLE)
-        y += values["row_h"] + values["gap"]
+
+    # 接続点は線より後に追加し、線端を明確な円として見せる。
+    for y in row_positions:
+        cy = y + values["row_h"] / 2
+        _dot(slide, left_x + left_w, cy, GRAY, 0.10)
+        _dot(slide, right_x, cy, ACCENT, 0.10)
 def _mapping_items_by_min_crossings(left_items, right_items, links):
     """関係を変えずに左右項目を並べ替え、直接結線の交差数を最小化する。"""
     left_ids = [item["id"] for item in left_items]

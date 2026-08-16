@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 
 import generate
 from candidate_renderers import (
@@ -270,6 +270,34 @@ def _assert_scope_panel_integration():
     assert all(_rgb(shape) == RULE for shape in panels)
 
 
+def _assert_paired_comparison_connector_hierarchy():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "paired_comparison" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    shapes = list(slide.shapes)
+    connectors = [
+        shape for shape in shapes
+        if shape.shape_type == MSO_SHAPE_TYPE.LINE
+        and Inches(0.15) <= shape.width <= Inches(0.25)
+        and shape.height == 0
+    ]
+    dots = [
+        shape for shape in shapes
+        if shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+        and shape.auto_shape_type == generate.MSO_SHAPE.OVAL
+        and shape.width <= Inches(0.11)
+        and shape.height <= Inches(0.11)
+    ]
+    expected = len(spec["rows"]) * 2
+    assert len(connectors) == expected
+    assert len(dots) == expected
+    assert all(shape.line.width >= Pt(1.25) for shape in connectors)
+    assert max(shapes.index(shape) for shape in connectors) < min(
+        shapes.index(shape) for shape in dots)
+
+
 def _assert_swimlane_node_frames_and_routes():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
@@ -412,6 +440,7 @@ def main():
     _assert_sequence_structure()
     _assert_swimlane_legend()
     _assert_scope_panel_integration()
+    _assert_paired_comparison_connector_hierarchy()
     _assert_swimlane_node_frames_and_routes()
     _assert_swimlane_stage_surface_contrast()
     _assert_swimlane_body_uses_canvas()
