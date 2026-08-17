@@ -217,6 +217,30 @@ def _assert_sequence_structure():
     ) / len(participant_shapes)
     assert abs(center - _presentation().slide_width / 2) <= Inches(0.05)
 
+    dense_spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "sequence" and "上限" in spec["kicker"]
+    ))
+    dense_slide = _render(_presentation(), dense_spec)
+    self_message = next(
+        message for message in dense_spec["messages"]
+        if message["from"] == message["to"]
+    )
+    route_prefix = f"sequence-self-route:{self_message['id']}:"
+    route_shapes = [
+        shape for shape in dense_slide.shapes
+        if shape.name.startswith(route_prefix)
+    ]
+    assert {shape.name.removeprefix(route_prefix) for shape in route_shapes} == {
+        "out", "turn", "return"
+    }
+    label = next(
+        shape for shape in dense_slide.shapes
+        if shape.name == f"sequence-message-label:{self_message['id']}"
+    )
+    route_right = max(shape.left + shape.width for shape in route_shapes)
+    assert label.left >= route_right + Inches(0.05)
+
 
 def _assert_swimlane_legend():
     specs = {
