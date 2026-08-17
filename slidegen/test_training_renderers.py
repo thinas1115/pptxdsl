@@ -24,10 +24,10 @@ from validate_content import validate
 
 RENDERERS = {
     "concept": s_concept,
-    "network": s_network,
-    "protocol_state_flow": s_protocol_state_flow,
-    "protocol_anatomy": s_protocol_anatomy,
-    "code_lab": s_code_lab,
+    "nw_topology": s_network,
+    "nw_protocol_flow": s_protocol_state_flow,
+    "nw_frame_anatomy": s_protocol_anatomy,
+    "config_lab": s_code_lab,
     "knowledge_check": s_knowledge_check,
 }
 
@@ -67,7 +67,7 @@ def _samples():
 def _assert_network_contract(deck, samples):
     network = next(
         deepcopy(spec) for spec in deck["slides"]
-        if (spec["type"] == "network" and len(spec["lanes"]) > 1
+        if (spec["type"] == "nw_topology" and len(spec["lanes"]) > 1
             and any(link.get("kind") == "access" for link in spec["links"]))
     )
     access_index = next(
@@ -95,7 +95,7 @@ def _assert_network_contract(deck, samples):
 
     trunk = next(
         deepcopy(spec) for spec in deck["slides"]
-        if spec["type"] == "network"
+        if spec["type"] == "nw_topology"
         and any(link.get("kind") == "trunk" for link in spec["links"])
     )
 
@@ -152,7 +152,7 @@ def _assert_network_contract(deck, samples):
 
     blocked = next(
         deepcopy(spec) for spec in deck["slides"]
-        if spec["type"] == "network"
+        if spec["type"] == "nw_topology"
         and any(link.get("kind") == "blocked" for link in spec["links"])
     )
     blocked_index = next(
@@ -194,7 +194,7 @@ def _assert_concept_contract(samples):
 
 
 def _assert_protocol_state_flow_contract(samples):
-    protocol_state_flow = deepcopy(samples["protocol_state_flow"])
+    protocol_state_flow = deepcopy(samples["nw_protocol_flow"])
     rendered = _render(_presentation(), protocol_state_flow)
     texts = {
         shape.text.strip() for shape in rendered.shapes
@@ -399,7 +399,7 @@ def _assert_protocol_state_flow_contract(samples):
 
 
 def _assert_protocol_contract(samples):
-    protocol = deepcopy(samples["protocol_anatomy"])
+    protocol = deepcopy(samples["nw_frame_anatomy"])
     protocol["frames"][0]["annotations"] = [
         {"field": "missing", "text": "未定義フィールド"}
     ]
@@ -408,7 +408,7 @@ def _assert_protocol_contract(samples):
         allow_sample_content=True)
     assert any("定義済みfield" in error for error in errors), errors
 
-    variable = deepcopy(samples["protocol_anatomy"])
+    variable = deepcopy(samples["nw_frame_anatomy"])
     variable["frames"][0]["fields"][-1]["size_label"] = "可変長"
     rendered = _render(_presentation(), variable)
     texts = {
@@ -419,7 +419,7 @@ def _assert_protocol_contract(samples):
     assert "可変長" in texts
     assert "tpid" not in texts
 
-    comparison = deepcopy(samples["protocol_anatomy"])
+    comparison = deepcopy(samples["nw_frame_anatomy"])
     base_frame = comparison["frames"][0]
     tagged_frame = deepcopy(base_frame)
     base_frame["label"] = "タグなし"
@@ -452,7 +452,7 @@ def _assert_protocol_contract(samples):
     assert len(common_fields) == 2
     assert common_fields[0].width == common_fields[1].width
 
-    dense = deepcopy(samples["protocol_anatomy"])
+    dense = deepcopy(samples["nw_frame_anatomy"])
     dense.pop("lead", None)
     template = dense["frames"][0]
     annotations = [
@@ -470,7 +470,7 @@ def _assert_protocol_contract(samples):
 
 
 def _assert_code_stop(samples):
-    code = deepcopy(samples["code_lab"])
+    code = deepcopy(samples["config_lab"])
     code["sections"][0]["code"] = "x" * 240
     try:
         _render(_presentation(), code)
@@ -516,7 +516,7 @@ def main():
     for spec in samples.values():
         _assert_in_slide(_render(prs, deepcopy(spec)))
 
-    for type_ in ("protocol_state_flow", "protocol_anatomy", "code_lab"):
+    for type_ in ("nw_protocol_flow", "nw_frame_anatomy", "config_lab"):
         legacy = deepcopy(samples[type_])
         legacy["takeaway"] = "下部注記帯へ表示していた要点"
         legacy_errors = validate(

@@ -67,7 +67,7 @@
       "misconception": "ブロードキャストは同じ通信範囲の全端末へ、ユニキャストは特定の宛先へ転送されます。ここでは一斉送信の範囲に注目します。"
     },
     {
-      "type": "network",
+      "type": "nw_topology",
       "kicker": "分割していないLAN",
       "title": "フラットLAN内のARP",
       "lead": "PC AはPC BのMACアドレスを知るため、ARP要求をブロードキャストで送ります。L2スイッチは受信ポート以外へ複製し、PC Bだけが自分宛てと判断します。応答はユニキャストのため省略しています。",
@@ -107,7 +107,7 @@
       "misconception": "VLANはL2の通信範囲を論理的に分割します。暗号化、通信制御、IPアドレス設計は、それぞれ別の機能として組み合わせます。"
     },
     {
-      "type": "network",
+      "type": "nw_topology",
       "kicker": "論理分割の効果",
       "title": "VLAN内のブロードキャスト",
       "lead": "営業PC AのARP要求を追います。同じ物理スイッチ上でも、ブロードキャストはVLAN 10内だけへ複製され、VLAN 20の端末には届きません。",
@@ -163,7 +163,7 @@
       "misconception": "802.1QはブリッジネットワークとVLAN識別の標準です。Access、Trunk、ネイティブVLANは製品設定で使われる名称です。"
     },
     {
-      "type": "protocol_anatomy",
+      "type": "nw_frame_anatomy",
       "kicker": "フレーム形式",
       "title": "802.1Qタグの構造",
       "lead": "同じデータ長なら802.1Qタグ付きフレームは4 byte長くなる（FCSを含め1518 byteから1522 byte）。",
@@ -218,7 +218,7 @@
       }
     },
     {
-      "type": "network",
+      "type": "nw_topology",
       "kicker": "端末を収容するポート",
       "title": "Accessポート",
       "lead": "左から右へ追います。①端末はタグなしフレームを送り、②スイッチは受信したAccessポートの設定からVLAN 10へ分類し、③送信側のAccessポートからタグなしで出します。",
@@ -241,7 +241,7 @@
       ]
     },
     {
-      "type": "network",
+      "type": "nw_topology",
       "kicker": "スイッチ間のポート",
       "title": "Trunkポート",
       "lead": "左右の端末区間はタグなし、中央のTrunk区間は802.1Qタグ付きです。スイッチは受信ポートでVLANを判定し、TrunkではVLAN IDを付けて複数VLANを1本のリンクへ多重化します。",
@@ -272,7 +272,7 @@
       ]
     },
     {
-      "type": "protocol_state_flow",
+      "type": "nw_protocol_flow",
       "kicker": "Trunkのタグ処理",
       "title": "ネイティブVLANのタグ処理",
       "lead": "VLAN 10経路ではAccess VLAN設定を使わず、Trunkのnative VLAN設定がタグなしフレームの所属を決める。",
@@ -309,7 +309,7 @@
       ]
     },
     {
-      "type": "sequence",
+      "type": "message_sequence",
       "kicker": "Trunk両端の設定不一致",
       "title": "ネイティブVLAN不一致時の誤分類",
       "lead": "PC側ではAccess VLAN、Trunk受信側ではnative VLANがタグなしフレームの所属を決めるため、両端のnative VLANを一致させる。",
@@ -345,7 +345,7 @@
       "note": "対象の違い: 初期VLAN=ポート初期所属 / ネイティブVLAN=Trunkのタグなし転送 / デフォルトゲートウェイ=L3次ホップ。"
     },
     {
-      "type": "sequence",
+      "type": "message_sequence",
       "kicker": "同じVLAN内の転送",
       "title": "Trunk区間のタグ処理",
       "lead": "802.1Qタグが現れるのはTrunk区間であり、端末側のAccess区間ではタグなしフレームとして送受信する。",
@@ -476,7 +476,7 @@
       "note": "サブインターフェースは、1本の物理ポート上に作る論理L3インターフェースです。Gi0/0.10とGi0/0.20は、それぞれVLAN 10と20を終端し、各VLANのデフォルトゲートウェイIPを持ちます。"
     },
     {
-      "type": "sequence",
+      "type": "message_sequence",
       "kicker": "VLAN 10からVLAN 20",
       "title": "サブインターフェース間の転送",
       "lead": "送信元・宛先IPアドレスは維持し、MACアドレスとVLANタグはルーティング区間ごとに作り直す。",
@@ -517,7 +517,7 @@
       "note": "どちらもVLANごとのL3インターフェースへIPアドレスを持たせ、端末のデフォルトゲートウェイとして使います。"
     },
     {
-      "type": "code_lab",
+      "type": "config_lab",
       "kicker": "Cisco IOS XE設定例",
       "title": "L3スイッチのSVI設定",
       "lead": "VLANの作成、SVIのIP設定、IPルーティング有効化を一組で構成する。",
@@ -535,7 +535,7 @@
       ]
     },
     {
-      "type": "code_lab",
+      "type": "config_lab",
       "kicker": "Cisco IOS XE show出力例",
       "title": "SVIの状態と直結経路",
       "lead": "SVIはIPアドレスだけでなく、up / upと直結経路の両方を確認する。",
@@ -558,7 +558,7 @@
       ]
     },
     {
-      "type": "code_lab",
+      "type": "config_lab",
       "kicker": "Cisco IOS XE設定例",
       "title": "ルーターサブインターフェースの設定",
       "lead": "親ポート、802.1Q VLAN ID、IPアドレス、対向Trunkを一組で構成する。",
@@ -577,7 +577,7 @@
       ]
     },
     {
-      "type": "code_lab",
+      "type": "config_lab",
       "kicker": "Cisco IOS XE show出力例",
       "title": "サブインターフェースの状態と直結経路",
       "lead": "サブインターフェースは親ポートの状態、論理IFのIP、直結経路を続けて確認する。",
@@ -613,7 +613,7 @@
       ]
     },
     {
-      "type": "code_lab",
+      "type": "config_lab",
       "kicker": "設定と確認",
       "title": "VLANの設定と確認",
       "lead": "設定後は、意図したVLAN所属、Trunkの許可VLAN、対向機器との一致を確認する。",

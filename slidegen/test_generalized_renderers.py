@@ -185,7 +185,7 @@ def main():
                for shape in card_slide.shapes)
 
     comparison = dict(
-        _base("twocol"),
+        _base("two_column"),
         left={"label": "現状", "heading": "現在", "bullets": ["課題を確認"]},
         right={"label": "目標", "heading": "将来", "bullets": ["改善を実施"]},
     )

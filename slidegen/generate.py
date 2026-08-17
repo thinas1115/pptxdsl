@@ -570,7 +570,7 @@ def s_twocol(slide, spec, page):
     text_w = cw - 1.10
 
     fitted = fit_vertical_stacks(
-        "twocol", area.height - 0.42,
+        "two_column", area.height - 0.42,
         [panel["bullets"] for panel in panels],
         lambda bullet, size: max(
             0.42,
@@ -599,7 +599,7 @@ def s_twocol(slide, spec, page):
                  p.get("label", "BEFORE" if i == 0 else "AFTER"), 9.5,
                  bold=True, color=marker)
         heading_size, _ = fit_text_or_raise(
-            "twocol", f"{'left' if i == 0 else 'right'}.heading",
+            "two_column", f"{'left' if i == 0 else 'right'}.heading",
             p["heading"], cw - 0.76, 0.42, 18,
             min_pt=14, weight="bold", spacing=1.1)
         add_text(slide, x + 0.38, top + 0.64, cw - 0.76, 0.42,
@@ -702,7 +702,7 @@ def _fit_chart_layout(area, category_count, series_count, kind):
 
 
 RENDER = {"title": s_title, "bullets": s_bullets, "cards": s_cards,
-          "table": s_table, "twocol": s_twocol, "chart": s_chart}
+          "table": s_table, "two_column": s_twocol, "chart": s_chart}
 
 
 def render_slide(renderer, slide, spec, idx):

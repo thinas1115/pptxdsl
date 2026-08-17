@@ -48,7 +48,7 @@ _TYPE_KEYS = {
     "bullets": _BASE_SLIDE_KEYS | {"style", "bullets"},
     "cards": _BASE_SLIDE_KEYS | {"style", "cards"},
     "table": _BASE_SLIDE_KEYS | {"columns", "rows", "note", "note_link"},
-    "twocol": _BASE_SLIDE_KEYS | {"left", "right"},
+    "two_column": _BASE_SLIDE_KEYS | {"left", "right"},
     "chart": _BASE_SLIDE_KEYS | {"chart", "note"},
     "image": _BASE_SLIDE_KEYS | {"image", "fit", "shadow", "alt"},
     "process": _BASE_SLIDE_KEYS | {"steps", "emph", "flow", "note"},
@@ -58,38 +58,38 @@ _TYPE_KEYS = {
     },
     "org": _BASE_SLIDE_KEYS | {"org", "note"},
     "diagram": _BASE_SLIDE_KEYS | {"diagram", "note"},
-    "scope": _BASE_SLIDE_KEYS | {
+    "scope_boundary": _BASE_SLIDE_KEYS | {
         "in_label", "out_label", "in_scope", "out_of_scope", "assumptions",
     },
-    "summary": _BASE_SLIDE_KEYS | {
+    "decision_summary": _BASE_SLIDE_KEYS | {
         "sections", "conclusion", "conclusion_label",
     },
     "paired_comparison": _BASE_SLIDE_KEYS | {
         "left_label", "right_label", "criterion_label", "rows", "takeaway",
     },
-    "mapping": _BASE_SLIDE_KEYS | {
+    "relationship_map": _BASE_SLIDE_KEYS | {
         "left_label", "right_label", "left_items", "right_items", "links",
         "takeaway",
     },
-    "swimlane": _BASE_SLIDE_KEYS | {
+    "swimlane_flow": _BASE_SLIDE_KEYS | {
         "lanes", "stages", "steps", "edges", "takeaway",
     },
-    "sequence": _BASE_SLIDE_KEYS | {
+    "message_sequence": _BASE_SLIDE_KEYS | {
         "participants", "messages", "phases", "takeaway",
     },
     "concept": _BASE_SLIDE_KEYS | {
         "term", "definition", "points", "misconception", "icon",
     },
-    "network": _BASE_SLIDE_KEYS | {
+    "nw_topology": _BASE_SLIDE_KEYS | {
         "lanes", "columns", "nodes", "links",
     },
-    "protocol_state_flow": _BASE_SLIDE_KEYS | {
+    "nw_protocol_flow": _BASE_SLIDE_KEYS | {
         "stages", "flows", "takeaway",
     },
-    "protocol_anatomy": _BASE_SLIDE_KEYS | {
+    "nw_frame_anatomy": _BASE_SLIDE_KEYS | {
         "frames", "takeaway",
     },
-    "code_lab": _BASE_SLIDE_KEYS | {
+    "config_lab": _BASE_SLIDE_KEYS | {
         "sections", "checks", "check_label", "takeaway",
     },
     "knowledge_check": _BASE_SLIDE_KEYS | {
@@ -100,15 +100,15 @@ _TYPE_KEYS = {
 # 下部の注記帯を廃止したfieldは、汎用的な「未対応」ではなく移行先を返す。
 # 移行エラーを出すためだけに_TYPE_KEYSには残し、rendererでは描画しない。
 _LEAD_ONLY_FIELDS = {
-    "scope": {"assumptions"},
-    "summary": {"conclusion", "conclusion_label"},
+    "scope_boundary": {"assumptions"},
+    "decision_summary": {"conclusion", "conclusion_label"},
     "paired_comparison": {"takeaway"},
-    "mapping": {"takeaway"},
-    "swimlane": {"takeaway"},
-    "sequence": {"takeaway"},
-    "protocol_state_flow": {"takeaway"},
-    "protocol_anatomy": {"takeaway"},
-    "code_lab": {"takeaway"},
+    "relationship_map": {"takeaway"},
+    "swimlane_flow": {"takeaway"},
+    "message_sequence": {"takeaway"},
+    "nw_protocol_flow": {"takeaway"},
+    "nw_frame_anatomy": {"takeaway"},
+    "config_lab": {"takeaway"},
 }
 
 
@@ -1373,18 +1373,18 @@ def _v_knowledge_check(s):
 
 VALIDATORS = {
     "title": _v_title, "bullets": _v_bullets, "cards": _v_cards,
-    "table": _v_table, "twocol": _v_twocol, "chart": _v_chart,
+    "table": _v_table, "two_column": _v_twocol, "chart": _v_chart,
     "image": _v_image,
     "process": _v_process, "program_roadmap": _v_program_roadmap,
     "matrix": _v_matrix,
     "org": _v_org, "diagram": _v_diagram,
-    "scope": _v_scope, "summary": _v_summary,
-    "paired_comparison": _v_paired_comparison, "mapping": _v_mapping,
-    "swimlane": _v_swimlane, "sequence": _v_sequence,
-    "concept": _v_concept, "network": _v_network,
-    "protocol_state_flow": _v_protocol_state_flow,
-    "protocol_anatomy": _v_protocol_anatomy,
-    "code_lab": _v_code_lab, "knowledge_check": _v_knowledge_check,
+    "scope_boundary": _v_scope, "decision_summary": _v_summary,
+    "paired_comparison": _v_paired_comparison, "relationship_map": _v_mapping,
+    "swimlane_flow": _v_swimlane, "message_sequence": _v_sequence,
+    "concept": _v_concept, "nw_topology": _v_network,
+    "nw_protocol_flow": _v_protocol_state_flow,
+    "nw_frame_anatomy": _v_protocol_anatomy,
+    "config_lab": _v_code_lab, "knowledge_check": _v_knowledge_check,
 }
 
 

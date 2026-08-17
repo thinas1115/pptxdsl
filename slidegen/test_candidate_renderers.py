@@ -35,12 +35,12 @@ from validate_content import validate
 
 
 RENDERERS = {
-    "scope": s_scope,
-    "summary": s_summary,
+    "scope_boundary": s_scope,
+    "decision_summary": s_summary,
     "paired_comparison": s_paired_comparison,
-    "mapping": s_mapping,
-    "swimlane": s_swimlane,
-    "sequence": s_sequence,
+    "relationship_map": s_mapping,
+    "swimlane_flow": s_swimlane,
+    "message_sequence": s_sequence,
 }
 
 
@@ -74,13 +74,13 @@ def _base(type_):
 
 def _dense_specs():
     scope = dict(
-        _base("scope"),
+        _base("scope_boundary"),
         lead="着手前に必要な前提条件を確認する。",
         in_scope=[f"実施対象{i + 1}の要件と作業範囲" for i in range(6)],
         out_of_scope=[f"対象外{i + 1}の責任範囲" for i in range(6)],
     )
     summary = dict(
-        _base("summary"),
+        _base("decision_summary"),
         lead="複数の論点を踏まえて次の判断へ進む。",
         sections=[
             {"heading": f"論点{i + 1}", "body": "判断に必要な事実と示唆を簡潔に整理する。"}
@@ -104,7 +104,7 @@ def _dense_specs():
         {"from": "l3", "to": "r5"}, {"from": "l5", "to": "r1"},
     ])
     mapping = dict(
-        _base("mapping"), left_label="課題", right_label="施策",
+        _base("relationship_map"), left_label="課題", right_label="施策",
         left_items=left, right_items=right, links=links,
     )
     lanes = [{"id": f"lane{i}", "label": f"担当{i + 1}"} for i in range(6)]
@@ -117,7 +117,7 @@ def _dense_specs():
     edges = [{"from": f"step{i}", "to": f"step{i + 1}"} for i in range(11)]
     edges.append({"from": "step11", "to": "step0", "kind": "feedback"})
     swimlane = dict(
-        _base("swimlane"), lanes=lanes, stages=stages, steps=steps, edges=edges,
+        _base("swimlane_flow"), lanes=lanes, stages=stages, steps=steps, edges=edges,
     )
     participants = [
         {"id": f"participant{i}", "label": f"関係者{i + 1}"}
@@ -130,7 +130,7 @@ def _dense_specs():
         for i in range(12)
     ]
     sequence = dict(
-        _base("sequence"), participants=participants, messages=messages,
+        _base("message_sequence"), participants=participants, messages=messages,
         phases=[
             {"label": "準備", "from": "message0", "to": "message3"},
             {"label": "実行", "from": "message4", "to": "message7"},
@@ -159,7 +159,7 @@ def _assert_fit_stages():
 
 def _assert_mapping_order():
     expected_crossings = {"疎": 0, "標準": 0, "上限": 3, "長文": 0}
-    specs = [spec for spec in REVIEW_DECK["slides"] if spec["type"] == "mapping"]
+    specs = [spec for spec in REVIEW_DECK["slides"] if spec["type"] == "relationship_map"]
     for spec in specs:
         left, right, crossings = _mapping_items_by_min_crossings(
             spec["left_items"], spec["right_items"], spec["links"])
@@ -174,7 +174,7 @@ def _assert_mapping_order():
 def _assert_mapping_column_alignment():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
-        if spec["type"] == "mapping" and "標準" in spec["kicker"]
+        if spec["type"] == "relationship_map" and "標準" in spec["kicker"]
     ))
     slide = _render(_presentation(), spec)
     by_text = {
@@ -196,7 +196,7 @@ def _assert_mapping_column_alignment():
 def _assert_sequence_structure():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
-        if spec["type"] == "sequence" and "標準" in spec["kicker"]
+        if spec["type"] == "message_sequence" and "標準" in spec["kicker"]
     ))
     slide = _render(_presentation(), spec)
     texts = {
@@ -219,7 +219,7 @@ def _assert_sequence_structure():
 
     dense_spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
-        if spec["type"] == "sequence" and "上限" in spec["kicker"]
+        if spec["type"] == "message_sequence" and "上限" in spec["kicker"]
     ))
     dense_slide = _render(_presentation(), dense_spec)
     self_message = next(
@@ -266,7 +266,7 @@ def _assert_swimlane_legend():
     specs = {
         spec["kicker"].split("/")[-1].strip(): deepcopy(spec)
         for spec in REVIEW_DECK["slides"]
-        if spec["type"] == "swimlane"
+        if spec["type"] == "swimlane_flow"
     }
     legend_texts = {"凡例", "順方向", "差戻し"}
     dense_slide = _render(_presentation(), specs["上限"])
@@ -302,7 +302,7 @@ def _fill_rgb(shape):
 def _assert_scope_panel_integration():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
-        if spec["type"] == "scope" and "標準" in spec["kicker"]
+        if spec["type"] == "scope_boundary" and "標準" in spec["kicker"]
     ))
     slide = _render(_presentation(), spec)
     panels = [
@@ -345,7 +345,7 @@ def _assert_paired_comparison_connector_hierarchy():
 def _assert_swimlane_node_frames_and_routes():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
-        if spec["type"] == "swimlane" and "標準" in spec["kicker"]
+        if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
     ))
     slide = _render(_presentation(), spec)
     framed_nodes = [
@@ -367,7 +367,7 @@ def _assert_swimlane_node_frames_and_routes():
 def _assert_swimlane_stage_surface_contrast():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
-        if spec["type"] == "swimlane" and "標準" in spec["kicker"]
+        if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
     ))
     slide = _render(_presentation(), spec)
     stages = [
@@ -389,7 +389,7 @@ def _assert_swimlane_stage_surface_contrast():
 def _assert_swimlane_body_uses_canvas():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
-        if spec["type"] == "swimlane" and "標準" in spec["kicker"]
+        if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
     ))
     slide = _render(_presentation(), spec)
     lane_bodies = [
@@ -405,7 +405,7 @@ def _assert_swimlane_body_uses_canvas():
 def _assert_swimlane_reference_palette():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
-        if spec["type"] == "swimlane" and "標準" in spec["kicker"]
+        if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
     ))
     slide = _render(_presentation(), spec)
     lane_labels = [
@@ -436,7 +436,7 @@ def _assert_swimlane_reference_palette():
 def _assert_swimlane_header_and_stage_divider():
     spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]
-        if spec["type"] == "swimlane" and "標準" in spec["kicker"]
+        if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
     ))
     slide = _render(_presentation(), spec)
     kicker = next(
@@ -495,12 +495,12 @@ def main():
         _assert_in_slide(slide)
 
     legacy_fields = {
-        "scope": ("assumptions", ["前提条件"]),
-        "summary": ("conclusion", "結論"),
+        "scope_boundary": ("assumptions", ["前提条件"]),
+        "decision_summary": ("conclusion", "結論"),
         "paired_comparison": ("takeaway", "判断"),
-        "mapping": ("takeaway", "判断"),
-        "swimlane": ("takeaway", "判断"),
-        "sequence": ("takeaway", "判断"),
+        "relationship_map": ("takeaway", "判断"),
+        "swimlane_flow": ("takeaway", "判断"),
+        "message_sequence": ("takeaway", "判断"),
     }
     for type_, (field, value) in legacy_fields.items():
         legacy = deepcopy(next(spec for spec in samples if spec["type"] == type_))
@@ -511,12 +511,12 @@ def main():
         )
         assert any(field in error and '"lead"' in error for error in errors), errors
 
-    bad_mapping = deepcopy(next(spec for spec in samples if spec["type"] == "mapping"))
+    bad_mapping = deepcopy(next(spec for spec in samples if spec["type"] == "relationship_map"))
     bad_mapping["links"][0]["to"] = "undefined"
     errors = validate({"meta": {"title": "検証"}, "slides": [bad_mapping]},
                       allow_sample_content=True)
     assert any("未定義id" in error for error in errors)
-    bad_summary = deepcopy(next(spec for spec in samples if spec["type"] == "summary"))
+    bad_summary = deepcopy(next(spec for spec in samples if spec["type"] == "decision_summary"))
     bad_summary["sections"][0]["icon"] = "存在しないアイコン"
     errors = validate({"meta": {"title": "検証"}, "slides": [bad_summary]},
                       allow_sample_content=True)
