@@ -30,7 +30,11 @@ from generate import (
     header,
 )
 from layout_fit import FitError, fit_text_or_raise, select_fit, stepped
-from quality_markers import SURFACE_ON_CANVAS_PREFIX
+from quality_markers import (
+    SEQUENCE_MESSAGE_LABEL_PREFIX,
+    SEQUENCE_SELF_ROUTE_PREFIX,
+    SURFACE_ON_CANVAS_PREFIX,
+)
 from textfit import text_width_in, wrap_natural
 
 
@@ -802,8 +806,9 @@ def s_sequence(slide, spec, page):
         if sx == tx:
             loop_w, loop_h = 0.54, max(0.26, fitted.values["row_h"] * 0.76)
             dash = "dash" if message.get("kind") == "return" else None
-            route_top = y - loop_h / 2
-            route_bottom = y + loop_h / 2
+            # 自己処理は割り当て行の上側で完結させ、次行のラベル領域を侵食しない。
+            route_top = y - loop_h
+            route_bottom = y
             route_right = sx + loop_w
             outgoing = plain_line(
                 slide, sx, route_top, route_right, route_top,
@@ -827,7 +832,7 @@ def s_sequence(slide, spec, page):
             arrowhead.name = f"sequence-self-arrowhead:{message['id']}"
             self_route = (outgoing, turn, returned)
             for segment, role in zip(self_route, ("out", "turn", "return")):
-                segment.name = f"sequence-self-route:{message['id']}:{role}"
+                segment.name = f"{SEQUENCE_SELF_ROUTE_PREFIX}{message['id']}:{role}"
             # ラベルをループ外へ置き、自己処理を示す3辺を背景マスクで隠さない。
             label_w = 1.10
             label_left = route_right + 0.10
@@ -850,7 +855,7 @@ def s_sequence(slide, spec, page):
                       spacing=1.0)
         tb.fill.solid()
         tb.fill.fore_color.rgb = message_fill[message["id"]]
-        tb.name = f"sequence-message-label:{message['id']}"
+        tb.name = f"{SEQUENCE_MESSAGE_LABEL_PREFIX}{message['id']}"
     if show_legend:
         legend_y = area.bottom - 0.17
         legend_x = MARGIN + 0.10

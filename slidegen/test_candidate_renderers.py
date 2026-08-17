@@ -253,6 +253,13 @@ def _assert_sequence_structure():
     assert arrowhead.width >= Inches(0.10)
     assert arrowhead.height >= Inches(0.10)
     assert z_order[returned.name] < z_order[arrowhead.name]
+    self_index = dense_spec["messages"].index(self_message)
+    next_message = dense_spec["messages"][self_index + 1]
+    next_label = next(
+        shape for shape in dense_slide.shapes
+        if shape.name == f"sequence-message-label:{next_message['id']}"
+    )
+    assert next_label.top >= returned.top + Inches(0.03)
 
 
 def _assert_swimlane_legend():

@@ -10,6 +10,7 @@
   CELL-OOB: 表セルからのテキストはみ出し
   OOB: スライド境界からの図形・画像・表・グラフのはみ出し
   VIS-CONTRAST: 背景に接する意味面とキャンバスの分離不足
+  SEQ-CLEARANCE: sequence自己処理の戻り線とメッセージラベルの接触
 """
 import sys
 
@@ -20,6 +21,9 @@ from cover_footer import COVER_BACKGROUND_NAME
 from quality_markers import (
     MIN_SURFACE_CONTRAST,
     MIN_SURFACE_EDGE_CONTRAST,
+    SEQUENCE_LABEL_CLEARANCE,
+    SEQUENCE_MESSAGE_LABEL_PREFIX,
+    SEQUENCE_SELF_ROUTE_PREFIX,
     SURFACE_ON_CANVAS_PREFIX,
 )
 from textfit import line_height_in, wrap_text
@@ -39,6 +43,11 @@ def rect_of(sh):
 def intersects(a, b, eps=EPS):
     return not (a[2] - eps <= b[0] or b[2] - eps <= a[0]
                 or a[3] - eps <= b[1] or b[3] - eps <= a[1])
+
+
+def expanded(rect, amount):
+    return (rect[0] - amount, rect[1] - amount,
+            rect[2] + amount, rect[3] + amount)
 
 
 def contains(outer, inner, eps=EPS):
@@ -133,7 +142,7 @@ def seg_of(sh):
     return (ax, ay, bx, by)
 
 
-def seg_hits_rect(seg, r):
+def seg_hits_rect(seg, r, eps=EPS):
     """線分と矩形の交差(端をSEG_TRIMだけ縮めて接続点は無視)。"""
     x1, y1, x2, y2 = seg
     import math
@@ -148,7 +157,7 @@ def seg_hits_rect(seg, r):
     for i in range(steps + 1):
         t = i / steps
         px, py = x1 + (x2 - x1) * t, y1 + (y2 - y1) * t
-        if r[0] + EPS < px < r[2] - EPS and r[1] + EPS < py < r[3] - EPS:
+        if r[0] + eps < px < r[2] - eps and r[1] + eps < py < r[3] - eps:
             return True
     return False
 
@@ -224,6 +233,7 @@ def check(path):
     for si, slide in enumerate(prs.slides, 1):
         canvas_rgb = canvas_fill_rgb(slide, slide_w, slide_h)
         texts, pics, solids, frames, segs = [], [], [], [], []
+        sequence_returns, sequence_labels = [], []
         for z, sh in enumerate(slide.shapes):  # zは描画順(後勝ち)
             st = sh.shape_type
             bounds = rect_of(sh)
@@ -256,7 +266,11 @@ def check(path):
                     (solids if has_solid_fill(sh) else frames).append(
                         (bounds, sh.name, z))
             elif st == MSO_SHAPE_TYPE.LINE:
-                segs.append((seg_of(sh), sh.name, z))
+                seg = seg_of(sh)
+                segs.append((seg, sh.name, z))
+                if (sh.name.startswith(SEQUENCE_SELF_ROUTE_PREFIX)
+                        and sh.name.endswith(":return")):
+                    sequence_returns.append((seg, sh.name))
             elif st == MSO_SHAPE_TYPE.CHART:
                 pics.append((bounds, sh.name))
             elif st == MSO_SHAPE_TYPE.TABLE:
@@ -276,6 +290,8 @@ def check(path):
                 if g:
                     texts.append((g, snippet(sh.text_frame.text),
                                   has_solid_fill(sh)))
+                if sh.name.startswith(SEQUENCE_MESSAGE_LABEL_PREFIX):
+                    sequence_labels.append((bounds, sh.name))
         # T-T
         for i in range(len(texts)):
             for j in range(i + 1, len(texts)):
@@ -314,6 +330,15 @@ def check(path):
             for r, pname in pics:
                 if seg_hits_rect(seg, r):
                     findings.append((si, "L-P", name, pname))
+        # 線上ラベルは塗りマスクを使うため汎用L-Tでは除外される。
+        # 自己処理の戻り線は、別メッセージのラベルに隠れると経路が欠けるため意味名で検査する。
+        for seg, route_name in sequence_returns:
+            for label_rect, label_name in sequence_labels:
+                if seg_hits_rect(
+                        seg, expanded(label_rect, SEQUENCE_LABEL_CLEARANCE),
+                        eps=0.0):
+                    findings.append((
+                        si, "SEQ-CLEARANCE", route_name, label_name))
         for g, t, _ in texts:
             if is_oob(g, slide_w, slide_h):
                 findings.append((si, "OOB-TEXT", t, ""))

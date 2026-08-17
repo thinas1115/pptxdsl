@@ -6,11 +6,15 @@ from pptx import Presentation
 from pptx.chart.data import ChartData
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE
-from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.util import Inches, Pt
 
 from check_layout import check
-from quality_markers import SURFACE_ON_CANVAS_PREFIX
+from quality_markers import (
+    SEQUENCE_MESSAGE_LABEL_PREFIX,
+    SEQUENCE_SELF_ROUTE_PREFIX,
+    SURFACE_ON_CANVAS_PREFIX,
+)
 
 
 def save(prs, path):
@@ -100,5 +104,30 @@ with TemporaryDirectory() as td:
     stage.fill.fore_color.rgb = RGBColor(0xDF, 0xEB, 0xE8)
     findings = save(prs, out / "surface_fill_contrast_ok.pptx")
     assert not any(kind == "VIS-CONTRAST" for _, kind, _, _ in findings), findings
+
+    # 塗りマスク付きラベルが自己処理の戻り線を隠す回帰を、汎用L-Tとは別に拒否する。
+    prs = Presentation()
+    prs.slide_width = Inches(13.333)
+    prs.slide_height = Inches(7.5)
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    returned = slide.shapes.add_connector(
+        MSO_CONNECTOR.STRAIGHT, Inches(1), Inches(2), Inches(4), Inches(2))
+    returned.name = f"{SEQUENCE_SELF_ROUTE_PREFIX}self:return"
+    label = slide.shapes.add_textbox(
+        Inches(2), Inches(1.90), Inches(1.2), Inches(0.20))
+    label.name = f"{SEQUENCE_MESSAGE_LABEL_PREFIX}next"
+    label.text_frame.text = "次の処理"
+    label.fill.solid()
+    label.fill.fore_color.rgb = RGBColor(0xF7, 0xF5, 0xEF)
+    findings = save(prs, out / "sequence_label_masks_return_ng.pptx")
+    assert any(kind == "SEQ-CLEARANCE" for _, kind, _, _ in findings), findings
+
+    label.top = Inches(2.02)
+    findings = save(prs, out / "sequence_label_clearance_ng.pptx")
+    assert any(kind == "SEQ-CLEARANCE" for _, kind, _, _ in findings), findings
+
+    label.top = Inches(2.05)
+    findings = save(prs, out / "sequence_label_clearance_ok.pptx")
+    assert not any(kind == "SEQ-CLEARANCE" for _, kind, _, _ in findings), findings
 
 print("check_layout broken-PPTX regression: ALL OK")
