@@ -816,20 +816,9 @@ def s_sequence(slide, spec, page):
             turn = plain_line(
                 slide, route_right, route_top, route_right, route_bottom,
                 width=1.25, dash=dash)
-            returned = plain_line(
-                slide, route_right, route_bottom, sx + 0.10, route_bottom,
-                width=1.35, dash=dash)
-            # 汎用コネクタの矢尻はライフラインに埋没するため、前面へ専用描画する。
-            arrowhead = slide.shapes.add_shape(
-                MSO_SHAPE.ISOSCELES_TRIANGLE,
-                Inches(sx), Inches(route_bottom - 0.06),
-                Inches(0.12), Inches(0.12))
-            arrowhead.rotation = 270
-            arrowhead.fill.solid()
-            arrowhead.fill.fore_color.rgb = GRAY
-            arrowhead.line.fill.background()
-            _flatten_shape(arrowhead)
-            arrowhead.name = f"sequence-self-arrowhead:{message['id']}"
+            returned = add_arrow(
+                slide, route_right, route_bottom, sx, route_bottom,
+                color=GRAY, width=1.05, dash=dash)
             self_route = (outgoing, turn, returned)
             for segment, role in zip(self_route, ("out", "turn", "return")):
                 segment.name = f"{SEQUENCE_SELF_ROUTE_PREFIX}{message['id']}:{role}"

@@ -245,14 +245,14 @@ def _assert_sequence_structure():
     returned = next(shape for shape in route_shapes if shape.name.endswith(":return"))
     assert outgoing.width >= Inches(0.50)
     assert turn.height >= Inches(0.24)
-    arrowhead = next(
-        shape for shape in dense_slide.shapes
-        if shape.name == f"sequence-self-arrowhead:{self_message['id']}"
+    return_line_xml = returned.line._get_or_add_ln().xml
+    assert 'type="triangle"' in return_line_xml
+    assert 'w="med"' in return_line_xml
+    assert 'len="med"' in return_line_xml
+    assert not any(
+        shape.name.startswith("sequence-self-arrowhead:")
+        for shape in dense_slide.shapes
     )
-    z_order = {shape.name: index for index, shape in enumerate(dense_slide.shapes)}
-    assert arrowhead.width >= Inches(0.10)
-    assert arrowhead.height >= Inches(0.10)
-    assert z_order[returned.name] < z_order[arrowhead.name]
     self_index = dense_spec["messages"].index(self_message)
     next_message = dense_spec["messages"][self_index + 1]
     next_label = next(
