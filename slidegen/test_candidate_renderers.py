@@ -239,7 +239,20 @@ def _assert_sequence_structure():
         if shape.name == f"sequence-message-label:{self_message['id']}"
     )
     route_right = max(shape.left + shape.width for shape in route_shapes)
-    assert label.left >= route_right + Inches(0.05)
+    assert label.left >= route_right + Inches(0.08)
+    outgoing = next(shape for shape in route_shapes if shape.name.endswith(":out"))
+    turn = next(shape for shape in route_shapes if shape.name.endswith(":turn"))
+    returned = next(shape for shape in route_shapes if shape.name.endswith(":return"))
+    assert outgoing.width >= Inches(0.50)
+    assert turn.height >= Inches(0.24)
+    arrowhead = next(
+        shape for shape in dense_slide.shapes
+        if shape.name == f"sequence-self-arrowhead:{self_message['id']}"
+    )
+    z_order = {shape.name: index for index, shape in enumerate(dense_slide.shapes)}
+    assert arrowhead.width >= Inches(0.10)
+    assert arrowhead.height >= Inches(0.10)
+    assert z_order[returned.name] < z_order[arrowhead.name]
 
 
 def _assert_swimlane_legend():

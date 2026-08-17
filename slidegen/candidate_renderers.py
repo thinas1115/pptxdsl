@@ -800,25 +800,37 @@ def s_sequence(slide, spec, page):
         y = message_y[message["id"]] + fitted.values["row_h"] / 2
         sx, tx = x_by_id[message["from"]], x_by_id[message["to"]]
         if sx == tx:
-            loop_w, loop_h = 0.46, max(0.22, fitted.values["row_h"] * 0.72)
+            loop_w, loop_h = 0.54, max(0.26, fitted.values["row_h"] * 0.76)
             dash = "dash" if message.get("kind") == "return" else None
             route_top = y - loop_h / 2
             route_bottom = y + loop_h / 2
             route_right = sx + loop_w
-            self_route = (
-                plain_line(slide, sx, route_top, route_right, route_top,
-                           width=1.0, dash=dash),
-                plain_line(slide, route_right, route_top,
-                           route_right, route_bottom,
-                           width=1.0, dash=dash),
-                add_arrow(slide, route_right, route_bottom, sx, route_bottom,
-                          width=1.0, dash=dash),
-            )
+            outgoing = plain_line(
+                slide, sx, route_top, route_right, route_top,
+                width=1.25, dash=dash)
+            turn = plain_line(
+                slide, route_right, route_top, route_right, route_bottom,
+                width=1.25, dash=dash)
+            returned = plain_line(
+                slide, route_right, route_bottom, sx + 0.10, route_bottom,
+                width=1.35, dash=dash)
+            # 汎用コネクタの矢尻はライフラインに埋没するため、前面へ専用描画する。
+            arrowhead = slide.shapes.add_shape(
+                MSO_SHAPE.ISOSCELES_TRIANGLE,
+                Inches(sx), Inches(route_bottom - 0.06),
+                Inches(0.12), Inches(0.12))
+            arrowhead.rotation = 270
+            arrowhead.fill.solid()
+            arrowhead.fill.fore_color.rgb = GRAY
+            arrowhead.line.fill.background()
+            _flatten_shape(arrowhead)
+            arrowhead.name = f"sequence-self-arrowhead:{message['id']}"
+            self_route = (outgoing, turn, returned)
             for segment, role in zip(self_route, ("out", "turn", "return")):
                 segment.name = f"sequence-self-route:{message['id']}:{role}"
             # ラベルをループ外へ置き、自己処理を示す3辺を背景マスクで隠さない。
-            label_w = 1.20
-            label_left = route_right + 0.08
+            label_w = 1.10
+            label_left = route_right + 0.10
             label_x = label_left + label_w / 2
         else:
             kind = message.get("kind", "request")
