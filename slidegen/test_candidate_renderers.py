@@ -353,9 +353,9 @@ def _assert_swimlane_body_uses_canvas():
         if shape.width >= Inches(8.0)
         and shape.width <= Inches(12.0)
         and shape.height >= Inches(0.5)
+        and _fill_rgb(shape) == generate.CANVAS
     ]
     assert len(lane_bodies) == len(spec["lanes"])
-    assert all(_fill_rgb(shape) == generate.CANVAS for shape in lane_bodies)
 
 
 def _assert_swimlane_reference_palette():
@@ -387,6 +387,49 @@ def _assert_swimlane_reference_palette():
     ]
     assert all(_fill_rgb(shape) == generate.CANVAS for shape in stage_surfaces)
     assert all(_rgb(shape) == SWIMLANE_RULE for shape in stage_surfaces)
+
+
+def _assert_swimlane_header_and_stage_divider():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    kicker = next(
+        shape for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False)
+        and shape.text.strip() == spec["kicker"]
+    )
+    assert abs(kicker.left - Inches(0.72)) <= Inches(0.01)
+    assert abs(kicker.top - Inches(0.27)) <= Inches(0.01)
+
+    old_header_rules = [
+        shape for shape in slide.shapes
+        if shape.shape_type == MSO_SHAPE_TYPE.LINE
+        and shape.top <= Inches(0.30)
+        and shape.width >= Inches(12.0)
+        and shape.line.width >= Pt(2.5)
+    ]
+    assert not old_header_rules
+
+    stage_surfaces = [
+        shape for shape in slide.shapes
+        if shape.name.startswith(SURFACE_ON_CANVAS_PREFIX)
+    ]
+    stage_left = min(shape.left for shape in stage_surfaces)
+    stage_right = max(shape.left + shape.width for shape in stage_surfaces)
+    stage_bottom = max(shape.top + shape.height for shape in stage_surfaces)
+    dividers = [
+        shape for shape in slide.shapes
+        if shape.shape_type == MSO_SHAPE_TYPE.LINE
+        and shape.height == 0
+        and abs(shape.top - stage_bottom) <= Inches(0.01)
+        and abs(shape.left - stage_left) <= Inches(0.01)
+        and abs(shape.left + shape.width - stage_right) <= Inches(0.02)
+        and _rgb(shape) == SWIMLANE_RULE
+        and shape.line.width >= Pt(0.85)
+    ]
+    assert dividers
 
 
 def main():
@@ -445,6 +488,7 @@ def main():
     _assert_swimlane_stage_surface_contrast()
     _assert_swimlane_body_uses_canvas()
     _assert_swimlane_reference_palette()
+    _assert_swimlane_header_and_stage_divider()
     print("candidate renderer tests: OK")
 
 

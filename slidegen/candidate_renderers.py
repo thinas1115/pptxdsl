@@ -534,31 +534,16 @@ def _swimlane_step_label(step, index):
 
 
 def _swimlane_header(slide, spec):
-    """参照デザインの縦リズムを保つswimlane専用ヘッダー。"""
-    _flat_rect(slide, 0, 0, 13.333, 7.5, CANVAS)
-    plain_line(slide, 0.19, 0.20, 13.08, 0.20,
-               color=ACCENT, width=3.0)
-    title_size, title_lines = fit_text_or_raise(
-        "swimlane", "title", spec["title"], 12.25, 0.48, 25.5,
-        min_pt=19.0, weight="bold", spacing=1.08,
-    )
-    add_text(slide, 0.53, 0.54, 12.25, 0.48, "\n".join(title_lines),
-             title_size, bold=True, color=NAVY, spacing=1.08)
-    if spec.get("lead"):
-        lead_size, lead_lines = fit_text_or_raise(
-            "swimlane", "lead", spec["lead"], 12.25, 0.34, 14.0,
-            min_pt=11.5, spacing=1.12,
-        )
-        add_text(slide, 0.53, 1.05, 12.25, 0.34, "\n".join(lead_lines),
-                 lead_size, color=GRAY, spacing=1.12)
+    """全type共通のヘッダー階層を使い、本文開始位置を返す。"""
+    return header(slide, spec["kicker"], spec["title"], spec.get("lead"))
 
 
 def s_swimlane(slide, spec, page):
     """担当レーンと工程フェーズを持つ業務フローを描く。"""
-    _swimlane_header(slide, spec)
+    area = _swimlane_header(slide, spec)
     lanes, stages = spec["lanes"], spec["stages"]
     frame_x, frame_w = 0.37, 12.59
-    top = 1.64
+    top = area.top + 0.06
     stage_h, lane_label_w = 0.37, 1.27
     stage_index = {stage["id"]: index for index, stage in enumerate(stages)}
     step_by_id = {step["id"]: step for step in spec["steps"]}
@@ -649,6 +634,9 @@ def s_swimlane(slide, spec, page):
                  anchor=MSO_ANCHOR.MIDDLE)
         plain_line(slide, frame_x, y + lane_h, frame_x + frame_w, y + lane_h,
                    color=SWIMLANE_RULE, width=0.65)
+    # レーン背景が矢羽根の下辺を覆うため、工程帯の境界を最後に引き直す。
+    plain_line(slide, x0, lane_y0, frame_x + frame_w, lane_y0,
+               color=SWIMLANE_RULE, width=0.85)
     plain_line(slide, x0, lane_y0, x0, lane_y0 + len(lanes) * lane_h,
                color=SWIMLANE_RULE, width=0.8)
     for index in range(1, len(stages)):
