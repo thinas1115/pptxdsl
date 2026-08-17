@@ -48,10 +48,10 @@ RENDER = dict(generate.RENDER,
               scope_boundary=s_scope, decision_summary=s_summary,
               paired_comparison=s_paired_comparison, relationship_map=s_mapping,
               swimlane_flow=s_swimlane, message_sequence=s_sequence,
-              nw_concept=s_concept, nw_topology=s_network,
+              concept=s_concept, nw_topology=s_network,
               nw_protocol_flow=s_protocol_state_flow,
               nw_frame_anatomy=s_protocol_anatomy,
-              nw_config_lab=s_code_lab, nw_knowledge_check=s_knowledge_check)
+              config_lab=s_code_lab, knowledge_check=s_knowledge_check)
 
 
 def main(json_path, out_path, cover_footer_config=None):

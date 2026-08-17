@@ -59,7 +59,7 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/diagrams3.py` | route() 直角配線 |
 | `slidegen/diagram_layout.py` | 宣言的レイアウトエンジン (グリッド仕様→座標。diagram type の本体) |
 | `slidegen/diagram_specs.py` | 公開diagramスキーマだけで書いた構成図の回帰試験用サンプル |
-| `slidegen/training_renderers.py` | nw_concept / nw_topology / nw_frame_anatomy / nw_config_lab / nw_knowledge_check renderer |
+| `slidegen/training_renderers.py` | concept / nw_topology / nw_frame_anatomy / config_lab / knowledge_check renderer |
 | `slidegen/validate_content.py` | content.json の生成前検証。typeごとの `_v_*` 関数 |
 | `slidegen/generate_from_json.py` | content.json→PPTX。**新規資料の正式経路** |
 | `slidegen/generate_patterns.py` + `content_patterns.py` | 全typeの検証ギャラリー |

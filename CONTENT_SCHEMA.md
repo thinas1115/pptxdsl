@@ -21,8 +21,8 @@ schema例ではない。通常のvalidatorは、そこにある正規化後14文
 
 | category | type |
 |---|---|
-| Common | `title`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence` |
-| NW | `nw_concept`, `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy`, `nw_config_lab`, `nw_knowledge_check` |
+| Common | `title`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
+| NW | `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
 
 ## 機械検証
 
@@ -784,14 +784,14 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 }
 ```
 
-### nw_concept
+### concept
 
 用途: 専門用語や判断基準を初めて示すときに、定義、理解に必要な要点、誤解しやすい境界を一続きで説明する。
 研修資料では、未定義の用語を使った構成図や詳細手順より前へ置く。
 
 必須:
 
-- `type`: `"nw_concept"`
+- `type`: `"concept"`
 - `term`: 定義する用語または判断基準
 - `definition`: 用語の意味を単独で理解できる定義文
 - `points`: 2〜4件
@@ -812,7 +812,7 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 
 ```json
 {
-  "type": "nw_concept",
+  "type": "concept",
   "kicker": "言葉の定義",
   "title": "RTOとは",
   "term": "RTO",
@@ -999,13 +999,13 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 }
 ```
 
-### nw_config_lab
+### config_lab
 
 用途: 設定例やコードと、実行後に確認する状態を同じページで示す。
 
 必須:
 
-- `type`: `"nw_config_lab"`
+- `type`: `"config_lab"`
 - `sections`: 1〜2件。`label / code`を持ち、`code`は1区画16行以内
 - `checks`: 2〜5件の文字列
 
@@ -1016,7 +1016,7 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 
 ```json
 {
-  "type": "nw_config_lab",
+  "type": "config_lab",
   "kicker": "設定と確認",
   "title": "設定と状態確認",
   "lead": "コマンド終了ではなく、期待状態との一致を完了条件にする。",
@@ -1029,13 +1029,13 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 }
 ```
 
-### nw_knowledge_check
+### knowledge_check
 
 用途: 研修内の選択式問題と、対応する正答・解説を示す。
 
 必須:
 
-- `type`: `"nw_knowledge_check"`
+- `type`: `"knowledge_check"`
 - `mode`: `"questions" | "answers"`
 - `questions`: 1〜3件
   - `question`: 設問
@@ -1047,7 +1047,7 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 
 ```json
 {
-  "type": "nw_knowledge_check",
+  "type": "knowledge_check",
   "mode": "questions",
   "kicker": "理解度チェック",
   "title": "理解度チェック",

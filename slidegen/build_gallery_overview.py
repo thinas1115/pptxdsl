@@ -49,12 +49,12 @@ TYPE_ORDER = (
     "relationship_map",
     "swimlane_flow",
     "message_sequence",
-    "nw_concept",
+    "concept",
+    "config_lab",
+    "knowledge_check",
     "nw_topology",
     "nw_protocol_flow",
     "nw_frame_anatomy",
-    "nw_config_lab",
-    "nw_knowledge_check",
 )
 TYPE_CATEGORIES = {
     "title": "Common",
@@ -75,12 +75,12 @@ TYPE_CATEGORIES = {
     "relationship_map": "Common",
     "swimlane_flow": "Common",
     "message_sequence": "Common",
-    "nw_concept": "NW",
+    "concept": "Common",
+    "config_lab": "Common",
+    "knowledge_check": "Common",
     "nw_topology": "NW",
     "nw_protocol_flow": "NW",
     "nw_frame_anatomy": "NW",
-    "nw_config_lab": "NW",
-    "nw_knowledge_check": "NW",
 }
 
 

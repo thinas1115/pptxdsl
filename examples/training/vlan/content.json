@@ -52,7 +52,7 @@
       "note": "Voice VLAN、Private VLAN、Q-in-Q、VLAN自動配布などは発展事項として本研修の対象外。"
     },
     {
-      "type": "nw_concept",
+      "type": "concept",
       "kicker": "前提となる言葉",
       "title": "ブロードキャストドメイン",
       "lead": "VLANによる分割を理解するため、最初にL2でブロードキャストが届く範囲を確認します。",
@@ -93,7 +93,7 @@
       ]
     },
     {
-      "type": "nw_concept",
+      "type": "concept",
       "kicker": "言葉の定義",
       "title": "VLANとは",
       "term": "VLAN",
@@ -134,7 +134,7 @@
       ]
     },
     {
-      "type": "nw_concept",
+      "type": "concept",
       "kicker": "通信できる範囲",
       "title": "デフォルトゲートウェイ",
       "term": "デフォルトゲートウェイ",
@@ -148,7 +148,7 @@
       "misconception": "デフォルトゲートウェイはL3の次ホップです。初期VLANはポートの初期所属、ネイティブVLANはTrunk上のタグなし転送を扱います。"
     },
     {
-      "type": "nw_concept",
+      "type": "concept",
       "kicker": "VLAN識別の標準",
       "title": "IEEE 802.1Q",
       "lead": "複数のVLANを同じEthernetリンクで運ぶために、フレームの所属VLANを識別する仕組みを確認します。",
@@ -517,7 +517,7 @@
       "note": "どちらもVLANごとのL3インターフェースへIPアドレスを持たせ、端末のデフォルトゲートウェイとして使います。"
     },
     {
-      "type": "nw_config_lab",
+      "type": "config_lab",
       "kicker": "Cisco IOS XE設定例",
       "title": "L3スイッチのSVI設定",
       "lead": "VLANの作成、SVIのIP設定、IPルーティング有効化を一組で構成する。",
@@ -535,7 +535,7 @@
       ]
     },
     {
-      "type": "nw_config_lab",
+      "type": "config_lab",
       "kicker": "Cisco IOS XE show出力例",
       "title": "SVIの状態と直結経路",
       "lead": "SVIはIPアドレスだけでなく、up / upと直結経路の両方を確認する。",
@@ -558,7 +558,7 @@
       ]
     },
     {
-      "type": "nw_config_lab",
+      "type": "config_lab",
       "kicker": "Cisco IOS XE設定例",
       "title": "ルーターサブインターフェースの設定",
       "lead": "親ポート、802.1Q VLAN ID、IPアドレス、対向Trunkを一組で構成する。",
@@ -577,7 +577,7 @@
       ]
     },
     {
-      "type": "nw_config_lab",
+      "type": "config_lab",
       "kicker": "Cisco IOS XE show出力例",
       "title": "サブインターフェースの状態と直結経路",
       "lead": "サブインターフェースは親ポートの状態、論理IFのIP、直結経路を続けて確認する。",
@@ -613,7 +613,7 @@
       ]
     },
     {
-      "type": "nw_config_lab",
+      "type": "config_lab",
       "kicker": "設定と確認",
       "title": "VLANの設定と確認",
       "lead": "設定後は、意図したVLAN所属、Trunkの許可VLAN、対向機器との一致を確認する。",
@@ -650,7 +650,7 @@
       "emph": [1, 2]
     },
     {
-      "type": "nw_knowledge_check",
+      "type": "knowledge_check",
       "mode": "questions",
       "kicker": "理解度チェック",
       "title": "理解度チェック",
@@ -670,7 +670,7 @@
       ]
     },
     {
-      "type": "nw_knowledge_check",
+      "type": "knowledge_check",
       "mode": "answers",
       "kicker": "解答と解説",
       "title": "解答と解説",
@@ -690,7 +690,7 @@
       ]
     },
     {
-      "type": "nw_knowledge_check",
+      "type": "knowledge_check",
       "mode": "questions",
       "kicker": "VLAN間通信とTrunk設定",
       "title": "VLAN間通信とネイティブVLANの確認問題",
@@ -714,7 +714,7 @@
       ]
     },
     {
-      "type": "nw_knowledge_check",
+      "type": "knowledge_check",
       "mode": "answers",
       "kicker": "VLAN間通信とTrunk設定",
       "title": "VLAN間通信とネイティブVLANの解答",

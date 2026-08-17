@@ -10,10 +10,10 @@ SVI・RP・ルーターサブインターフェース、Cisco設定と確認、�
 この資料では、一般的な構成図だけでは表しにくい技術研修向けの次のtypeを使用しています。
 
 - `nw_topology`: 物理機器、論理セグメント、Access / Trunk / L3接続
-- `nw_concept`: 用語の定義、要点、誤解しやすい境界
+- `concept`: 用語の定義、要点、誤解しやすい境界
 - `nw_frame_anatomy`: フレーム・パケットのフィールド構造
-- `nw_config_lab`: 設定例と実行後の確認観点
-- `nw_knowledge_check`: 選択式の設問と正答・解説
+- `config_lab`: 設定例と実行後の確認観点
+- `knowledge_check`: 選択式の設問と正答・解説
 
 ## 再生成と検証
 

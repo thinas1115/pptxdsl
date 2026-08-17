@@ -77,7 +77,7 @@ _TYPE_KEYS = {
     "message_sequence": _BASE_SLIDE_KEYS | {
         "participants", "messages", "phases", "takeaway",
     },
-    "nw_concept": _BASE_SLIDE_KEYS | {
+    "concept": _BASE_SLIDE_KEYS | {
         "term", "definition", "points", "misconception", "icon",
     },
     "nw_topology": _BASE_SLIDE_KEYS | {
@@ -89,10 +89,10 @@ _TYPE_KEYS = {
     "nw_frame_anatomy": _BASE_SLIDE_KEYS | {
         "frames", "takeaway",
     },
-    "nw_config_lab": _BASE_SLIDE_KEYS | {
+    "config_lab": _BASE_SLIDE_KEYS | {
         "sections", "checks", "check_label", "takeaway",
     },
-    "nw_knowledge_check": _BASE_SLIDE_KEYS | {
+    "knowledge_check": _BASE_SLIDE_KEYS | {
         "mode", "questions",
     },
 }
@@ -108,7 +108,7 @@ _LEAD_ONLY_FIELDS = {
     "message_sequence": {"takeaway"},
     "nw_protocol_flow": {"takeaway"},
     "nw_frame_anatomy": {"takeaway"},
-    "nw_config_lab": {"takeaway"},
+    "config_lab": {"takeaway"},
 }
 
 
@@ -1381,10 +1381,10 @@ VALIDATORS = {
     "scope_boundary": _v_scope, "decision_summary": _v_summary,
     "paired_comparison": _v_paired_comparison, "relationship_map": _v_mapping,
     "swimlane_flow": _v_swimlane, "message_sequence": _v_sequence,
-    "nw_concept": _v_concept, "nw_topology": _v_network,
+    "concept": _v_concept, "nw_topology": _v_network,
     "nw_protocol_flow": _v_protocol_state_flow,
     "nw_frame_anatomy": _v_protocol_anatomy,
-    "nw_config_lab": _v_code_lab, "nw_knowledge_check": _v_knowledge_check,
+    "config_lab": _v_code_lab, "knowledge_check": _v_knowledge_check,
 }
 
 

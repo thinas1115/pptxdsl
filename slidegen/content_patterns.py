@@ -471,7 +471,7 @@ PATTERN_DECK = {
             },
         },
         {
-            "type": "nw_concept",
+            "type": "concept",
             "kicker": "言葉の定義",
             "title": "RTOは、障害発生から業務再開までの目標時間を表す",
             "term": "RTO",
@@ -577,7 +577,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "nw_config_lab",
+            "type": "config_lab",
             "kicker": "設定と確認",
             "title": "設定例と確認コマンドを並べ、変更後の状態まで検証する",
             "lead": "コマンドの実行ではなく、期待状態の確認までを作業単位とする。",
@@ -594,7 +594,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "nw_knowledge_check",
+            "type": "knowledge_check",
             "mode": "questions",
             "kicker": "理解度チェック",
             "title": "判断理由を選び、運用設計の理解を確認する",

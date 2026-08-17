@@ -6,12 +6,12 @@
 
 ## typeカテゴリー
 
-`type`は先に親カテゴリーで選ぶ。通常の業務資料はまず`Common`から選び、ネットワークの概念・物理/論理接続・フレーム/パケット・設定確認を説明する研修資料だけ`NW`を使う。
+`type`は先に親カテゴリーで選ぶ。通常の業務資料はまず`Common`から選び、ネットワーク固有の物理/論理接続、フレーム/パケット構造、処理段階を説明する研修資料だけ`NW`を使う。
 
 | category | type |
 |---|---|
-| Common | `title`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence` |
-| NW | `nw_concept`, `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy`, `nw_config_lab`, `nw_knowledge_check` |
+| Common | `title`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
+| NW | `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
 
 ## 参照情報の役割
 
@@ -55,12 +55,12 @@
 | `message_sequence` | 関係者・機器間のメッセージを上から時系列に追う | 担当別の作業箱や分岐工程が主役 | `swimlane_flow`、`process` |
 | `org` | 複数トップ、多段階層、複数親、横連携を示す | システムやデータの接続を示す | `diagram` |
 | `diagram` | システム、クラウド、業務要素の接続・境界・データフローを示す | VLANなど論理セグメントと物理リンク種別の対応を示す | `nw_topology`、`process` |
-| `nw_concept` | 専門用語や判断基準を初めて定義し、要点と誤解しやすい境界を説明する | 複数案の比較、要素間の接続、単なる箇条書き | `bullets`、`diagram` |
+| `concept` | 専門用語や判断基準を初めて定義し、要点と誤解しやすい境界を説明する | 複数案の比較、要素間の接続、単なる箇条書き | `bullets`、`diagram` |
 | `nw_topology` | 物理機器、論理セグメント、Access・Trunk・L3接続を同時に示す | 一般的なシステム構成や業務フローを示す | `diagram`、`process` |
 | `nw_protocol_flow` | 同じフレームやパケットの状態が、端末・装置内部・伝送区間ごとにどう変わるかを追跡する | 物理構成全体、単なるメッセージ順、ビット配置を示す | `nw_topology`、`message_sequence`、`nw_frame_anatomy` |
 | `nw_frame_anatomy` | フレームやパケットのフィールド構成、ビット長、注目箇所を示す | 通信順序や機器間の流れを示す | `message_sequence`、`table` |
-| `nw_config_lab` | 設定例やコードと、その確認観点・検証コマンドを同じページで示す | 概念説明や工程だけを示す | `process`、`image` |
-| `nw_knowledge_check` | 選択式の設問と、対応する正答・解説を研修資料へ組み込む | 通常の要点整理や結論を示す | `bullets`、`decision_summary` |
+| `config_lab` | 設定例やコードと、その確認観点・検証コマンドを同じページで示す | 概念説明や工程だけを示す | `process`、`image` |
+| `knowledge_check` | 選択式の設問と、対応する正答・解説を研修資料へ組み込む | 通常の要点整理や結論を示す | `bullets`、`decision_summary` |
 
 ### `nw_protocol_flow`の選択境界
 

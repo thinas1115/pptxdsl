@@ -23,12 +23,12 @@ from validate_content import validate
 
 
 RENDERERS = {
-    "nw_concept": s_concept,
+    "concept": s_concept,
     "nw_topology": s_network,
     "nw_protocol_flow": s_protocol_state_flow,
     "nw_frame_anatomy": s_protocol_anatomy,
-    "nw_config_lab": s_code_lab,
-    "nw_knowledge_check": s_knowledge_check,
+    "config_lab": s_code_lab,
+    "knowledge_check": s_knowledge_check,
 }
 
 
@@ -174,7 +174,7 @@ def _assert_network_contract(deck, samples):
 
 
 def _assert_concept_contract(samples):
-    concept = deepcopy(samples["nw_concept"])
+    concept = deepcopy(samples["concept"])
     rendered = _render(_presentation(), concept)
     texts = {
         shape.text.strip() for shape in rendered.shapes
@@ -470,7 +470,7 @@ def _assert_protocol_contract(samples):
 
 
 def _assert_code_stop(samples):
-    code = deepcopy(samples["nw_config_lab"])
+    code = deepcopy(samples["config_lab"])
     code["sections"][0]["code"] = "x" * 240
     try:
         _render(_presentation(), code)
@@ -483,10 +483,10 @@ def _assert_code_stop(samples):
 def _assert_knowledge_modes(deck):
     questions = next(
         deepcopy(spec) for spec in deck["slides"]
-        if spec["type"] == "nw_knowledge_check" and spec["mode"] == "questions")
+        if spec["type"] == "knowledge_check" and spec["mode"] == "questions")
     answers = next(
         deepcopy(spec) for spec in deck["slides"]
-        if spec["type"] == "nw_knowledge_check" and spec["mode"] == "answers")
+        if spec["type"] == "knowledge_check" and spec["mode"] == "answers")
     question_texts = {
         shape.text.strip() for shape in _render(_presentation(), questions).shapes
         if getattr(shape, "has_text_frame", False)
@@ -516,7 +516,7 @@ def main():
     for spec in samples.values():
         _assert_in_slide(_render(prs, deepcopy(spec)))
 
-    for type_ in ("nw_protocol_flow", "nw_frame_anatomy", "nw_config_lab"):
+    for type_ in ("nw_protocol_flow", "nw_frame_anatomy", "config_lab"):
         legacy = deepcopy(samples[type_])
         legacy["takeaway"] = "下部注記帯へ表示していた要点"
         legacy_errors = validate(
