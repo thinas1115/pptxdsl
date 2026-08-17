@@ -9,6 +9,8 @@
   L-T: 矢印・線×テキストグリフ(白塗りマスクラベルは除外)
   CELL-OOB: 表セルからのテキストはみ出し
   OOB: スライド境界からの図形・画像・表・グラフのはみ出し
+  VIS-CONTRAST: 背景に接する意味面とキャンバスの分離不足
+  SEQ-CLEARANCE: sequence自己処理の戻り線とメッセージラベルの接触
 """
 import sys
 
@@ -16,6 +18,14 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from cover_footer import COVER_BACKGROUND_NAME
+from quality_markers import (
+    MIN_SURFACE_CONTRAST,
+    MIN_SURFACE_EDGE_CONTRAST,
+    SEQUENCE_LABEL_CLEARANCE,
+    SEQUENCE_MESSAGE_LABEL_PREFIX,
+    SEQUENCE_SELF_ROUTE_PREFIX,
+    SURFACE_ON_CANVAS_PREFIX,
+)
 from textfit import line_height_in, wrap_text
 
 EMU = 914400
@@ -33,6 +43,11 @@ def rect_of(sh):
 def intersects(a, b, eps=EPS):
     return not (a[2] - eps <= b[0] or b[2] - eps <= a[0]
                 or a[3] - eps <= b[1] or b[3] - eps <= a[1])
+
+
+def expanded(rect, amount):
+    return (rect[0] - amount, rect[1] - amount,
+            rect[2] + amount, rect[3] + amount)
 
 
 def contains(outer, inner, eps=EPS):
@@ -127,7 +142,7 @@ def seg_of(sh):
     return (ax, ay, bx, by)
 
 
-def seg_hits_rect(seg, r):
+def seg_hits_rect(seg, r, eps=EPS):
     """線分と矩形の交差(端をSEG_TRIMだけ縮めて接続点は無視)。"""
     x1, y1, x2, y2 = seg
     import math
@@ -142,7 +157,7 @@ def seg_hits_rect(seg, r):
     for i in range(steps + 1):
         t = i / steps
         px, py = x1 + (x2 - x1) * t, y1 + (y2 - y1) * t
-        if r[0] + EPS < px < r[2] - EPS and r[1] + EPS < py < r[3] - EPS:
+        if r[0] + eps < px < r[2] - eps and r[1] + eps < py < r[3] - eps:
             return True
     return False
 
@@ -152,6 +167,57 @@ def has_solid_fill(sh):
         return sh.fill.type is not None and str(sh.fill.type) == "SOLID (1)"
     except Exception:
         return False
+
+
+def solid_fill_rgb(sh):
+    if not has_solid_fill(sh):
+        return None
+    try:
+        return tuple(sh.fill.fore_color.rgb)
+    except (AttributeError, TypeError):
+        return None
+
+
+def solid_line_rgb(sh):
+    """図形の単色輪郭をRGBで返す。輪郭なし・テーマ色は判定不能とする。"""
+    try:
+        rgb = sh.line.color.rgb
+        if rgb is None or sh.line.width <= 0:
+            return None
+        return tuple(rgb)
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def relative_luminance(rgb):
+    values = [value / 255 for value in rgb]
+    linear = [
+        value / 12.92 if value <= 0.04045
+        else ((value + 0.055) / 1.055) ** 2.4
+        for value in values
+    ]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def contrast_ratio(first, second):
+    high, low = sorted(
+        (relative_luminance(first), relative_luminance(second)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def canvas_fill_rgb(slide, slide_w, slide_h):
+    """全画面を覆う最背面の塗り図形をキャンバスとして扱う。"""
+    for sh in slide.shapes:
+        if sh.shape_type != MSO_SHAPE_TYPE.AUTO_SHAPE:
+            continue
+        bounds = rect_of(sh)
+        if (bounds[0] <= EPS and bounds[1] <= EPS
+                and bounds[2] >= slide_w - EPS
+                and bounds[3] >= slide_h - EPS):
+            color = solid_fill_rgb(sh)
+            if color is not None:
+                return color
+    return None
 
 
 def snippet(t):
@@ -165,7 +231,9 @@ def check(path):
     slide_h = prs.slide_height / EMU
     findings = []
     for si, slide in enumerate(prs.slides, 1):
+        canvas_rgb = canvas_fill_rgb(slide, slide_w, slide_h)
         texts, pics, solids, frames, segs = [], [], [], [], []
+        sequence_returns, sequence_labels = [], []
         for z, sh in enumerate(slide.shapes):  # zは描画順(後勝ち)
             st = sh.shape_type
             bounds = rect_of(sh)
@@ -175,11 +243,34 @@ def check(path):
                 if sh.name != COVER_BACKGROUND_NAME:
                     pics.append((bounds, sh.name))
             elif st in (MSO_SHAPE_TYPE.AUTO_SHAPE,):
+                if sh.name.startswith(SURFACE_ON_CANVAS_PREFIX):
+                    surface_rgb = solid_fill_rgb(sh)
+                    if surface_rgb is None or canvas_rgb is None:
+                        findings.append((si, "VIS-CONTRAST", sh.name,
+                                         "塗りまたはキャンバス色を取得できません"))
+                    else:
+                        fill_ratio = contrast_ratio(surface_rgb, canvas_rgb)
+                        edge_rgb = solid_line_rgb(sh)
+                        edge_ratio = (
+                            contrast_ratio(edge_rgb, canvas_rgb)
+                            if edge_rgb is not None else 0.0
+                        )
+                        if (fill_ratio < MIN_SURFACE_CONTRAST
+                                and edge_ratio < MIN_SURFACE_EDGE_CONTRAST):
+                            findings.append((
+                                si, "VIS-CONTRAST", sh.name,
+                                f"面={fill_ratio:.3f} < {MIN_SURFACE_CONTRAST:.2f}, "
+                                f"輪郭={edge_ratio:.3f} < "
+                                f"{MIN_SURFACE_EDGE_CONTRAST:.2f}"))
                 if not sh.name.startswith(BACKGROUND_PREFIX):
                     (solids if has_solid_fill(sh) else frames).append(
                         (bounds, sh.name, z))
             elif st == MSO_SHAPE_TYPE.LINE:
-                segs.append((seg_of(sh), sh.name, z))
+                seg = seg_of(sh)
+                segs.append((seg, sh.name, z))
+                if (sh.name.startswith(SEQUENCE_SELF_ROUTE_PREFIX)
+                        and sh.name.endswith(":return")):
+                    sequence_returns.append((seg, sh.name))
             elif st == MSO_SHAPE_TYPE.CHART:
                 pics.append((bounds, sh.name))
             elif st == MSO_SHAPE_TYPE.TABLE:
@@ -199,6 +290,8 @@ def check(path):
                 if g:
                     texts.append((g, snippet(sh.text_frame.text),
                                   has_solid_fill(sh)))
+                if sh.name.startswith(SEQUENCE_MESSAGE_LABEL_PREFIX):
+                    sequence_labels.append((bounds, sh.name))
         # T-T
         for i in range(len(texts)):
             for j in range(i + 1, len(texts)):
@@ -237,6 +330,15 @@ def check(path):
             for r, pname in pics:
                 if seg_hits_rect(seg, r):
                     findings.append((si, "L-P", name, pname))
+        # 線上ラベルは塗りマスクを使うため汎用L-Tでは除外される。
+        # 自己処理の戻り線は、別メッセージのラベルに隠れると経路が欠けるため意味名で検査する。
+        for seg, route_name in sequence_returns:
+            for label_rect, label_name in sequence_labels:
+                if seg_hits_rect(
+                        seg, expanded(label_rect, SEQUENCE_LABEL_CLEARANCE),
+                        eps=0.0):
+                    findings.append((
+                        si, "SEQ-CLEARANCE", route_name, label_name))
         for g, t, _ in texts:
             if is_oob(g, slide_w, slide_h):
                 findings.append((si, "OOB-TEXT", t, ""))
@@ -247,7 +349,7 @@ if __name__ == "__main__":
     path = sys.argv[1]
     fs = check(path)
     if not fs:
-        print(f"OK: no layout collisions in {path}")
+        print(f"OK: no layout or visual QA findings in {path}")
         sys.exit(0)
     print(f"NG: {len(fs)} finding(s) in {path}")
     for si, kind, a, b in fs:

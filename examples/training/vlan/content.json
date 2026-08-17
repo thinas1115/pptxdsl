@@ -166,6 +166,7 @@
       "type": "protocol_anatomy",
       "kicker": "フレーム形式",
       "title": "802.1Qタグの構造",
+      "lead": "同じデータ長なら802.1Qタグ付きフレームは4 byte長くなる（FCSを含め1518 byteから1522 byte）。",
       "frames": [
         {
           "label": "タグなし",
@@ -197,8 +198,7 @@
             {"field": "vid", "text": "所属VLANを識別する12 bit。"}
           ]
         }
-      ],
-      "takeaway": "同じデータ長なら802.1Qタグ付きは4 byte長く、Ethernetフレームの最大長も1518 byteから1522 byteへ増えます（FCS含む）。"
+      ]
     },
     {
       "type": "table",
@@ -275,7 +275,7 @@
       "type": "protocol_state_flow",
       "kicker": "Trunkのタグ処理",
       "title": "ネイティブVLANのタグ処理",
-      "lead": "タグなしフレーム自身にはVLAN IDがありません。VLAN 10側はPC接続ポートもTrunk native 10とし、受信ポートのnative VLAN設定によって内部VLAN 10へ割り当てます。Access VLAN設定は使いません。VLAN 20側はAccessポートで分類し、スイッチ間Trunkを802.1Qタグ付きで通します。",
+      "lead": "VLAN 10経路ではAccess VLAN設定を使わず、Trunkのnative VLAN設定がタグなしフレームの所属を決める。",
       "stages": [
         {"id": "tx", "label": "送信端末", "icon": "icons/fluent/laptop.png", "role": "endpoint"},
         {"id": "sw_a", "label": "スイッチA", "icon": "icons/fluent/switch.png", "role": "processor"},
@@ -306,14 +306,13 @@
             {"stage": "rx", "label": "タグなし", "detail": "PCへ送出", "appearance": "plain"}
           ]
         }
-      ],
-      "takeaway": "VLAN 10経路ではAccess VLAN設定を使わず、Trunkのnative VLAN設定がタグなしフレームの所属を決めます。"
+      ]
     },
     {
       "type": "sequence",
       "kicker": "Trunk両端の設定不一致",
       "title": "ネイティブVLAN不一致時の誤分類",
-      "lead": "PC AのタグなしフレームをSW-AのAccessポートでVLAN 10へ分類した後、native VLANが異なるTrunkへ送る例です。SW-Aはnative VLAN 10をタグなしで送りますが、SW-Bはタグなし受信をnative VLAN 20へ誤分類します。",
+      "lead": "PC側ではAccess VLAN、Trunk受信側ではnative VLANがタグなしフレームの所属を決めるため、両端のnative VLANを一致させる。",
       "participants": [
         {"id": "pc_a", "label": "営業PC A"},
         {"id": "sw_a", "label": "SW-A（Access 10 / native 10）"},
@@ -329,8 +328,7 @@
       "phases": [
         {"label": "送信側ではVLAN 10", "from": "access_in", "to": "untagged_native"},
         {"label": "受信側ではVLAN 20", "from": "wrong_classify", "to": "wrong_forward"}
-      ],
-      "takeaway": "PC側ではAccess VLAN、Trunk受信側ではnative VLANがタグなしフレームの所属を決めます。両端のnative VLANを一致させます。"
+      ]
     },
     {
       "type": "table",
@@ -350,7 +348,7 @@
       "type": "sequence",
       "kicker": "同じVLAN内の転送",
       "title": "Trunk区間のタグ処理",
-      "lead": "左から右へ、Access区間で受信したタグなしフレームをVLAN 10へ分類し、Trunk区間だけタグを付け、宛先側のAccess区間ではタグを外す流れを追います。",
+      "lead": "802.1Qタグが現れるのはTrunk区間であり、端末側のAccess区間ではタグなしフレームとして送受信する。",
       "participants": [
         {"id": "pc_a", "label": "営業PC A"},
         {"id": "sw_a", "label": "スイッチA"},
@@ -368,8 +366,7 @@
         {"label": "送信側", "from": "untagged_in", "to": "classify"},
         {"label": "Trunk", "from": "tagged", "to": "tagged"},
         {"label": "受信側", "from": "lookup", "to": "untagged_out"}
-      ],
-      "takeaway": "802.1Qタグが現れるのはTrunk区間です。端末側のAccess区間ではタグなしフレームとして送受信します。"
+      ]
     },
     {
       "type": "table",
@@ -482,7 +479,7 @@
       "type": "sequence",
       "kicker": "VLAN 10からVLAN 20",
       "title": "サブインターフェース間の転送",
-      "lead": "受信したVLAN 10のL2フレームをそのままVLAN 20へ渡すのではありません。ルーターはIPパケットを取り出して経路を選び、VLAN 20向けの送信元・宛先MACアドレスとタグを持つ新しいL2フレームを作ります。",
+      "lead": "送信元・宛先IPアドレスは維持し、MACアドレスとVLANタグはルーティング区間ごとに作り直す。",
       "participants": [
         {"id": "pc10", "label": "営業PC"},
         {"id": "switch", "label": "L2スイッチ"},
@@ -503,8 +500,7 @@
         {"label": "受信", "from": "m1", "to": "m2"},
         {"label": "ルーティング", "from": "m3", "to": "m4"},
         {"label": "送信", "from": "m5", "to": "m6"}
-      ],
-      "takeaway": "送信元・宛先IPアドレスは維持し、MACアドレスとVLANタグはルーティング区間ごとに作り直します。"
+      ]
     },
     {
       "type": "table",
@@ -524,7 +520,7 @@
       "type": "code_lab",
       "kicker": "Cisco IOS XE設定例",
       "title": "L3スイッチのSVI設定",
-      "lead": "VLAN 10と20へゲートウェイを作り、L3スイッチ内のIPルーティングを有効にする例です。",
+      "lead": "VLANの作成、SVIのIP設定、IPルーティング有効化を一組で構成する。",
       "sections": [
         {
           "label": "SVIを作成してL3転送を有効化",
@@ -536,14 +532,13 @@
         "ip routingは、L3スイッチのIPルーティングを有効にする",
         "interface Vlan10とVlan20は、各VLANのL3インターフェースを作る",
         "192.168.10.1と192.168.20.1は、各VLANの端末が使うデフォルトゲートウェイになる"
-      ],
-      "takeaway": "VLANの作成、SVIのIP設定、IPルーティング有効化を一組で構成します。"
+      ]
     },
     {
       "type": "code_lab",
       "kicker": "Cisco IOS XE show出力例",
       "title": "SVIの状態と直結経路",
-      "lead": "表示は代表的な抜粋です。インターフェース名と出力形式は機種・IOS XEリリースで異なります。",
+      "lead": "SVIはIPアドレスだけでなく、up / upと直結経路の両方を確認する。",
       "sections": [
         {
           "label": "SVIのIPアドレスと稼働状態",
@@ -560,14 +555,13 @@
         "SVIのline protocolは、対応VLANと接続ポートの状態にも連動する",
         "Cで始まる直結経路が、対応するVlanインターフェースへ登録されている",
         "端末のデフォルトゲートウェイが、所属VLANのSVIアドレスを指している"
-      ],
-      "takeaway": "SVIはIPアドレスだけでなく、up / upと直結経路の両方を確認します。"
+      ]
     },
     {
       "type": "code_lab",
       "kicker": "Cisco IOS XE設定例",
       "title": "ルーターサブインターフェースの設定",
-      "lead": "1本の物理ポートでVLAN 10と20を終端する、Router-on-a-Stickの代表例です。",
+      "lead": "親ポート、802.1Q VLAN ID、IPアドレス、対向Trunkを一組で構成する。",
       "sections": [
         {
           "label": "物理ポートをVLAN別の論理IFへ分割",
@@ -580,14 +574,13 @@
         "encapsulation dot1Q 10と20は、各論理IFへ対応するVLAN IDを指定する",
         "Gi0/0.10とGi0/0.20のIPアドレスは、各VLANのデフォルトゲートウェイになる",
         "対向スイッチのTrunkでも、VLAN 10と20を作成・許可する"
-      ],
-      "takeaway": "親ポート、802.1Q VLAN ID、IPアドレス、対向Trunkを一組で構成します。"
+      ]
     },
     {
       "type": "code_lab",
       "kicker": "Cisco IOS XE show出力例",
       "title": "サブインターフェースの状態と直結経路",
-      "lead": "表示は代表的な抜粋です。インターフェース名と出力形式は機種・IOS XEリリースで異なります。",
+      "lead": "サブインターフェースは親ポートの状態、論理IFのIP、直結経路を続けて確認する。",
       "sections": [
         {
           "label": "親ポートとサブインターフェース",
@@ -604,8 +597,7 @@
         "Gi0/0.10とGi0/0.20がup / upで、それぞれゲートウェイIPを持つ",
         "dot1QのVLAN IDが、対向スイッチのTrunkで許可するVLANと一致している",
         "直結経路の出力先が、対応するサブインターフェースになっている"
-      ],
-      "takeaway": "サブインターフェースは親ポートの状態、論理IFのIP、直結経路を続けて確認します。"
+      ]
     },
     {
       "type": "table",
@@ -624,7 +616,7 @@
       "type": "code_lab",
       "kicker": "設定と確認",
       "title": "VLANの設定と確認",
-      "lead": "Cisco IOS形式の例です。実機では機種とOSのコマンド仕様を確認してください。",
+      "lead": "設定後は、意図したVLAN所属、Trunkの許可VLAN、対向機器との一致を確認する。",
       "sections": [
         {
           "label": "Access: 端末ポートをVLAN 10へ所属",
@@ -641,8 +633,7 @@
         "show interfaces trunkで、Gi1/0/24がTrunkとして動作している",
         "VLAN 10と20が、Trunkの許可VLANへ含まれている",
         "対向スイッチでも同じVLANが作成・許可されている"
-      ],
-      "takeaway": "設定後は、意図したVLAN所属、Trunkの許可VLAN、対向機器との一致を確認します。"
+      ]
     },
     {
       "type": "process",

@@ -19,6 +19,7 @@ REVIEW_DECK = {
         {
             "type": "scope", "kicker": "対象範囲 / 標準",
             "title": "移行プロジェクトの実施範囲と責任境界を明確にする",
+            "lead": "必要なデータの受領と関係部門のレビュー体制を、着手前の前提とする。",
             "in_scope": [
                 "対象業務の要件整理と新しい運用フローの設計",
                 "既存システムとのインターフェース設計・実装",
@@ -30,12 +31,11 @@ REVIEW_DECK = {
                 "今回の対象外となる周辺システムの機能改修",
                 "初期運用期間終了後の長期保守業務",
             ],
-            "assumptions": ["データを所定形式で受領", "関係部門のレビュー担当を確保"],
         },
         {
             "type": "scope", "kicker": "対象範囲 / 上限",
             "title": "複数部門が関わる更改で、作業範囲・対象外・成立条件を漏れなく確認する",
-            "lead": "各項目を6件まで増やしても、左右の読み順と前提条件の優先度を維持します。",
+            "lead": "意思決定者・接続仕様・試験データ・既存基盤の4条件を確認してから着手する。",
             "in_scope": [
                 "業務要件・非機能要件・移行要件の整理と合意形成",
                 "アプリケーション、API、バッチ処理の設計と実装",
@@ -52,10 +52,6 @@ REVIEW_DECK = {
                 "移行元データの名寄せ・欠損補完・品質改善作業",
                 "対象外拠点の回線更改とネットワーク機器の再配置",
             ],
-            "assumptions": [
-                "意思決定者が隔週でレビューに参加", "接続仕様を設計開始前に受領",
-                "試験データを所定品質で準備", "移行期間中も既存基盤が安定稼働",
-            ],
         },
         {
             "type": "summary", "kicker": "意思決定要約 / 疎",
@@ -68,24 +64,23 @@ REVIEW_DECK = {
         {
             "type": "summary", "kicker": "意思決定要約 / 標準",
             "title": "背景・判断・提案を整理し、意思決定を1枚で支援する",
+            "lead": "限定導入で効果と運用条件を確認した後、対象業務を段階的に拡大する。",
             "sections": [
                 {"heading": "背景", "body": "部門ごとに資料の構成と確認方法が異なり、作成とレビューの双方に手戻りが発生している。"},
                 {"heading": "判断", "body": "全資料を一律化せず、頻出する業務パターンから提出品質を標準化する方が導入負荷を抑えられる。"},
                 {"heading": "提案", "body": "対象部門で標準レイアウトを試行し、品質・作成時間・運用負荷を測定して展開可否を判断する。"},
             ],
-            "conclusion": "限定導入で効果と運用条件を確認した後、対象業務を段階的に拡大する。",
         },
         {
             "type": "summary", "kicker": "意思決定要約 / 上限",
             "title": "4つの判断材料を整理し、実行可否と条件を役員会へ提示する",
-            "lead": "各論点は事実と示唆を分け、最後に判断文を1文で固定します。",
+            "lead": "対象顧客と回答範囲を限定して実証し、品質基準を満たした段階で全社展開を判断する。",
             "sections": [
                 {"heading": "市場環境", "body": "競合各社はセルフサービス化を進め、問い合わせから回答までの時間を短縮している。"},
                 {"heading": "顧客影響", "body": "現行の受付方法では繁忙期の待ち時間が増え、解約意向の高い顧客を早期に把握できない。"},
                 {"heading": "実現性", "body": "既存CRMと認証基盤を活用できるため、対象業務を限定すれば6か月以内に提供開始できる。"},
                 {"heading": "主要リスク", "body": "回答品質と権限管理を担保するため、公開前レビューと利用ログ監査を運用へ組み込む必要がある。"},
             ],
-            "conclusion": "対象顧客と回答範囲を限定した実証を開始し、品質基準を満たした段階で全社展開を判断する。",
         },
         {
             "type": "paired_comparison", "kicker": "方式比較 / 疎",
@@ -99,6 +94,7 @@ REVIEW_DECK = {
         {
             "type": "paired_comparison", "kicker": "方式比較 / 標準",
             "title": "現行方式と標準方式を、同じ評価軸で比較する",
+            "lead": "短期の立ち上げは現行方式、中長期の横展開は標準方式が優位となる。",
             "left_label": "現行方式", "right_label": "標準方式",
             "rows": [
                 {"criterion": "運用負荷", "left": "担当者ごとの個別対応が多い", "right": "共通手順により確認作業を削減"},
@@ -107,12 +103,11 @@ REVIEW_DECK = {
                 {"criterion": "品質", "left": "担当者の経験により差が生じる", "right": "標準検証により品質と一貫性を維持"},
                 {"criterion": "拡張性", "left": "対象拡大に比例して運用負荷が増える", "right": "共通基盤を再利用して対象を追加できる"},
             ],
-            "takeaway": "短期の立ち上げは現行方式、中長期の横展開は標準方式が優位となる。",
         },
         {
             "type": "paired_comparison", "kicker": "方式比較 / 上限",
             "title": "6つの観点で移行方式を比較し、採用条件と残課題を明確にする",
-            "lead": "評価軸と左右の説明が長い場合も、対応する行を見失わないことを確認します。",
+            "lead": "業務停止を最小化するため段階移行を採用し、同期運用の負荷を計画へ織り込む。",
             "left_label": "一括移行", "right_label": "段階移行",
             "rows": [
                 {"criterion": "停止時間", "left": "全機能を同日に切り替えるため長時間停止が必要", "right": "対象単位で切り替え、停止影響を局所化できる"},
@@ -122,7 +117,6 @@ REVIEW_DECK = {
                 {"criterion": "要員負荷", "left": "短期間に多くの担当者と支援要員を集中配置する", "right": "長期間の体制維持が必要だがピーク負荷を抑えられる"},
                 {"criterion": "切戻し", "left": "全体を戻す手順と判断時間の確保が難しい", "right": "対象単位で切り戻し、影響範囲を限定できる"},
             ],
-            "takeaway": "業務停止を最小化するため段階移行を採用し、同期運用の負荷を計画へ織り込む。",
         },
         {
             "type": "mapping", "kicker": "対応関係 / 疎",
@@ -189,20 +183,28 @@ REVIEW_DECK = {
         },
         {
             "type": "swimlane", "kicker": "担当フロー / 標準",
-            "title": "障害対応の担当境界と引き継ぎ点を明確にする",
-            "lanes": [{"id": "user", "label": "利用部門"}, {"id": "ops", "label": "運用担当"}, {"id": "network", "label": "ネットワーク担当"}, {"id": "carrier", "label": "回線事業者"}],
+            "title": "障害対応スイムレーン",
+            "lead": "担当境界と引き継ぎ点を明示し、対応漏れを防止する。",
+            "lanes": [{"id": "user", "label": "利用部門"}, {"id": "ops", "label": "運用担当"}, {"id": "network", "label": "NW担当"}, {"id": "carrier", "label": "回線事業者"}],
             "stages": [{"id": "detect", "label": "検知・申告"}, {"id": "verify", "label": "確認・切り分け"}, {"id": "recover", "label": "対応・復旧"}, {"id": "close", "label": "確認・完了"}],
             "steps": [
-                {"id": "report", "name": "障害申告", "lane": "user", "stage": "detect"}, {"id": "triage", "name": "一次確認", "lane": "ops", "stage": "verify"},
-                {"id": "monitor", "name": "監視確認", "lane": "ops", "stage": "verify"}, {"id": "device", "name": "機器確認", "lane": "network", "stage": "verify"},
-                {"id": "escalate", "name": "エスカレーション", "lane": "ops", "stage": "recover"}, {"id": "isolate", "name": "回線切り分け", "lane": "network", "stage": "recover"},
-                {"id": "provider", "name": "回線調査・復旧", "lane": "carrier", "stage": "recover", "style": "accent"}, {"id": "result", "name": "結果確認", "lane": "ops", "stage": "recover"},
-                {"id": "notify", "name": "利用者連絡", "lane": "user", "stage": "close"}, {"id": "close", "name": "クローズ", "lane": "user", "stage": "close"},
+                {"id": "report", "name": "障害申告", "lane": "user", "stage": "detect", "number": 1},
+                {"id": "triage", "name": "一次確認", "lane": "ops", "stage": "detect", "number": 2},
+                {"id": "monitor", "name": "監視確認", "lane": "ops", "stage": "verify", "number": 3},
+                {"id": "device", "name": "機器確認", "lane": "network", "stage": "verify", "number": 4},
+                {"id": "isolate", "name": "回線切り分け", "lane": "network", "stage": "verify", "number": 5},
+                {"id": "escalate", "name": "エスカレーション", "lane": "ops", "stage": "verify", "number": 6},
+                {"id": "provider", "name": "機器・回線調査／復旧対応", "lane": "carrier", "stage": "recover", "style": "accent", "number": None},
+                {"id": "recover", "name": "復旧作業", "lane": "ops", "stage": "recover", "number": 7},
+                {"id": "notify", "name": "利用者連絡", "lane": "user", "stage": "close", "number": 8},
+                {"id": "result", "name": "結果確認", "lane": "ops", "stage": "recover", "number": 9},
+                {"id": "close", "name": "クローズ", "lane": "user", "stage": "close", "number": 10},
             ],
             "edges": [
                 {"from": "report", "to": "triage"}, {"from": "triage", "to": "monitor"}, {"from": "triage", "to": "device"},
                 {"from": "monitor", "to": "escalate"}, {"from": "device", "to": "isolate"}, {"from": "escalate", "to": "isolate"},
-                {"from": "isolate", "to": "provider"}, {"from": "provider", "to": "result"}, {"from": "result", "to": "notify"}, {"from": "notify", "to": "close"},
+                {"from": "isolate", "to": "provider"}, {"from": "provider", "to": "recover"},
+                {"from": "recover", "to": "result"}, {"from": "result", "to": "notify"}, {"from": "notify", "to": "close"},
             ],
         },
         {
@@ -267,6 +269,7 @@ REVIEW_DECK = {
         {
             "type": "scope", "kicker": "対象範囲 / 長文",
             "title": "長い作業名称でも、対象・対象外・前提条件の境界を読み違えない",
+            "lead": "接続仕様・意思決定者・移行データの準備を完了してから設計へ着手する。",
             "in_scope": [
                 "全社共通の申請受付から部門責任者による承認結果通知までの業務プロセス設計",
                 "既存の顧客管理基盤および認証基盤との接続仕様策定と結合試験",
@@ -277,14 +280,11 @@ REVIEW_DECK = {
                 "接続先システム側で将来予定されている機能追加への継続的な追随",
                 "初期安定化期間終了後の定常保守および夜間休日の監視運用",
             ],
-            "assumptions": [
-                "接続仕様書を基本設計開始前に受領", "意思決定者が隔週レビューへ参加",
-                "移行対象データを所定品質で準備",
-            ],
         },
         {
             "type": "summary", "kicker": "意思決定要約 / 長文",
             "title": "文章量が増えても、論点と結論の優先順位を崩さず提示する",
+            "lead": "限定導入で回答品質と運用負荷を検証し、改善効果を確認してから全社展開を判断する。",
             "sections": [
                 {
                     "heading": "検討背景",
@@ -295,11 +295,11 @@ REVIEW_DECK = {
                     "body": "受付分類と定型回答を共通化し、判断が必要な案件だけを専門担当へ引き継ぐ。まず限定部門で品質と処理時間を測定し、基準を満たした場合に対象を段階的に拡大する。",
                 },
             ],
-            "conclusion": "限定導入で回答品質と運用負荷を検証し、改善効果を確認した後に全社展開を判断する。",
         },
         {
             "type": "paired_comparison", "kicker": "方式比較 / 長文",
             "title": "説明が長い比較でも、評価軸ごとの対応関係を崩さず判断材料を示す",
+            "lead": "短期費用だけでなく、障害対応と保守要員を含む3年間の総負荷で移行方式を判断する。",
             "left_label": "現行環境を延命", "right_label": "共通基盤へ段階移行",
             "rows": [
                 {
@@ -318,7 +318,6 @@ REVIEW_DECK = {
                     "right": "移行期間中は二重運用が必要だが、完了後は共通運用により保守費用を抑制できる",
                 },
             ],
-            "takeaway": "短期費用だけでなく、障害対応と保守要員を含む3年間の総負荷で移行方式を判断する。",
         },
         {
             "type": "mapping", "kicker": "対応関係 / 長文",

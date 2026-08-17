@@ -4,7 +4,7 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from diagrams import add_arrow, arrow_label
 from diagrams3 import plain_line, route
 from generate import (ACCENT, BODY_W, GRAY, LIGHT, MARGIN, NAVY,
-                      RULE, TEXT, WHITE, ZEBRA, ContentArea, add_rect, add_text,
+                      RULE, SURFACE, TEXT, WHITE, ZEBRA, ContentArea, add_rect, add_text,
                       header, note_line)
 from layout_fit import FitError, fit_text_or_raise, select_fit
 
@@ -374,8 +374,8 @@ class OrgLayout:
         style = node.get("style", "primary" if level_index == 0 else "standard")
         palette = {
             "primary": (NAVY, NAVY, WHITE, LIGHT),
-            "accent": (WHITE, ACCENT, NAVY, GRAY),
-            "standard": (WHITE, RULE, NAVY, GRAY),
+            "accent": (SURFACE, ACCENT, NAVY, GRAY),
+            "standard": (SURFACE, RULE, NAVY, GRAY),
             "external": (ZEBRA, RULE, NAVY, GRAY),
         }
         fill, border, title_color, sub_color = palette[style]

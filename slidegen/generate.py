@@ -34,6 +34,7 @@ TEXT = RGBColor(0x20, 0x27, 0x29)
 GRAY = RGBColor(0x66, 0x6E, 0x70)
 DONE_TEXT = RGBColor(0x56, 0x60, 0x62)
 WHITE = RGBColor(0xFF, 0xFF, 0xFC)
+SURFACE = RGBColor(0xFA, 0xF9, 0xF5)
 ZEBRA = RGBColor(0xEC, 0xEA, 0xE4)
 CANVAS = RGBColor(0xF7, 0xF5, 0xEF)
 RULE = RGBColor(0xD1, 0xCF, 0xC8)
@@ -534,7 +535,7 @@ def s_table(slide, spec, page):
         _cell(table.cell(0, j), name, header_size, bold=True, color=WHITE, fill=NAVY,
               center=False)
     for i, row in enumerate(rows):
-        fill = WHITE if i % 2 else ZEBRA
+        fill = SURFACE if i % 2 else ZEBRA
         for j, val in enumerate(row):
             _cell(table.cell(i + 1, j), val, size,
                   bold=(j == 0), color=NAVY if j == 0 else TEXT, fill=fill,
@@ -543,7 +544,7 @@ def s_table(slide, spec, page):
         note_line(slide, spec["note"], spec.get("note_link"))
 
 
-def _cell(cell, text, size, *, bold=False, color=TEXT, fill=WHITE, center=False):
+def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=False):
     cell.fill.solid()
     cell.fill.fore_color.rgb = fill
     cell.vertical_anchor = MSO_ANCHOR.MIDDLE

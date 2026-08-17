@@ -13,9 +13,10 @@ from PIL import Image, ImageDraw
 
 def main(png_dir, cols=4, tile_w=400):
     d = Path(png_dir)
-    files = sorted(d.glob("slide_*.png"))
+    files = list(d.glob("slide_*.png")) + list(d.glob("slide-*.png"))
+    files.sort(key=lambda path: int(path.stem.replace("slide_", "").replace("slide-", "")))
     if not files:
-        sys.exit(f"no slide_*.png in {d}")
+        sys.exit(f"no slide_*.png or slide-*.png in {d}")
     tile_h = tile_w * 9 // 16
     label_h = 18
     rows = (len(files) + cols - 1) // cols

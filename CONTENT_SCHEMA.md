@@ -564,7 +564,7 @@ python slidegen/validate_content.py content.json
 
 ### scope
 
-用途: 実施範囲と対象外を左右に分け、責任境界を明確にする。必要な場合だけ前提条件を下部へ示す。
+用途: 実施範囲と対象外を左右に分け、責任境界を明確にする。成立条件や前提は`lead`に記載する。
 
 必須:
 
@@ -576,22 +576,21 @@ python slidegen/validate_content.py content.json
 任意:
 
 - `in_label` / `out_label`: 左右の見出し
-- `assumptions`: 前提条件の文字列配列(1〜4件)
 
 ```json
 {
   "type": "scope",
   "kicker": "対象範囲",
   "title": "対象範囲",
+  "lead": "着手前に確認する成立条件や前提。",
   "in_scope": ["実施する作業"],
-  "out_of_scope": ["実施しない作業"],
-  "assumptions": ["成立に必要な前提条件"]
+  "out_of_scope": ["実施しない作業"]
 }
 ```
 
 ### summary
 
-用途: 2〜4個の論点を読み順に並べ、必要なら最終判断を1文で示す。
+用途: 2〜4個の論点を読み順に並べる。最終判断は`lead`に記載する。
 
 必須:
 
@@ -603,20 +602,19 @@ python slidegen/validate_content.py content.json
 
 任意:
 
-- `conclusion`: 最終判断
-- `conclusion_label`: 結論帯の短いラベル。`conclusion`指定時だけ使用できる
+- `sections[*].icon`: 内容を直接表すFluentアイコン名。装飾目的では指定しない
 
 ```json
 {
   "type": "summary",
   "kicker": "意思決定",
   "title": "エグゼクティブサマリー",
+  "lead": "論点から導いた最終判断。",
   "sections": [
-    {"heading": "背景", "body": "判断の前提となる事実。"},
-    {"heading": "判断", "body": "比較して得られた示唆。"},
-    {"heading": "提案", "body": "次に実施する内容。"}
-  ],
-  "conclusion": "最終判断を1文で記載する。"
+    {"heading": "背景", "icon": "info", "body": "判断の前提となる事実。"},
+    {"heading": "判断", "icon": "check", "body": "比較して得られた示唆。"},
+    {"heading": "提案", "icon": "send", "body": "次に実施する内容。"}
+  ]
 }
 ```
 
@@ -636,7 +634,8 @@ python slidegen/validate_content.py content.json
 任意:
 
 - `criterion_label`: 評価軸列の見出し。省略時は`評価軸`
-- `takeaway`: 比較から得られる判断
+
+比較から得られる判断を示す場合は`lead`に記載する。
 
 ```json
 {
@@ -671,7 +670,8 @@ python slidegen/validate_content.py content.json
 任意:
 
 - `links[*].emphasis`: trueなら主要な対応線を強調する
-- `takeaway`: 対応関係から得られる判断
+
+対応関係から得られる判断を示す場合は`lead`に記載する。
 
 同じ対応を重複指定できない。未定義IDへの接続はvalidatorが拒否する。工程順やシステム境界を表す
 typeではないため、その場合は`process`、`swimlane`、`diagram`を選ぶ。
@@ -711,12 +711,16 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 任意:
 
 - `steps[*].style`: `"standard" | "accent"`
+- `steps[*].number`: 表示する工程番号（1〜99）。省略時は`steps`の配列順、`null`なら番号を表示しない
 - `edges[*].kind`: `"forward" | "feedback"`。前段階へ戻る線は`feedback`必須
-- `takeaway`: フローから得られる示唆
+
+フローから得られる示唆や読み方は`lead`に記載する。
 
 同じlane / stageセルへ配置できるstepは最大2件。座標や線の経由点は入力せず、rendererがレーン境界を
 使って配線する。厳密な時刻や期間が主役なら`program_roadmap`、機器間メッセージなら`sequence`を使う。
 `forward`と`feedback`が同じスライドに存在する場合は、rendererが実線と破線の凡例を自動表示する。
+`steps`の配列順は既定の工程番号として表示されるため、実行順または説明順に並べる。外部作業などを
+番号なしで併記する場合や、配置順と実行順が一致しない場合だけ`number`を明示する。
 
 ```json
 {
@@ -751,7 +755,8 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 
 - `messages[*].kind`: `"request" | "return" | "async"`
 - `phases`: 最大3件。`label`と、範囲の先頭・末尾message IDを`from` / `to`へ指定する
-- `takeaway`: シーケンスから得られる示唆
+
+シーケンスから得られる示唆や読み方は`lead`に記載する。
 
 `messages`の配列順が上から下への実行順になる。rendererは同じ順序を重複して示す通番を表示しない。
 工程のまとまりを読み手へ示す必要がある場合だけ`phases`を指定する。
@@ -903,8 +908,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
   - `internal`: 装置内部の分類、変換、検索などの処理状態
   - `alert`: 不一致、破棄、異常など注意が必要な状態
 - `states[*].encapsulation`: `appearance: "encapsulated"`で付加されたタグまたはヘッダーの短い名称。8文字以内で必須
-- `takeaway`: 各系列の比較から読み取る要点
-- `lead`: このページで追う単位と前提
+- `lead`: このページで追う単位、前提、各系列から読み取る要点
 
 制約:
 
@@ -937,8 +941,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
       {"stage": "internet", "label": "203.0.113.10", "appearance": "plain"},
       {"stage": "server", "label": "203.0.113.10", "appearance": "plain"}
     ]
-  }],
-  "takeaway": "NATルーターで送信元IPが変わり、変換後の値が外部へ届く。"
+  }]
 }
 ```
 
@@ -961,7 +964,8 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 - `fields[*].size_label`: フィールド下部へ表示する長さ。可変長フィールドでは`"可変長"`などを指定する。
   `bits`は相対幅の計算に引き続き使用する
 - `frames[*].annotations`: 最大4件。`field`にfield ID、`text`に説明を書く
-- `takeaway`: 構造から読み取る結論
+
+構造から読み取る結論や比較条件は`lead`に記載する。
 
 複数の`frames`では同じ`bits`のフィールドを同じ幅で描画する。`bits`合計が異なる場合は、
 追加フィールドの分だけ全長を伸ばし、右端へ差分を表示する。
@@ -972,6 +976,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
   "type": "protocol_anatomy",
   "kicker": "プロトコル構造",
   "title": "サンプルフレームの構造",
+  "lead": "注目するフィールドと、その役割を対応させる。",
   "frames": [{
     "label": "サンプルフレーム",
     "fields": [
@@ -981,8 +986,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
       {"id": "payload", "name": "Payload", "bits": 368, "size_label": "可変長", "role": "muted"}
     ],
     "annotations": [{"field": "tag", "text": "論理的な通信範囲を識別する。"}]
-  }],
-  "takeaway": "注目するフィールドと、その役割を対応させる。"
+  }]
 }
 ```
 
@@ -999,21 +1003,20 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 任意:
 
 - `check_label`: 確認観点の見出し
-- `takeaway`: 実行と確認を結ぶ結論
-- `lead`: 製品・OS・バージョンなどの前提
+- `lead`: 製品・OS・バージョンなどの前提と、実行・確認を結ぶ要点
 
 ```json
 {
   "type": "code_lab",
   "kicker": "設定と確認",
   "title": "設定と状態確認",
+  "lead": "コマンド終了ではなく、期待状態との一致を完了条件にする。",
   "sections": [
     {"label": "設定例", "code": "interface port1\n mode access\n segment 10"},
     {"label": "確認例", "code": "show segment\nshow interface port1"}
   ],
   "check_label": "確認する状態",
-  "checks": ["対象ポートがsegment 10へ所属している", "意図しないポート変更がない"],
-  "takeaway": "コマンド終了ではなく、期待状態との一致を完了条件にする。"
+  "checks": ["対象ポートがsegment 10へ所属している", "意図しないポート変更がない"]
 }
 ```
 
