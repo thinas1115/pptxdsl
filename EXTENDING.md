@@ -18,7 +18,7 @@
 | レイヤー | 中身 | 再利用性 |
 |---|---|---|
 | L0 測定・描画プリミティブ | textfit(実測) / layout_fit(収容候補・停止) / add_text / add_rect / icon_node / add_arrow / arrow_label / container / route | ◎ 全typeで共有 |
-| L1 レイアウト計算 | diagram_layout(グリッド図解) / org_layout(階層DAG) / timeline_layout(フェーズ・マルチトラック工程表) / image_slide(大判画像の比率維持・トリミング) / matrix(散布) / bullets・cards・twocol(縦詰め) | **△ ジャンル内のみ** |
+| L1 レイアウト計算 | diagram_layout(グリッド図解) / org_layout(階層DAG) / timeline_layout(フェーズ・マルチトラック工程表) / image_slide(大判画像の比率維持・トリミング) / matrix(散布) / bullets・cards・two_column(縦詰め) | **△ ジャンル内のみ** |
 | L2 AI境界 | content.jsonスキーマ + validate_content + AI_DECK_PROMPT | ◎ typeが増えても同じ仕組み |
 | L3 品質ゲート | check_layout + render.ps1 + contact_sheet + 目視ループ | ◎ 何を作っても同じゲート |
 
@@ -50,7 +50,7 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 
 | ファイル | 役割 |
 |---|---|
-| `slidegen/generate.py` | 基本renderer (title/bullets/cards/table/twocol/chart) + 共通ヘルパー + ページ定数 |
+| `slidegen/generate.py` | 基本renderer (title/bullets/cards/table/two_column/chart) + 共通ヘルパー + ページ定数 |
 | `slidegen/diagrams.py` | 図解部品 (icon_node/add_arrow/arrow_label/container) |
 | `slidegen/org_layout.py` | 体制図の階層DAG配置、直角配線、段階的収容 |
 | `slidegen/diagrams2.py` | process/program_roadmap/matrix renderer |
@@ -59,7 +59,7 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/diagrams3.py` | route() 直角配線 |
 | `slidegen/diagram_layout.py` | 宣言的レイアウトエンジン (グリッド仕様→座標。diagram type の本体) |
 | `slidegen/diagram_specs.py` | 公開diagramスキーマだけで書いた構成図の回帰試験用サンプル |
-| `slidegen/training_renderers.py` | concept / network / protocol_anatomy / code_lab / knowledge_check renderer |
+| `slidegen/training_renderers.py` | nw_concept / nw_topology / nw_frame_anatomy / nw_config_lab / nw_knowledge_check renderer |
 | `slidegen/validate_content.py` | content.json の生成前検証。typeごとの `_v_*` 関数 |
 | `slidegen/generate_from_json.py` | content.json→PPTX。**新規資料の正式経路** |
 | `slidegen/generate_patterns.py` + `content_patterns.py` | 全typeの検証ギャラリー |

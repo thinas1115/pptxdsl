@@ -67,7 +67,7 @@ DECK = {
             ],
         },
         {
-            "type": "twocol",
+            "type": "two_column",
             "kicker": "主要ツール実測所見",
             "title": "Copilotは「器は完璧・中身が薄い」、Claudeは「品質は高いが最終調整が必要」",
             "left": {

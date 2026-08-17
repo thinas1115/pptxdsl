@@ -60,7 +60,7 @@ def main():
     _must_fail(generate.s_table, spec, "表の行を減らす")
 
     panel = {"heading": "比較", "bullets": [LONG for _ in range(6)]}
-    spec = _base("twocol")
+    spec = _base("two_column")
     spec.update(left=panel, right=panel)
     _must_fail(generate.s_twocol, spec, "左右の箇条書き")
 

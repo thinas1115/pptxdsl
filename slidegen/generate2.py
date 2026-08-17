@@ -29,9 +29,9 @@ RENDER_EXTENDED = dict(generate.RENDER,
                        process=s_process, program_roadmap=s_program_roadmap,
                        matrix=s_matrix,
                        diagram=s_diagram,
-                       scope=s_scope, summary=s_summary,
-                       paired_comparison=s_paired_comparison, mapping=s_mapping,
-                       swimlane=s_swimlane, sequence=s_sequence)
+                       scope_boundary=s_scope, decision_summary=s_summary,
+                       paired_comparison=s_paired_comparison, relationship_map=s_mapping,
+                       swimlane_flow=s_swimlane, message_sequence=s_sequence)
 
 
 def main(out_path, cover_footer_config=None):

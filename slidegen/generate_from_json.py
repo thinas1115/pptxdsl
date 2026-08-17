@@ -45,13 +45,13 @@ RENDER = dict(generate.RENDER,
               process=s_process, program_roadmap=s_program_roadmap,
               matrix=s_matrix,
               diagram=s_diagram, image=s_image,
-              scope=s_scope, summary=s_summary,
-              paired_comparison=s_paired_comparison, mapping=s_mapping,
-              swimlane=s_swimlane, sequence=s_sequence,
-              concept=s_concept, network=s_network,
-              protocol_state_flow=s_protocol_state_flow,
-              protocol_anatomy=s_protocol_anatomy,
-              code_lab=s_code_lab, knowledge_check=s_knowledge_check)
+              scope_boundary=s_scope, decision_summary=s_summary,
+              paired_comparison=s_paired_comparison, relationship_map=s_mapping,
+              swimlane_flow=s_swimlane, message_sequence=s_sequence,
+              nw_concept=s_concept, nw_topology=s_network,
+              nw_protocol_flow=s_protocol_state_flow,
+              nw_frame_anatomy=s_protocol_anatomy,
+              nw_config_lab=s_code_lab, nw_knowledge_check=s_knowledge_check)
 
 
 def main(json_path, out_path, cover_footer_config=None):

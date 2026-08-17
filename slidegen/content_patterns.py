@@ -82,7 +82,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "twocol",
+            "type": "two_column",
             "kicker": "Before / After",
             "title": "導入前後の違いを、同じ観点で比較する",
             "left": {
@@ -471,7 +471,7 @@ PATTERN_DECK = {
             },
         },
         {
-            "type": "concept",
+            "type": "nw_concept",
             "kicker": "言葉の定義",
             "title": "RTOは、障害発生から業務再開までの目標時間を表す",
             "term": "RTO",
@@ -485,7 +485,7 @@ PATTERN_DECK = {
             "misconception": "実際に要した復旧時間の実績値ではなく、事前に合意する目標値です。",
         },
         {
-            "type": "network",
+            "type": "nw_topology",
             "kicker": "ネットワーク構成",
             "title": "物理リンクを共有しながら、用途別の通信範囲を分離する",
             "lanes": [
@@ -515,7 +515,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "protocol_state_flow",
+            "type": "nw_protocol_flow",
             "kicker": "IPパケット状態の追跡",
             "title": "NAT前後の送信元IPを、処理段階ごとに追跡する",
             "lead": "NATでは送信元IPを書き換え、宛先IPは維持したまま外部へ転送する。",
@@ -552,7 +552,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "protocol_anatomy",
+            "type": "nw_frame_anatomy",
             "kicker": "プロトコル構造",
             "title": "TCPセグメントを分解し、制御情報とデータの位置を読む",
             "lead": "フィールドを位置で捉え、パケットキャプチャの値を役割へ結び付ける。",
@@ -577,7 +577,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "code_lab",
+            "type": "nw_config_lab",
             "kicker": "設定と確認",
             "title": "設定例と確認コマンドを並べ、変更後の状態まで検証する",
             "lead": "コマンドの実行ではなく、期待状態の確認までを作業単位とする。",
@@ -594,7 +594,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "knowledge_check",
+            "type": "nw_knowledge_check",
             "mode": "questions",
             "kicker": "理解度チェック",
             "title": "判断理由を選び、運用設計の理解を確認する",
@@ -605,7 +605,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "scope",
+            "type": "scope_boundary",
             "kicker": "対象範囲",
             "title": "実施範囲と対象外を分け、責任境界を明確にする",
             "lead": "必要なデータ、関係部門のレビュー体制、既存基盤の安定稼働を着手条件とする。",
@@ -625,7 +625,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "summary",
+            "type": "decision_summary",
             "kicker": "経営判断",
             "title": "背景・判断・提案を整理し、意思決定を1枚で支援する",
             "lead": "限定導入で効果と運用条件を確認した後、対象業務を段階的に拡大する。",
@@ -668,7 +668,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "mapping",
+            "type": "relationship_map",
             "kicker": "対応関係",
             "title": "主要課題と施策をひも付け、対応漏れを確認する",
             "left_label": "主要課題",
@@ -697,7 +697,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "swimlane",
+            "type": "swimlane_flow",
             "kicker": "障害対応フロー",
             "title": "障害対応スイムレーン",
             "lead": "担当境界と引き継ぎ点を明示し、対応漏れを防止する。",
@@ -742,7 +742,7 @@ PATTERN_DECK = {
             ],
         },
         {
-            "type": "sequence",
+            "type": "message_sequence",
             "kicker": "変更作業シーケンス",
             "title": "関係者・機器・確認ポイントを、実行順に整理する",
             "lead": "メッセージの順序と送受信者を分けて確認し、作業前の認識差を減らす。",

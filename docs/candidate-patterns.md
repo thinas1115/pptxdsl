@@ -31,7 +31,7 @@
 この受入条件は下記24ケースとvalidatorが許可する入力範囲へ適用する。未知の用途や入力上限を超える
 情報量まで保証するものではないため、用途が合わない場合は別typeまたはスライド分割を選ぶ。
 
-## scope
+## scope_boundary
 
 実施範囲と対象外を整理する。成立条件や前提が必要な場合は`lead`へ記載する。
 
@@ -41,7 +41,7 @@
 |---|---|---|---|
 | ![scope 疎](candidate-patterns/review/scope-sparse.png) | ![scope 標準](candidate-patterns/review/scope-standard.png) | ![scope 上限](candidate-patterns/review/scope-dense.png) | ![scope 長文](candidate-patterns/review/scope-long.png) |
 
-## summary
+## decision_summary
 
 2〜4個の論点を1枚に要約する。最終判断が必要な場合は`lead`へ記載する。
 
@@ -61,7 +61,7 @@
 |---|---|---|---|
 | ![paired_comparison 疎](candidate-patterns/review/paired-comparison-sparse.png) | ![paired_comparison 標準](candidate-patterns/review/paired-comparison-standard.png) | ![paired_comparison 上限](candidate-patterns/review/paired-comparison-dense.png) | ![paired_comparison 長文](candidate-patterns/review/paired-comparison-long.png) |
 
-## mapping
+## relationship_map
 
 左右項目の一対一・一対多・多対多の対応漏れを確認する。
 
@@ -73,7 +73,7 @@
 |---|---|---|---|
 | ![mapping 疎](candidate-patterns/review/mapping-sparse.png) | ![mapping 標準](candidate-patterns/review/mapping-standard.png) | ![mapping 上限](candidate-patterns/review/mapping-dense.png) | ![mapping 長文](candidate-patterns/review/mapping-long.png) |
 
-## swimlane
+## swimlane_flow
 
 担当レーン、工程段階、引き継ぎを同時に確認する。順方向の実線と差戻しの破線が混在する場合は、線種の凡例を自動表示する。
 
@@ -83,7 +83,7 @@
 |---|---|---|---|
 | ![swimlane 疎](candidate-patterns/review/swimlane-sparse.png) | ![swimlane 標準](candidate-patterns/review/swimlane-standard.png) | ![swimlane 上限](candidate-patterns/review/swimlane-dense.png) | ![swimlane 長文](candidate-patterns/review/swimlane-long.png) |
 
-## sequence
+## message_sequence
 
 関係者・機器間のメッセージを実行順に確認する。順序を重複表示する番号は付けず、左ガターには指定されたフェーズだけを表示する。
 

@@ -15,6 +15,15 @@
 `slidegen/content*.py`と`slidegen/diagram_specs.py`はrendererの回帰検証と目視QAのためのデータであり、
 schema例ではない。通常のvalidatorは、そこにある正規化後14文字以上の日本語文言を流用した入力を拒否する。
 
+## typeカテゴリー
+
+`type`は親カテゴリーで用途を分ける。
+
+| category | type |
+|---|---|
+| Common | `title`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence` |
+| NW | `nw_concept`, `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy`, `nw_config_lab`, `nw_knowledge_check` |
+
 ## 機械検証
 
 このschemaの必須フィールド、許可フィールド、件数制約は `slidegen/validate_content.py` が機械的に検証する。
@@ -80,7 +89,7 @@ python slidegen/validate_content.py content.json
 - JSONなので、Pythonのタプルではなく配列を使う。
 - `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `program_roadmap` / `matrix` / `org` / `diagram` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
 - 一般的なシステム構成・クラウド構成・データフローは`diagram`で書く。物理機器と論理セグメント、
-  Access・Trunk・L3接続を同時に示すネットワーク図は`network`で書く。どちらにも座標の数値は書かない。
+  Access・Trunk・L3接続を同時に示すネットワーク図は`nw_topology`で書く。どちらにも座標の数値は書かない。
 
 ```json
 {
@@ -239,13 +248,13 @@ python slidegen/validate_content.py content.json
 }
 ```
 
-### twocol
+### two_column
 
 用途: Before/After、比較、メリット/注意点。
 
 必須:
 
-- `type`: `"twocol"`
+- `type`: `"two_column"`
 - `kicker`: string
 - `title`: string
 - `left.heading`: string
@@ -264,7 +273,7 @@ python slidegen/validate_content.py content.json
 
 ```json
 {
-  "type": "twocol",
+  "type": "two_column",
   "kicker": "分類",
   "title": "タイトル",
   "left": {
@@ -562,13 +571,13 @@ python slidegen/validate_content.py content.json
 }
 ```
 
-### scope
+### scope_boundary
 
 用途: 実施範囲と対象外を左右に分け、責任境界を明確にする。成立条件や前提は`lead`に記載する。
 
 必須:
 
-- `type`: `"scope"`
+- `type`: `"scope_boundary"`
 - `kicker` / `title`: string
 - `in_scope`: 実施範囲の文字列配列(1〜6件)
 - `out_of_scope`: 対象外の文字列配列(1〜6件)
@@ -579,7 +588,7 @@ python slidegen/validate_content.py content.json
 
 ```json
 {
-  "type": "scope",
+  "type": "scope_boundary",
   "kicker": "対象範囲",
   "title": "対象範囲",
   "lead": "着手前に確認する成立条件や前提。",
@@ -588,13 +597,13 @@ python slidegen/validate_content.py content.json
 }
 ```
 
-### summary
+### decision_summary
 
 用途: 2〜4個の論点を読み順に並べる。最終判断は`lead`に記載する。
 
 必須:
 
-- `type`: `"summary"`
+- `type`: `"decision_summary"`
 - `kicker` / `title`: string
 - `sections`: 2〜4件
   - `heading`: 論点見出し
@@ -606,7 +615,7 @@ python slidegen/validate_content.py content.json
 
 ```json
 {
-  "type": "summary",
+  "type": "decision_summary",
   "kicker": "意思決定",
   "title": "エグゼクティブサマリー",
   "lead": "論点から導いた最終判断。",
@@ -651,13 +660,13 @@ python slidegen/validate_content.py content.json
 }
 ```
 
-### mapping
+### relationship_map
 
 用途: 課題と施策、要件と機能など、左右項目の対応漏れと一対多・多対多の関係を確認する。
 
 必須:
 
-- `type`: `"mapping"`
+- `type`: `"relationship_map"`
 - `kicker` / `title`: string
 - `left_label` / `right_label`: 左右の見出し
 - `left_items` / `right_items`: 各2〜6件
@@ -674,11 +683,11 @@ python slidegen/validate_content.py content.json
 対応関係から得られる判断を示す場合は`lead`に記載する。
 
 同じ対応を重複指定できない。未定義IDへの接続はvalidatorが拒否する。工程順やシステム境界を表す
-typeではないため、その場合は`process`、`swimlane`、`diagram`を選ぶ。
+typeではないため、その場合は`process`、`swimlane_flow`、`diagram`を選ぶ。
 
 ```json
 {
-  "type": "mapping",
+  "type": "relationship_map",
   "kicker": "対応関係",
   "title": "課題と対応施策",
   "left_label": "課題",
@@ -693,13 +702,13 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 }
 ```
 
-### swimlane
+### swimlane_flow
 
 用途: 担当レーンと工程段階を同時に示し、作業の分岐・合流・引き継ぎを確認する。
 
 必須:
 
-- `type`: `"swimlane"`
+- `type`: `"swimlane_flow"`
 - `kicker` / `title`: string
 - `lanes`: 2〜6件。`id` / `label`を持つ
 - `stages`: 2〜6件。`id` / `label`を持つ
@@ -717,14 +726,14 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 フローから得られる示唆や読み方は`lead`に記載する。
 
 同じlane / stageセルへ配置できるstepは最大2件。座標や線の経由点は入力せず、rendererがレーン境界を
-使って配線する。厳密な時刻や期間が主役なら`program_roadmap`、機器間メッセージなら`sequence`を使う。
+使って配線する。厳密な時刻や期間が主役なら`program_roadmap`、機器間メッセージなら`message_sequence`を使う。
 `forward`と`feedback`が同じスライドに存在する場合は、rendererが実線と破線の凡例を自動表示する。
 `steps`の配列順は既定の工程番号として表示されるため、実行順または説明順に並べる。外部作業などを
 番号なしで併記する場合や、配置順と実行順が一致しない場合だけ`number`を明示する。
 
 ```json
 {
-  "type": "swimlane",
+  "type": "swimlane_flow",
   "kicker": "業務フロー",
   "title": "担当別業務フロー",
   "lanes": [{"id": "requester", "label": "申請部門"}, {"id": "reviewer", "label": "審査部門"}],
@@ -737,13 +746,13 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 }
 ```
 
-### sequence
+### message_sequence
 
 用途: 関係者・機器間のメッセージを上から時系列に並べ、送信者・受信者・戻り応答を示す。
 
 必須:
 
-- `type`: `"sequence"`
+- `type`: `"message_sequence"`
 - `kicker` / `title`: string
 - `participants`: 2〜6件。`id` / `label`を持つ
 - `messages`: 2〜12件
@@ -763,7 +772,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 
 ```json
 {
-  "type": "sequence",
+  "type": "message_sequence",
   "kicker": "処理シーケンス",
   "title": "変更作業シーケンス",
   "participants": [{"id": "user", "label": "利用者"}, {"id": "system", "label": "システム"}],
@@ -775,14 +784,14 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 }
 ```
 
-### concept
+### nw_concept
 
 用途: 専門用語や判断基準を初めて示すときに、定義、理解に必要な要点、誤解しやすい境界を一続きで説明する。
 研修資料では、未定義の用語を使った構成図や詳細手順より前へ置く。
 
 必須:
 
-- `type`: `"concept"`
+- `type`: `"nw_concept"`
 - `term`: 定義する用語または判断基準
 - `definition`: 用語の意味を単独で理解できる定義文
 - `points`: 2〜4件
@@ -803,7 +812,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 
 ```json
 {
-  "type": "concept",
+  "type": "nw_concept",
   "kicker": "言葉の定義",
   "title": "RTOとは",
   "term": "RTO",
@@ -816,14 +825,14 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 }
 ```
 
-### network
+### nw_topology
 
 用途: VLAN、セキュリティゾーン、テナント分離など、物理機器と論理セグメント、接続種別を同時に示すネットワーク図。
 一般的なシステム構成やクラウドのデータフローは`diagram`を使う。
 
 必須:
 
-- `type`: `"network"`
+- `type`: `"nw_topology"`
 - `lanes`: 1〜4件。論理セグメントを表す`id / label`の配列
 - `columns`: 2〜6件。物理的な読み順を表す`id / label`の配列
 - `nodes`: 2〜12件
@@ -854,7 +863,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 
 ```json
 {
-  "type": "network",
+  "type": "nw_topology",
   "kicker": "論理分割",
   "title": "Trunkポート",
   "lanes": [
@@ -881,13 +890,13 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 }
 ```
 
-### protocol_state_flow
+### nw_protocol_flow
 
 用途: 同じフレームやパケットが端末、装置内部、伝送区間を通る間に、どの情報を維持・追加・削除・変換するかを段階ごとに追跡する。
 
 必須:
 
-- `type`: `"protocol_state_flow"`
+- `type`: `"nw_protocol_flow"`
 - `stages`: 3〜6件。左から右へ並ぶ処理段階
   - `id / label`: 段階IDと表示名
   - `icon`: `slidegen/assets/`からの相対パス
@@ -912,7 +921,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 
 制約:
 
-- 物理接続や論理セグメントの全体構成は`network`、メッセージの時系列は`sequence`、ビット配置は`protocol_anatomy`を使う。
+- 物理接続や論理セグメントの全体構成は`nw_topology`、メッセージの時系列は`message_sequence`、ビット配置は`nw_frame_anatomy`を使う。
 - 各`flow`は全段階の状態を省略せず、同じ`stage`を重複させない。
 - `flows[*].label`は系列を区別できる名前にし、同じスライド内で重複させない。
 - 1枚で追う単位を統一する。L2の転送は「フレーム」、L3の転送は「IPパケット」など対象に合う語を使い、
@@ -924,7 +933,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 
 ```json
 {
-  "type": "protocol_state_flow",
+  "type": "nw_protocol_flow",
   "kicker": "IPパケット状態の追跡",
   "title": "NAT前後の送信元IP",
   "stages": [
@@ -945,13 +954,13 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 }
 ```
 
-### protocol_anatomy
+### nw_frame_anatomy
 
 用途: フレームやパケットをフィールドへ分解し、ビット長と注目箇所を示す。
 
 必須:
 
-- `type`: `"protocol_anatomy"`
+- `type`: `"nw_frame_anatomy"`
 - `frames`: 1〜3件
   - `label`: フレームまたはパケット名
   - `fields`: 3〜9件
@@ -973,7 +982,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 
 ```json
 {
-  "type": "protocol_anatomy",
+  "type": "nw_frame_anatomy",
   "kicker": "プロトコル構造",
   "title": "サンプルフレームの構造",
   "lead": "注目するフィールドと、その役割を対応させる。",
@@ -990,13 +999,13 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 }
 ```
 
-### code_lab
+### nw_config_lab
 
 用途: 設定例やコードと、実行後に確認する状態を同じページで示す。
 
 必須:
 
-- `type`: `"code_lab"`
+- `type`: `"nw_config_lab"`
 - `sections`: 1〜2件。`label / code`を持ち、`code`は1区画16行以内
 - `checks`: 2〜5件の文字列
 
@@ -1007,7 +1016,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 
 ```json
 {
-  "type": "code_lab",
+  "type": "nw_config_lab",
   "kicker": "設定と確認",
   "title": "設定と状態確認",
   "lead": "コマンド終了ではなく、期待状態との一致を完了条件にする。",
@@ -1020,13 +1029,13 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 }
 ```
 
-### knowledge_check
+### nw_knowledge_check
 
 用途: 研修内の選択式問題と、対応する正答・解説を示す。
 
 必須:
 
-- `type`: `"knowledge_check"`
+- `type`: `"nw_knowledge_check"`
 - `mode`: `"questions" | "answers"`
 - `questions`: 1〜3件
   - `question`: 設問
@@ -1038,7 +1047,7 @@ typeではないため、その場合は`process`、`swimlane`、`diagram`を選
 
 ```json
 {
-  "type": "knowledge_check",
+  "type": "nw_knowledge_check",
   "mode": "questions",
   "kicker": "理解度チェック",
   "title": "理解度チェック",

@@ -171,7 +171,7 @@ def s_scope(slide, spec, page):
     row_gap = 0.16 if sparse else 0.07
     font = 17.0 if sparse else 14.0
     fitted = _fit_rows(
-        "scope", body_bottom - body_top - 0.82, max_count,
+        "scope_boundary", body_bottom - body_top - 0.82, max_count,
         row_h=row_h, min_row_h=0.44, gap=row_gap, min_gap=0.03,
         font=font, min_font=11.0,
     )
@@ -206,7 +206,7 @@ def s_scope(slide, spec, page):
             marker.line.fill.background()
             _flatten_shape(marker)
             _text_in_box(
-                slide, "scope", f"items[{index}]", x + 0.48, y,
+                slide, "scope_boundary", f"items[{index}]", x + 0.48, y,
                 col_w - 0.68, values["row_h"], item,
                 values["font"], 10.5, color=TEXT,
                 anchor=MSO_ANCHOR.MIDDLE,
@@ -268,13 +268,13 @@ def s_summary(slide, spec, page):
         else:
             _number_medallion(slide, x + 0.24, y + 0.22,
                               index + 1, size=0.46)
-        _text_in_box(slide, "summary", f"sections[{index}].heading",
+        _text_in_box(slide, "decision_summary", f"sections[{index}].heading",
                      x + 0.92, y + 0.24, cell_w - 1.16, 0.32,
                      section["heading"], heading_pt, 12.0,
                      bold=True, color=NAVY)
         plain_line(slide, x + 0.24, y + 0.84, x + cell_w - 0.24, y + 0.84,
                    color=ACCENT if section.get("icon") else RULE, width=0.8)
-        _text_in_box(slide, "summary", f"sections[{index}].body",
+        _text_in_box(slide, "decision_summary", f"sections[{index}].body",
                      x + 0.26, y + 1.00, cell_w - 0.52, cell_h - 1.18,
                      section["body"], body_pt, 10.0, color=TEXT, spacing=1.22)
 def s_paired_comparison(slide, spec, page):
@@ -406,7 +406,7 @@ def s_mapping(slide, spec, page):
     max_count = max(len(left_items), len(right_items))
     sparse = max_count <= 2
     fitted = _fit_rows(
-        "mapping", body_bottom - top - 0.52, max_count,
+        "relationship_map", body_bottom - top - 0.52, max_count,
         row_h=0.82 if sparse else 0.58,
         min_row_h=0.58 if sparse else 0.42,
         gap=0.22 if sparse else 0.13,
@@ -447,7 +447,7 @@ def s_mapping(slide, spec, page):
                      align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
             text_x = x + 0.52 if side == "left" else x + 0.18
             text_w = width - 0.70
-            _text_in_box(slide, "mapping", f"{side}_items[{index}].text",
+            _text_in_box(slide, "relationship_map", f"{side}_items[{index}].text",
                          text_x, y, text_w, values["row_h"], item["text"],
                          values["font"], 9.5, bold=True, color=NAVY,
                          anchor=MSO_ANCHOR.MIDDLE)
@@ -567,7 +567,7 @@ def s_swimlane(slide, spec, page):
     standard_lane_h = (
         1.34 if len(lanes) == 2 else 0.98 if len(lanes) == 3 else 0.95)
     fitted = _fit_rows(
-        "swimlane", available_h, len(lanes),
+        "swimlane_flow", available_h, len(lanes),
         row_h=standard_lane_h, min_row_h=0.62, gap=0.0, min_gap=0.0,
         font=11.5, min_font=9.0, reserve=feedback_h,
     )
@@ -715,7 +715,7 @@ def s_swimlane(slide, spec, page):
                      one_line_size, bold=True, color=SWIMLANE_NAVY,
                      align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
         else:
-            _text_in_box(slide, "swimlane", f"steps[{index}].name",
+            _text_in_box(slide, "swimlane_flow", f"steps[{index}].name",
                          text_x, y, text_w, h, display_name,
                          fitted.values["font"], 7.5, bold=True,
                          color=SWIMLANE_NAVY,
@@ -735,7 +735,7 @@ def s_sequence(slide, spec, page):
     available = area.bottom - message_top - legend_h - 0.12
     sparse = len(messages) <= 4
     fitted = _fit_rows(
-        "sequence", available, len(messages),
+        "message_sequence", available, len(messages),
         row_h=0.78 if sparse else 0.42,
         min_row_h=0.56 if sparse else 0.29,
         gap=0.34 if sparse else 0.12,
@@ -789,7 +789,7 @@ def s_sequence(slide, spec, page):
     for index, (participant, x) in enumerate(zip(participants, xs)):
         box_w = min(2.08 if sparse else 1.74,
                     (participant_x1 - participant_x0) / len(participants) * 0.88)
-        _text_in_box(slide, "sequence", f"participants[{index}].label",
+        _text_in_box(slide, "message_sequence", f"participants[{index}].label",
                      x - box_w / 2 + 0.08, top, box_w - 0.16, header_h,
                      participant["label"], 12.5 if sparse else 11.0, 8.5,
                      bold=True, color=NAVY,
@@ -835,7 +835,7 @@ def s_sequence(slide, spec, page):
             label_x, label_w = (sx + tx) / 2, min(1.72, abs(tx - sx) - 0.10)
         label_y = y - 0.27
         label_size, lines = fit_text_or_raise(
-            "sequence", f"messages[{index}].label", message["label"],
+            "message_sequence", f"messages[{index}].label", message["label"],
             label_w, 0.24, fitted.values["font"], min_pt=7.5,
             weight="bold", spacing=1.0, role="compact")
         tb = add_text(slide, label_x - label_w / 2, label_y, label_w, 0.24,

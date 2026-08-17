@@ -11,13 +11,13 @@ REVIEW_DECK = {
     },
     "slides": [
         {
-            "type": "scope", "kicker": "対象範囲 / 疎",
+            "type": "scope_boundary", "kicker": "対象範囲 / 疎",
             "title": "初回リリースで扱う範囲を、最小限の項目で合意する",
             "in_scope": ["申請受付と承認状況の参照"],
             "out_of_scope": ["既存ワークフローの全面更改"],
         },
         {
-            "type": "scope", "kicker": "対象範囲 / 標準",
+            "type": "scope_boundary", "kicker": "対象範囲 / 標準",
             "title": "移行プロジェクトの実施範囲と責任境界を明確にする",
             "lead": "必要なデータの受領と関係部門のレビュー体制を、着手前の前提とする。",
             "in_scope": [
@@ -33,7 +33,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "scope", "kicker": "対象範囲 / 上限",
+            "type": "scope_boundary", "kicker": "対象範囲 / 上限",
             "title": "複数部門が関わる更改で、作業範囲・対象外・成立条件を漏れなく確認する",
             "lead": "意思決定者・接続仕様・試験データ・既存基盤の4条件を確認してから着手する。",
             "in_scope": [
@@ -54,7 +54,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "summary", "kicker": "意思決定要約 / 疎",
+            "type": "decision_summary", "kicker": "意思決定要約 / 疎",
             "title": "現状と判断だけを短く示し、次の会議で決めることを揃える",
             "sections": [
                 {"heading": "現状", "body": "個別運用が増え、確認作業に時間を要している。"},
@@ -62,7 +62,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "summary", "kicker": "意思決定要約 / 標準",
+            "type": "decision_summary", "kicker": "意思決定要約 / 標準",
             "title": "背景・判断・提案を整理し、意思決定を1枚で支援する",
             "lead": "限定導入で効果と運用条件を確認した後、対象業務を段階的に拡大する。",
             "sections": [
@@ -72,7 +72,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "summary", "kicker": "意思決定要約 / 上限",
+            "type": "decision_summary", "kicker": "意思決定要約 / 上限",
             "title": "4つの判断材料を整理し、実行可否と条件を役員会へ提示する",
             "lead": "対象顧客と回答範囲を限定して実証し、品質基準を満たした段階で全社展開を判断する。",
             "sections": [
@@ -119,7 +119,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "mapping", "kicker": "対応関係 / 疎",
+            "type": "relationship_map", "kicker": "対応関係 / 疎",
             "title": "2つの要件と機能を対応させ、実装漏れを確認する",
             "left_label": "要件", "right_label": "機能",
             "left_items": [{"id": "auth", "text": "社外から安全に利用できる"}, {"id": "audit", "text": "操作履歴を追跡できる"}],
@@ -127,7 +127,7 @@ REVIEW_DECK = {
             "links": [{"from": "auth", "to": "mfa", "emphasis": True}, {"from": "audit", "to": "log"}],
         },
         {
-            "type": "mapping", "kicker": "対応関係 / 標準",
+            "type": "relationship_map", "kicker": "対応関係 / 標準",
             "title": "主要課題と施策をひも付け、対応漏れを確認する",
             "left_label": "主要課題", "right_label": "対応施策",
             "left_items": [
@@ -147,7 +147,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "mapping", "kicker": "対応関係 / 上限",
+            "type": "relationship_map", "kicker": "対応関係 / 上限",
             "title": "要件と施策が多対多でも、接続順を最適化して対応漏れを確認する",
             "lead": "6項目・10対応まで増やし、複数施策が同じ要件へ寄与する関係を検証します。",
             "left_label": "重点要件", "right_label": "実施施策",
@@ -170,7 +170,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "swimlane", "kicker": "担当フロー / 疎",
+            "type": "swimlane_flow", "kicker": "担当フロー / 疎",
             "title": "依頼から完了連絡までの受け渡しを、2部門で確認する",
             "lanes": [{"id": "requester", "label": "依頼部門"}, {"id": "operator", "label": "運用担当"}],
             "stages": [{"id": "request", "label": "依頼"}, {"id": "complete", "label": "対応・完了"}],
@@ -182,7 +182,7 @@ REVIEW_DECK = {
             "edges": [{"from": "submit", "to": "execute"}, {"from": "execute", "to": "accept"}],
         },
         {
-            "type": "swimlane", "kicker": "担当フロー / 標準",
+            "type": "swimlane_flow", "kicker": "担当フロー / 標準",
             "title": "障害対応スイムレーン",
             "lead": "担当境界と引き継ぎ点を明示し、対応漏れを防止する。",
             "lanes": [{"id": "user", "label": "利用部門"}, {"id": "ops", "label": "運用担当"}, {"id": "network", "label": "NW担当"}, {"id": "carrier", "label": "回線事業者"}],
@@ -208,7 +208,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "swimlane", "kicker": "担当フロー / 上限",
+            "type": "swimlane_flow", "kicker": "担当フロー / 上限",
             "title": "6部門・6段階の審査フローで、分岐・引き継ぎ・差戻しを確認する",
             "lead": "14工程と前段階への差戻しを含む上限構成で、配線と文字縮小を検証します。",
             "lanes": [{"id": "sales", "label": "営業"}, {"id": "office", "label": "事務局"}, {"id": "security", "label": "セキュリティ"}, {"id": "legal", "label": "法務"}, {"id": "finance", "label": "経理"}, {"id": "approver", "label": "決裁者"}],
@@ -230,7 +230,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "sequence", "kicker": "実行順序 / 疎",
+            "type": "message_sequence", "kicker": "実行順序 / 疎",
             "title": "利用者とサービス間の認証処理を、最小構成で確認する",
             "participants": [{"id": "user", "label": "利用者"}, {"id": "service", "label": "業務サービス"}],
             "messages": [
@@ -240,7 +240,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "sequence", "kicker": "実行順序 / 標準",
+            "type": "message_sequence", "kicker": "実行順序 / 標準",
             "title": "関係者・機器・確認ポイントを、実行順に整理する",
             "participants": [{"id": "ops", "label": "運用担当"}, {"id": "monitor", "label": "監視システム"}, {"id": "branch", "label": "拠点ルータ"}, {"id": "center", "label": "センタールータ"}, {"id": "carrier", "label": "回線事業者"}],
             "messages": [
@@ -252,7 +252,7 @@ REVIEW_DECK = {
             "phases": [{"label": "調査", "from": "request", "to": "carrier"}, {"label": "復旧", "from": "recover", "to": "report"}],
         },
         {
-            "type": "sequence", "kicker": "実行順序 / 上限",
+            "type": "message_sequence", "kicker": "実行順序 / 上限",
             "title": "6つの関係者が参加するリリース手順を、12メッセージと3フェーズで確認する",
             "lead": "自己処理・非同期通知・応答を含む上限構成で、ラベルとライフラインの判読性を検証します。",
             "participants": [{"id": "owner", "label": "変更責任者"}, {"id": "operator", "label": "作業担当"}, {"id": "pipeline", "label": "配備基盤"}, {"id": "app", "label": "業務サービス"}, {"id": "monitor", "label": "監視基盤"}, {"id": "desk", "label": "利用部門窓口"}],
@@ -267,7 +267,7 @@ REVIEW_DECK = {
             "phases": [{"label": "準備", "from": "approve", "to": "prepare"}, {"label": "実施", "from": "deploy", "to": "notify"}, {"label": "確認", "from": "health", "to": "close"}],
         },
         {
-            "type": "scope", "kicker": "対象範囲 / 長文",
+            "type": "scope_boundary", "kicker": "対象範囲 / 長文",
             "title": "長い作業名称でも、対象・対象外・前提条件の境界を読み違えない",
             "lead": "接続仕様・意思決定者・移行データの準備を完了してから設計へ着手する。",
             "in_scope": [
@@ -282,7 +282,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "summary", "kicker": "意思決定要約 / 長文",
+            "type": "decision_summary", "kicker": "意思決定要約 / 長文",
             "title": "文章量が増えても、論点と結論の優先順位を崩さず提示する",
             "lead": "限定導入で回答品質と運用負荷を検証し、改善効果を確認してから全社展開を判断する。",
             "sections": [
@@ -320,7 +320,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "mapping", "kicker": "対応関係 / 長文",
+            "type": "relationship_map", "kicker": "対応関係 / 長文",
             "title": "長い要件・施策名称でも、対応先を直接たどって照合する",
             "left_label": "業務・統制要件", "right_label": "実装・運用施策",
             "left_items": [
@@ -346,7 +346,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "swimlane", "kicker": "担当フロー / 長文",
+            "type": "swimlane_flow", "kicker": "担当フロー / 長文",
             "title": "担当名と工程名が長い場合も、引き継ぎ経路と実施主体を判別する",
             "lanes": [
                 {"id": "requester", "label": "申請元部門責任者"},
@@ -375,7 +375,7 @@ REVIEW_DECK = {
             ],
         },
         {
-            "type": "sequence", "kicker": "実行順序 / 長文",
+            "type": "message_sequence", "kicker": "実行順序 / 長文",
             "title": "参加者名とメッセージが長い場合も、送信元・送信先・応答順を追跡する",
             "participants": [
                 {"id": "requester", "label": "利用部門の申請責任者"},

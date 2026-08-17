@@ -88,7 +88,7 @@ def _fit_concept(area, definition, points, has_misconception):
             yield "font", values, used(values)
 
     return select_fit(
-        "concept", available, candidates(),
+        "nw_concept", available, candidates(),
         guidance="要点を4件以内へ絞るか、定義と説明を短くしてください。",
     )
 
@@ -122,7 +122,7 @@ def s_concept(slide, spec, page):
         term_x += 0.84
         term_w -= 0.84
     term_size, term_lines = fit_text_or_raise(
-        "concept", "term", spec["term"], term_w, 0.72, 30.0,
+        "nw_concept", "term", spec["term"], term_w, 0.72, 30.0,
         min_pt=23.5, weight="bold", spacing=1.0, role="natural",
     )
     add_text(
@@ -133,7 +133,7 @@ def s_concept(slide, spec, page):
     definition_y = top + 0.96
     definition_h = content_bottom - definition_y
     definition_size, definition_lines = fit_text_or_raise(
-        "concept", "definition", spec["definition"], definition_w,
+        "nw_concept", "definition", spec["definition"], definition_w,
         definition_h, values["definition_font"], min_pt=16.5,
         spacing=1.18, role="natural",
     )
@@ -148,7 +148,7 @@ def s_concept(slide, spec, page):
     for index, point in enumerate(points):
         y = top + index * row_h
         label_size, label_lines = fit_text_or_raise(
-            "concept", f"points[{index}].label", point["label"],
+            "nw_concept", f"points[{index}].label", point["label"],
             right_w, 0.34, values["label_font"], min_pt=11.5,
             weight="bold", spacing=1.08, role="compact",
         )
@@ -160,7 +160,7 @@ def s_concept(slide, spec, page):
         )
         body_y = y + label_h + values["inside_gap"]
         body_size, body_lines = fit_text_or_raise(
-            "concept", f"points[{index}].text", point["text"],
+            "nw_concept", f"points[{index}].text", point["text"],
             right_w, row_h - (body_y - y) - 0.08, values["body_font"],
             min_pt=12.5, spacing=1.14, role="body",
         )
@@ -177,7 +177,7 @@ def s_concept(slide, spec, page):
         add_text(slide, MARGIN + 0.04, y + 0.13, 1.18, 0.24,
                  "誤解しやすい点", 10.5, bold=True, color=CORAL)
         size, lines = fit_text_or_raise(
-            "concept", "misconception", misconception, BODY_W - 1.42,
+            "nw_concept", "misconception", misconception, BODY_W - 1.42,
             0.38, 13.0, min_pt=11.0, spacing=1.10, role="compact",
         )
         add_text(slide, MARGIN + 1.42, y + 0.10, BODY_W - 1.42, 0.38,
@@ -253,13 +253,13 @@ def _fit_network(area, lane_count, max_cell_nodes):
         yield "font", values, used(values)
 
     return select_fit(
-        "network", available, candidates(),
+        "nw_topology", available, candidates(),
         guidance="論理セグメントまたは機器数を減らし、複数スライドへ分割してください。")
 
 
 def _node_label(slide, x, y, width, text, font, *, sub=None):
     title_size, title_lines = fit_text_or_raise(
-        "network", "node.label", text, width, 0.35, font,
+        "nw_topology", "node.label", text, width, 0.35, font,
         min_pt=8.5, weight="bold", spacing=1.05, role="compact")
     rendered = "\n".join(title_lines)
     title_h = len(title_lines) * line_height_in(title_size, 1.05) + 0.02
@@ -271,7 +271,7 @@ def _node_label(slide, x, y, width, text, font, *, sub=None):
     box.fill.fore_color.rgb = CANVAS
     if sub:
         sub_size, sub_lines = fit_text_or_raise(
-            "network", "node.sub", sub, width, 0.28, font - 1.5,
+            "nw_topology", "node.sub", sub, width, 0.28, font - 1.5,
             min_pt=7.5, spacing=1.0, role="compact")
         sub_h = len(sub_lines) * line_height_in(sub_size, 1.0) + 0.01
         sub_box = add_text(
@@ -463,7 +463,7 @@ def s_network(slide, spec, page):
             clear_w = max(0.80, abs(end[0] - start[0]) - 0.12)
             label_w = min(2.20, clear_w)
             label_size, label_lines = fit_text_or_raise(
-                "network", "link.trunk.label", trunk_label,
+                "nw_topology", "link.trunk.label", trunk_label,
                 label_w - 0.12, 0.34, 8.5, min_pt=7.0,
                 weight="bold", spacing=1.0, role="compact")
             label = add_text(
@@ -673,7 +673,7 @@ def _fit_protocol_state_flow(area, stages, flows):
             yield "font", values, used
 
     return select_fit(
-        "protocol_state_flow", available, candidates(),
+        "nw_protocol_flow", available, candidates(),
         guidance=(
             "段階を6件以内、トラックを3件以内に絞り、各状態の説明を短くするか、"
             "複数ページへ分割してください。"
@@ -702,7 +702,7 @@ def _protocol_state_marker(
         tag = add_rect(slide, x, y, tag_w, marker_h, color)
         tag.name = "protocol-state-flow:marker:encapsulated:tag"
         label_size, label_lines = fit_text_or_raise(
-            "protocol_state_flow", "state.encapsulation", encapsulation,
+            "nw_protocol_flow", "state.encapsulation", encapsulation,
             tag_w - 0.04, marker_h - 0.02, 6.5, min_pt=5.5,
             weight="bold", spacing=1.0, role="compact",
         )
@@ -757,7 +757,7 @@ def s_protocol_state_flow(slide, spec, page):
             Inches(icon_size), Inches(icon_size),
         )
         label_size, label_lines = fit_text_or_raise(
-            "protocol_state_flow", "stage.label", stage["label"],
+            "nw_protocol_flow", "stage.label", stage["label"],
             stage_w - 0.12, values["header_h"] - icon_size - 0.05,
             values["stage_font"], min_pt=9.0, weight="bold",
             spacing=1.0, role="compact",
@@ -778,7 +778,7 @@ def s_protocol_state_flow(slide, spec, page):
             f"layout-background:protocol-state-flow:track:{flow_index}"
         )
         flow_label_size, flow_label_lines = fit_text_or_raise(
-            "protocol_state_flow", "flow.label", flow["label"],
+            "nw_protocol_flow", "flow.label", flow["label"],
             rail_w - 0.20, row_h - 0.32,
             values["flow_font"], min_pt=10.5, weight="bold",
             spacing=1.0, role="compact",
@@ -795,7 +795,7 @@ def s_protocol_state_flow(slide, spec, page):
         if flow.get("sub"):
             flow_sub_y = row_y + 0.20 + flow_label_h + 0.04
             sub_size, sub_lines = fit_text_or_raise(
-                "protocol_state_flow", "flow.sub", flow["sub"],
+                "nw_protocol_flow", "flow.sub", flow["sub"],
                 rail_w - 0.20, row_y + row_h - flow_sub_y - 0.10,
                 values["flow_sub_font"], min_pt=8.0,
                 spacing=1.0, role="compact",
@@ -839,7 +839,7 @@ def s_protocol_state_flow(slide, spec, page):
             )
             text_w = stage_w - 0.18
             title_size, title_lines = fit_text_or_raise(
-                "protocol_state_flow", "state.label", state["label"],
+                "nw_protocol_flow", "state.label", state["label"],
                 text_w, row_h - 0.48, values["state_font"],
                 min_pt=9.5, weight="bold", spacing=1.0, role="compact",
             )
@@ -854,7 +854,7 @@ def s_protocol_state_flow(slide, spec, page):
                 detail_y = title_y + title_h + 0.03
                 detail_h = row_y + row_h - detail_y - 0.10
                 detail_size, detail_lines = fit_text_or_raise(
-                    "protocol_state_flow", "state.detail", state["detail"],
+                    "nw_protocol_flow", "state.detail", state["detail"],
                     text_w, detail_h, values["detail_font"],
                     min_pt=8.0, spacing=1.0, role="compact",
                 )
@@ -895,7 +895,7 @@ def _fit_protocol(area, frames, annotation_count):
         yield "font", values, used(values)
 
     return select_fit(
-        "protocol_anatomy", available, candidates(),
+        "nw_frame_anatomy", available, candidates(),
         guidance="フレーム数・フィールド数・注釈数を減らして分割してください。")
 
 
@@ -944,7 +944,7 @@ def s_protocol_anatomy(slide, spec, page):
     minimum_required = max(frame_width(frame, 0.0) for frame in frames)
     if minimum_required > bar_w:
         raise FitError(
-            "protocol_anatomy.fields: フィールド名の最小幅だけで描画領域を"
+            "nw_frame_anatomy.fields: フィールド名の最小幅だけで描画領域を"
             "超えます。フィールド数を減らすか名称を短くしてください。")
 
     low, high = 0.0, bar_w
@@ -974,7 +974,7 @@ def s_protocol_anatomy(slide, spec, page):
             fill, color = _FIELD_FILLS[field.get("role", "standard")]
             add_rect(slide, x, y, width, frame_h, fill, line=RULE)
             name_size, name_lines = fit_text_or_raise(
-                "protocol_anatomy", f"frames[{frame_index}].fields[{field_index}].name",
+                "nw_frame_anatomy", f"frames[{frame_index}].fields[{field_index}].name",
                 field["name"], width - 0.10, frame_h * 0.52, font,
                 min_pt=7.5, weight="bold", spacing=1.0, role="compact")
             add_text(slide, x + 0.05, y + 0.12, width - 0.10, frame_h * 0.48,
@@ -1025,7 +1025,7 @@ def s_protocol_anatomy(slide, spec, page):
                      annotation_label, 8.5,
                      bold=True, color=ACCENT)
             fit_size, lines = fit_text_or_raise(
-                "protocol_anatomy", "annotation", annotation["text"],
+                "nw_frame_anatomy", "annotation", annotation["text"],
                 annotation_w - annotation_label_w - 0.06,
                 values["annotation_text_h"], values["annotation_font"],
                 min_pt=8.0,
@@ -1042,7 +1042,7 @@ def _fit_code_text(code, width, height):
         if widest <= width and used_h <= height:
             return size
     raise FitError(
-        "code_lab.code: 最小フォントでも折り返さずに収まりません。"
+        "nw_config_lab.code: 最小フォントでも折り返さずに収まりません。"
         "コマンドを短くするか、実習を複数スライドへ分割してください。")
 
 
@@ -1093,13 +1093,13 @@ def s_code_lab(slide, spec, page):
     available = panel_h - 0.66
     row_h = available / len(checks)
     if row_h < 0.58:
-        raise FitError("code_lab.checks: 確認項目が多すぎます。5件以内へ絞ってください。")
+        raise FitError("nw_config_lab.checks: 確認項目が多すぎます。5件以内へ絞ってください。")
     for index, check in enumerate(checks):
         y = top + 0.62 + index * row_h
         add_text(slide, right_x, y + 0.02, 0.34, 0.24,
                  f"{index + 1:02d}", 9.5, bold=True, color=ACCENT)
         size, lines = fit_text_or_raise(
-            "code_lab", f"checks[{index}]", check,
+            "nw_config_lab", f"checks[{index}]", check,
             right_w - 0.44, row_h - 0.10, 12.5, min_pt=9.5,
             spacing=1.13, role="body")
         add_text(slide, right_x + 0.44, y, right_w - 0.44, row_h - 0.08,
@@ -1170,7 +1170,7 @@ def _fit_questions(area, questions, mode):
             yield "font", {"size": size, "gap": 0.10}, used
 
     fitted = select_fit(
-        "knowledge_check", available, candidates(),
+        "nw_knowledge_check", available, candidates(),
         guidance="設問を減らすか、選択肢と解説を短くしてください。")
     heights, _used = measure(fitted.values["size"], fitted.values["gap"])
     return fitted, heights
@@ -1201,7 +1201,7 @@ def s_knowledge_check(slide, spec, page):
                  align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
         x = MARGIN + 0.68
         question_size, question_lines = fit_text_or_raise(
-            "knowledge_check", f"questions[{index}].question",
+            "nw_knowledge_check", f"questions[{index}].question",
             question["question"], 10.85, 0.56, size,
             min_pt=11.5, weight="bold", spacing=1.12, role="natural")
         q_h = len(question_lines) * line_height_in(question_size, 1.12)
@@ -1230,7 +1230,7 @@ def s_knowledge_check(slide, spec, page):
             add_text(slide, x, explanation_y, 0.58, 0.22,
                      "解説", 9.5, bold=True, color=ACCENT)
             exp_size, exp_lines = fit_text_or_raise(
-                "knowledge_check", f"questions[{index}].explanation",
+                "nw_knowledge_check", f"questions[{index}].explanation",
                 question["explanation"], 9.90, row_h - (explanation_y - top),
                 size - 2.0, min_pt=9.5, spacing=1.10, role="body")
             add_text(slide, x + 0.68, explanation_y, 9.90,

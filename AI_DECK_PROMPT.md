@@ -77,14 +77,14 @@
    AWSサービスを表すノードは、対応するAWS公式アイコンがある場合に必ずそれを使う。Fluentアイコンは
    人、組織、端末、オンプレミス、一般概念、または対応するAWS素材がない要素に使う。
    VLANやセキュリティゾーンのように、物理機器と論理セグメント、Access・Trunk・L3接続の意味を
-   同時に示す場合は`diagram`へ押し込まず`network`を使う。
-6. 研修・解説資料で専門用語や判断基準を初めて示す場合は、図解より先に`concept`で定義する。
+   同時に示す場合は`diagram`へ押し込まず`nw_topology`を使う。
+6. 研修・解説資料で専門用語や判断基準を初めて示す場合は、図解より先に`nw_concept`で定義する。
    `term`と`definition`で意味を固定し、理解に必要な要点を`points`、誤解しやすい境界を`misconception`へ書く。
    用語を未定義のまま構成図や詳細手順から始めない。
-7. 同じフレームやパケットが端末・装置内部・伝送区間を通る間の状態変化は`protocol_state_flow`、
-   フィールド構成は`protocol_anatomy`、設定例と確認観点は`code_lab`、選択式の設問と正答解説は
-   `knowledge_check`を使う。状態変化を`network`の接続線へ押し込まず、これらを表・画像・箇条書きへ簡略化しない。
-   `protocol_state_flow`では、最初に追跡単位を決める。L2の転送は「フレーム」、L3の転送は「IPパケット」など、
+7. 同じフレームやパケットが端末・装置内部・伝送区間を通る間の状態変化は`nw_protocol_flow`、
+   フィールド構成は`nw_frame_anatomy`、設定例と確認観点は`nw_config_lab`、選択式の設問と正答解説は
+   `nw_knowledge_check`を使う。状態変化を`nw_topology`の接続線へ押し込まず、これらを表・画像・箇条書きへ簡略化しない。
+   `nw_protocol_flow`では、最初に追跡単位を決める。L2の転送は「フレーム」、L3の転送は「IPパケット」など、
    対象に合う用語を`lead`と各状態で一貫して使い、「パケット」を通信データ全般の総称として使わない。
    `appearance`は装飾ではない。実際にタグまたはヘッダーが付く段階だけ`encapsulated`、装置内部の分類・変換・
    検索だけ`internal`、不一致・破棄・異常だけ`alert`とし、それ以外は`plain`にする。`encapsulated`では、
@@ -113,32 +113,37 @@
 
 対応済み `type`:
 
+Common:
+
 - `title`
 - `bullets`
 - `cards`
 - `table`
-- `twocol`
+- `two_column`
 - `chart` (横棒・縦棒・折れ線・積み上げ)
 - `image` (生成・提供・検索画像を本文領域へ大きく配置)
 - `process` (直線工程と、分岐・合流・差戻しを持つ工程図)
 - `program_roadmap`
 - `matrix` (ラベル位置を自動調整する2軸図)
-- `scope` (実施範囲・対象外。成立条件は`lead`)
-- `summary` (2〜4論点の要約。最終判断は`lead`)
+- `scope_boundary` (実施範囲・対象外。成立条件は`lead`)
+- `decision_summary` (2〜4論点の要約。最終判断は`lead`)
 - `paired_comparison` (共通の評価軸による2案比較)
-- `mapping` (左右項目の一対一・一対多・多対多の対応確認)
-- `swimlane` (担当レーンと工程段階を持つ業務フロー)
-- `sequence` (関係者・機器間メッセージの時系列)
+- `relationship_map` (左右項目の一対一・一対多・多対多の対応確認)
+- `swimlane_flow` (担当レーンと工程段階を持つ業務フロー)
+- `message_sequence` (関係者・機器間メッセージの時系列)
 - `org` (体制図。複数トップ・多段分岐・複数親・横連携に対応)
 - `diagram` (構成図。グリッド仕様から自動レイアウト、座標記述は禁止)
-- `concept` (専門用語・判断基準の定義、要点、誤解しやすい境界)
-- `network` (物理機器・論理セグメント・Access / Trunk / L3接続を同時に示すネットワーク図)
-- `protocol_state_flow` (端末・装置・伝送区間ごとのフレームまたはパケット状態の変化)
-- `protocol_anatomy` (フレーム・パケットのフィールド構造と注釈)
-- `code_lab` (設定例・コードと確認観点)
-- `knowledge_check` (選択式の設問と正答・解説)
 
-`summary.sections[*].icon`は、各論点を見分ける助けになるFluentアイコンがある場合だけ指定する。
+NW:
+
+- `nw_concept` (専門用語・判断基準の定義、要点、誤解しやすい境界)
+- `nw_topology` (物理機器・論理セグメント・Access / Trunk / L3接続を同時に示すネットワーク図)
+- `nw_protocol_flow` (端末・装置・伝送区間ごとのフレームまたはパケット状態の変化)
+- `nw_frame_anatomy` (フレーム・パケットのフィールド構造と注釈)
+- `nw_config_lab` (設定例・コードと確認観点)
+- `nw_knowledge_check` (選択式の設問と正答・解説)
+
+`decision_summary.sections[*].icon`は、各論点を見分ける助けになるFluentアイコンがある場合だけ指定する。
 アイコンを埋めること自体を目的にせず、適切なものがなければ省略する。
 
 ## サンプル由来のアンチパターン
