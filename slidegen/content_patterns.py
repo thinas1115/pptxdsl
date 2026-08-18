@@ -170,6 +170,23 @@ PATTERN_DECK = {
             "alt": "GitHubで公開されているpptxdslリポジトリのトップ画面",
         },
         {
+            "type": "image_compare",
+            "kicker": "画面比較",
+            "title": "変更前後のスクリーンショットを左右で比較する",
+            "left": {
+                "image": "images/pptxdsl-repository.png",
+                "label": "変更前",
+                "alt": "GitHubで公開されているpptxdslリポジトリのトップ画面",
+            },
+            "right": {
+                "image": "cover/cover-background.png",
+                "label": "変更後",
+                "alt": "濃紺のグラデーションに幾何学的な線を重ねた背景素材",
+            },
+            "fit": "cover",
+            "shadow": True,
+        },
+        {
             "type": "process",
             "kicker": "標準プロセス",
             "title": "資料生成は5つの工程で品質を担保する",

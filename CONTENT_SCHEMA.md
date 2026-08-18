@@ -21,7 +21,7 @@ schema例ではない。通常のvalidatorは、そこにある正規化後14文
 
 | category | type |
 |---|---|
-| Common | `title`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
+| Common | `title`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
 | NW | `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
 
 ## 機械検証
@@ -369,6 +369,50 @@ python slidegen/validate_content.py content.json
   "fit": "cover",
   "shadow": true,
   "alt": "<画像の内容を表す代替説明>"
+}
+```
+
+### image_compare
+
+用途: 同一UIや状態の変更前後を、2枚の画像で左右に並べて比較する。
+
+必須:
+
+- `type`: `"image_compare"`
+- `kicker`: string
+- `title`: string
+- `left.image` / `right.image`: `slidegen/assets/`からの相対PNG/JPEGパス
+
+任意:
+
+- `left.label` / `right.label`: 左右の意味ラベル。省略時は`BEFORE` / `AFTER`
+- `left.alt` / `right.alt`: 画像を見られない受け手向けの代替説明
+- `fit`: `"contain"`または`"cover"`。両画像に共通。既定値は`"contain"`
+- `shadow`: boolean。両画像に共通。`true`なら外側の「オフセット: 右下」影を付ける。既定値は`false`
+
+制約:
+
+- 個別の`caption`は持たない。画像の説明が必要な場合は`lead`を使う(`image`と同じ方針)。
+- URLを直接指定しない。使用可能なファイルを先に`slidegen/assets/images/`へ置いてから参照する。
+- 3枚以上の比較や評価軸ごとの対応表が必要な場合は`image_compare`へ詰め込まず、`image`の複数枚分割または`paired_comparison`を検討する。
+
+```json
+{
+  "type": "image_compare",
+  "kicker": "画面比較",
+  "title": "変更前後の比較",
+  "left": {
+    "image": "images/<配置済みファイル名>.png",
+    "label": "変更前",
+    "alt": "<画像の内容を表す代替説明>"
+  },
+  "right": {
+    "image": "images/<配置済みファイル名>.png",
+    "label": "変更後",
+    "alt": "<画像の内容を表す代替説明>"
+  },
+  "fit": "cover",
+  "shadow": true
 }
 ```
 
