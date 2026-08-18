@@ -51,6 +51,7 @@ _TYPE_KEYS = {
     "two_column": _BASE_SLIDE_KEYS | {"left", "right"},
     "chart": _BASE_SLIDE_KEYS | {"chart", "note"},
     "image": _BASE_SLIDE_KEYS | {"image", "fit", "shadow", "alt"},
+    "image_compare": _BASE_SLIDE_KEYS | {"left", "right", "fit", "shadow"},
     "process": _BASE_SLIDE_KEYS | {"steps", "emph", "flow", "note"},
     "program_roadmap": _BASE_SLIDE_KEYS | {"periods", "tracks", "note"},
     "matrix": _BASE_SLIDE_KEYS | {
@@ -346,6 +347,39 @@ def _v_image(s):
             image.verify()
     except (OSError, ValueError):
         s.err(f"image={s.spec['image']!r} は有効なPNG/JPEGではありません")
+
+
+def _v_image_compare(s):
+    for side in ("left", "right"):
+        p = s.spec.get(side)
+        if not isinstance(p, dict):
+            s.err(f'"{side}" (image を持つオブジェクト) が必要です')
+            continue
+        s.allow_keys(p, {"image", "label", "alt"}, side)
+        if not _is_str(p.get("image")):
+            s.err(f"{side}.image (文字列) が必要です")
+            continue
+        if "label" in p and not _is_str(p["label"]):
+            s.err(f"{side}.label は空でない文字列にしてください")
+        if "alt" in p and not _is_str(p["alt"]):
+            s.err(f"{side}.alt は空でない文字列にしてください")
+        try:
+            image_path = resolve_image_path(p["image"])
+        except ValueError as exc:
+            s.err(str(exc))
+            continue
+        if not image_path.is_file():
+            s.err(f"{side}.image={p['image']!r} がassets/にありません")
+            continue
+        try:
+            with Image.open(image_path) as image:
+                image.verify()
+        except (OSError, ValueError):
+            s.err(f"{side}.image={p['image']!r} は有効なPNG/JPEGではありません")
+    if "fit" in s.spec and s.spec["fit"] not in {"contain", "cover"}:
+        s.err('image_compare の "fit" は "contain" または "cover" にしてください')
+    if "shadow" in s.spec and not isinstance(s.spec["shadow"], bool):
+        s.err('"shadow" は true または false にしてください')
 
 
 def _v_process(s):
@@ -1374,7 +1408,7 @@ def _v_knowledge_check(s):
 VALIDATORS = {
     "title": _v_title, "bullets": _v_bullets, "cards": _v_cards,
     "table": _v_table, "two_column": _v_twocol, "chart": _v_chart,
-    "image": _v_image,
+    "image": _v_image, "image_compare": _v_image_compare,
     "process": _v_process, "program_roadmap": _v_program_roadmap,
     "matrix": _v_matrix,
     "org": _v_org, "diagram": _v_diagram,

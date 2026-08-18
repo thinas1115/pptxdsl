@@ -97,6 +97,8 @@
    存在する相対パスだけを書く。必要な画像が未準備なら架空のパスを作らず、作業手順1の事前確認で停止する。
    画像の説明は必要な場合だけ`lead`へ書き、`caption`と`source`は使わない。Web画像は取得元・権利者・
    利用条件を確認し、リポジトリへ含める場合は`slidegen/assets/CREDITS.md`へ記録する。
+   同一UIや状態の変更前後を2枚の画像で並べて比較する場合は `image_compare` を使い、`image`を2枚並べる
+   代用や座標指定はしない。
 12. `type` は `CONTENT_SCHEMA.md` に載っているものだけ使う。件数制約も `validate_content.py` が機械検証する。期間計画は `program_roadmap` を使う。各テーマには1件以上の`activities`を置き、狙いが必要な場合だけ`goal`、判定点が必要な場合だけ`milestone`を追加する。月途中の開始・終了が必要な場合は、数値の`start / end`を0.25刻みの期間境界indexで指定する。
 13. 体制図は`org.nodes / org.levels / org.edges`で記述し、階層と関係だけを入力する。座標や箱のサイズは書かない。
 14. 表の列幅はrendererが自動計算するため`col_widths`を書かない。2軸図のラベル位置も自動計算するため`lx / ly`を書かない。
@@ -122,6 +124,7 @@ Common:
 - `two_column`
 - `chart` (横棒・縦棒・折れ線・積み上げ。`kind`は`bar` / `column` / `line` / `stacked_bar` / `stacked_column`)
 - `image` (生成・提供・検索画像を本文領域へ大きく配置)
+- `image_compare` (2枚の画像を左右に並べて変更前後を比較)
 - `process` (直線工程と、分岐・合流・差戻しを持つ工程図)
 - `program_roadmap`
 - `matrix` (ラベル位置を自動調整する2軸図)
