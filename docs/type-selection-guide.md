@@ -42,7 +42,7 @@
 | `cards` | 主結論と複数の独立した根拠、選択肢、事例、KPIを比較する | 読み順のある要点、情報が少ないだけ、工程や図の要素を並べる | `bullets`、`process`、`diagram` |
 | `table` | 同じ評価軸で複数項目を比較・一覧する | 時系列の推移や関係を見せる | `chart`、`program_roadmap` |
 | `two_column` | 2つの状態・案・観点を対比する | 3つ以上の選択肢や多軸比較 | `cards`、`table` |
-| `chart` | 数値の大小、推移、構成を視覚比較する | 数値根拠がない概念比較 | `table`、`bullets` |
+| `chart` | 数値の大小、推移、構成を視覚比較する。`bar` / `column` / `line` / `stacked_bar` / `stacked_column`に対応 | 数値根拠がない概念比較 | `table`、`bullets` |
 | `image` | 写真、画面、イラスト自体を主メッセージにする | 複数要素の関係を描く | `diagram`、`cards` |
 | `process` | 直線工程、分岐、合流、差戻しを示す | 日付・期間が主役、組織階層を示す | `program_roadmap`、`org` |
 | `program_roadmap` | 少数フェーズ、判定点、複数テーマの並行作業を時間軸で示す | 工程間の分岐・差戻しが主役 | `process` |

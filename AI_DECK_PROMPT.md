@@ -120,7 +120,7 @@ Common:
 - `cards`
 - `table`
 - `two_column`
-- `chart` (横棒・縦棒・折れ線・積み上げ)
+- `chart` (横棒・縦棒・折れ線・積み上げ。`kind`は`bar` / `column` / `line` / `stacked_bar` / `stacked_column`)
 - `image` (生成・提供・検索画像を本文領域へ大きく配置)
 - `process` (直線工程と、分岐・合流・差戻しを持つ工程図)
 - `program_roadmap`

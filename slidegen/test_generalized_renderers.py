@@ -206,15 +206,21 @@ def main():
         )
         chart_slide = _slide()
         generate.s_chart(chart_slide, chart, 1)
-        assert any(shape.has_chart for shape in chart_slide.shapes)
-    assert generate._fit_chart_layout(
-        generate.ContentArea(), 12, 2, "bar").stage == "element"
-    _must_fail(
-        lambda: generate._fit_chart_layout(
-            generate.ContentArea(2.0, 3.3, True), 12, 4, "bar"),
-        "最小設定",
+        assert not any(shape.has_chart for shape in chart_slide.shapes)
+        assert any(shape.has_text_frame and shape.text_frame.text == "A"
+                   for shape in chart_slide.shapes)
+    unsupported_chart = dict(
+        _base("chart"),
+        chart={
+            "kind": "pie",
+            "categories": ["A"],
+            "series": [["実績", [10]]],
+        },
     )
-
+    assert any("chart.kind" in error
+               for error in validate(
+                   {"meta": {"title": "TEST"}, "slides": [unsupported_chart]},
+                   allow_sample_content=True))
     flow = {
         "nodes": {
             "start": {"name": "受付"},
