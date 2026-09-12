@@ -34,6 +34,11 @@ python -m pip install -r requirements.txt
 
 ## 使い方
 
+CodexまたはGitHub CopilotでPPTX作成を一括して依頼する場合は、
+[pptxdsl Skill](.agents/skills/pptxdsl/SKILL.md)を使います。資料要件と情報源の確認から
+`content.json`の成形、PPTX生成、実行環境に応じたPNGレンダリング、目視QA、修正までを
+1つの作業として扱います。
+
 ### 1. content.jsonを作る
 
 生成AIに作らせる場合:
@@ -59,14 +64,16 @@ typeごとのフィールド、件数、構成図、画像、`lead`の指定方�
 ```powershell
 python slidegen/generate_from_json.py content.json out\deck.pptx
 python slidegen/check_layout.py out\deck.pptx
-powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out\deck.pptx -OutDir out\png
+python .agents/skills/pptxdsl/scripts/render_preview.py --probe
+python .agents/skills/pptxdsl/scripts/render_preview.py out\deck.pptx out\png
 python contact_sheet.py out\png
 ```
 
 `generate_from_json.py`は生成前にschemaを検証し、不正な入力ではPPTXを生成しません。
 エラーが出た場合は、表示された`slides[番号] (type=種別)`の内容を修正して再実行します。
 
-PowerPointを利用できる場合は、`out\png\sheet.png`の一覧と各ページの原寸画像を確認してください。
+`out\png\sheet.png`の一覧と各ページの原寸画像を確認してください。レンダリング補助スクリプトは、
+WindowsではPowerPointを優先し、それ以外ではLibreOfficeとPDF画像化手段の組み合わせを探索します。
 機械検証だけでは、文字の読みやすさ、内容の正確性、余白や配線の印象までは判断できません。
 
 Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テスト、主要デッキ生成、
@@ -89,6 +96,7 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 
 | パス | 内容 |
 |---|---|
+| `.agents/skills/pptxdsl/` | AIエージェント向けのPPTX作成Skill |
 | `slidegen/` | renderer、レイアウトエンジン、validator、テスト |
 | `slidegen/assets/icons/` | 同梱済みのAWS・Fluentアイコン |
 | `slidegen/assets/images/` | 本文で使用する画像 |

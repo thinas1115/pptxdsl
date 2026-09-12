@@ -3,6 +3,14 @@
 このファイルは、リポジトリをcloneして作業するすべてのAIエージェント向けの公開ルールである。
 OS、ユーザー名、clone先、ツールのインストール先、GitHub権限が異なる利用者を前提にする。
 
+## PPTX作成Skill
+
+- 新規資料または`content.json`から提出用PPTXを作る作業では、
+  [.agents/skills/pptxdsl/SKILL.md](.agents/skills/pptxdsl/SKILL.md)を入口として使う。
+- 公開Skillは`pptxdsl`を正面入口とする。内容QA、JSON成形、type選定、レンダリングと目視QAは
+  Skill内の段階別リファレンスであり、個別の完成物として分断しない。
+- Skillの自動検出に対応しない実行環境でも、同じ`SKILL.md`を手順書として読み、PPTX生成と目視QAまで完了する。
+
 ## 作業開始時に読むもの
 
 1. [README.md](README.md)でセットアップと基本操作を確認する。
@@ -83,8 +91,12 @@ git status --short
 1. `python slidegen/validate_content.py content.json`
 2. 対象generatorでPPTXを`out/`へ生成する。
 3. `python slidegen/check_layout.py <生成したPPTX>`を実行する。
-4. PowerPointを利用できる場合は`render.ps1`でPNG化する。
+4. 実行環境で利用可能な方法を調査してPNG化する。PowerPointを利用できる場合は`render.ps1`を使い、
+   利用できない場合はOffice互換ソフトとPDF画像化ツールなど、その環境で利用可能な方法を組み合わせる。
 5. 全ページを一覧と原寸の両方で目視確認する。
+
+PowerPoint以外でレンダリングした場合は、使用したbackendとPowerPointとの描画差が残る可能性を検証結果へ記載する。
+利用可能な方法を調査してもPNG化できない場合は、その調査結果を報告し、目視確認を完了扱いにしない。
 
 新しいrendererまたは収容処理を変更した場合は、通常入力の回帰テストに加え、余白圧縮、要素縮小、
 最小値での明示停止までを通る過密入力テストを実行する。

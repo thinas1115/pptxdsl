@@ -1,0 +1,3 @@
+interface:
+  display_name: "pptxdsl"
+  short_description: "要件整理からPPTX生成・目視QAまで完了"
