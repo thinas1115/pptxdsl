@@ -221,7 +221,12 @@ def test_libreoffice_backend_smoke() -> None:
         temp_dir = Path(temp_name)
         deck, content_path = _write_smoke_content(temp_dir)
         pptx_path = temp_dir / "deck.pptx"
-        png_dir = temp_dir / "png"
+        configured_out = os.environ.get("PPTXDSL_RENDER_SMOKE_OUT")
+        png_dir = (
+            (ROOT / configured_out).resolve()
+            if configured_out
+            else temp_dir / "png"
+        )
 
         _run_repo_command(
             "slidegen/generate_from_json.py", str(content_path), str(pptx_path)

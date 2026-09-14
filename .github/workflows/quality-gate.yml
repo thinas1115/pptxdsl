@@ -97,4 +97,15 @@ jobs:
         env:
           PYTHONIOENCODING: utf-8
           PPTXDSL_REQUIRE_LIBREOFFICE: "1"
+          PPTXDSL_RENDER_SMOKE_OUT: out/libreoffice-smoke
         run: python slidegen/test_pptxdsl_skill.py
+
+      - name: 一覧画像を生成
+        run: python contact_sheet.py out/libreoffice-smoke
+
+      - name: PNGを検証成果物として保存
+        uses: actions/upload-artifact@v4
+        with:
+          name: libreoffice-render
+          path: out/libreoffice-smoke/*.png
+          if-no-files-found: error
