@@ -2,10 +2,15 @@
 
 from pathlib import Path
 import importlib.util
+import json
+import os
 import re
 import subprocess
+import sys
 import tempfile
 from unittest.mock import patch
+
+from pptx import Presentation
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +21,23 @@ spec = importlib.util.spec_from_file_location("render_preview", SCRIPT)
 assert spec and spec.loader
 render_preview = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(render_preview)
+
+
+def _run_repo_command(*args: str) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    result = subprocess.run(
+        [sys.executable, *args],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+    )
+    assert result.returncode == 0, (
+        f"command failed: {args}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+    return result
 
 
 def _broken_local_links(markdown: Path) -> list[str]:
@@ -126,11 +148,62 @@ def test_auto_backend_fallback() -> None:
         assert (backend, count) == ("libreoffice", 2)
 
 
+def test_content_to_pptx_smoke() -> None:
+    deck = {
+        "meta": {"title": "Skill動作確認"},
+        "slides": [
+            {
+                "type": "title",
+                "title": "Skill動作確認",
+                "subtitle": "新規JSONからPPTXを生成する受け入れ試験",
+            },
+            {
+                "type": "bullets",
+                "style": "numbered",
+                "kicker": "INPUT",
+                "title": "入力内容",
+                "bullets": [
+                    {"text": "資料の目的と読み手を確認する"},
+                    {"text": "内容構造に合うtypeを選択する"},
+                    {"text": "許可フィールドだけでJSONを記述する"},
+                ],
+            },
+            {
+                "type": "process",
+                "kicker": "VERIFY",
+                "title": "検証工程",
+                "steps": [
+                    {"name": "入力検証", "desc": "schema違反を検出します。"},
+                    {"name": "資料生成", "desc": "PPTXファイルを生成します。"},
+                    {"name": "配置検査", "desc": "はみ出しと重なりを検査します。"},
+                ],
+            },
+        ],
+    }
+    with tempfile.TemporaryDirectory(prefix="pptxdsl-skill-e2e-") as temp_name:
+        temp_dir = Path(temp_name)
+        content_path = temp_dir / "content.json"
+        pptx_path = temp_dir / "deck.pptx"
+        content_path.write_text(
+            json.dumps(deck, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+        _run_repo_command("slidegen/validate_content.py", str(content_path))
+        _run_repo_command(
+            "slidegen/generate_from_json.py", str(content_path), str(pptx_path)
+        )
+        _run_repo_command("slidegen/check_layout.py", str(pptx_path))
+
+        assert pptx_path.is_file() and pptx_path.stat().st_size > 0
+        assert len(Presentation(pptx_path).slides) == len(deck["slides"])
+
+
 def main() -> None:
     test_skill_links()
     test_slide_number_parser()
     test_libreoffice_page_selection()
     test_auto_backend_fallback()
+    test_content_to_pptx_smoke()
     print("pptxdsl skill: ALL OK")
 
 
