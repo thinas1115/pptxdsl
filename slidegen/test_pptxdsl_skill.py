@@ -10,6 +10,7 @@ import sys
 import tempfile
 from unittest.mock import patch
 
+from PIL import Image
 from pptx import Presentation
 
 
@@ -148,8 +149,8 @@ def test_auto_backend_fallback() -> None:
         assert (backend, count) == ("libreoffice", 2)
 
 
-def test_content_to_pptx_smoke() -> None:
-    deck = {
+def _smoke_deck() -> dict[str, object]:
+    return {
         "meta": {"title": "Skill動作確認"},
         "slides": [
             {
@@ -180,13 +181,22 @@ def test_content_to_pptx_smoke() -> None:
             },
         ],
     }
+
+
+def _write_smoke_content(temp_dir: Path) -> tuple[dict[str, object], Path]:
+    deck = _smoke_deck()
+    content_path = temp_dir / "content.json"
+    content_path.write_text(
+        json.dumps(deck, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return deck, content_path
+
+
+def test_content_to_pptx_smoke() -> None:
     with tempfile.TemporaryDirectory(prefix="pptxdsl-skill-e2e-") as temp_name:
         temp_dir = Path(temp_name)
-        content_path = temp_dir / "content.json"
+        deck, content_path = _write_smoke_content(temp_dir)
         pptx_path = temp_dir / "deck.pptx"
-        content_path.write_text(
-            json.dumps(deck, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
 
         _run_repo_command("slidegen/validate_content.py", str(content_path))
         _run_repo_command(
@@ -198,12 +208,45 @@ def test_content_to_pptx_smoke() -> None:
         assert len(Presentation(pptx_path).slides) == len(deck["slides"])
 
 
+def test_libreoffice_backend_smoke() -> None:
+    details = render_preview.probe()
+    available = details.get("available_backends", [])
+    if "libreoffice" not in available:
+        assert os.environ.get("PPTXDSL_REQUIRE_LIBREOFFICE") != "1", (
+            f"LibreOffice backendを検出できません: {details}"
+        )
+        return
+
+    with tempfile.TemporaryDirectory(prefix="pptxdsl-libreoffice-e2e-") as temp_name:
+        temp_dir = Path(temp_name)
+        deck, content_path = _write_smoke_content(temp_dir)
+        pptx_path = temp_dir / "deck.pptx"
+        png_dir = temp_dir / "png"
+
+        _run_repo_command(
+            "slidegen/generate_from_json.py", str(content_path), str(pptx_path)
+        )
+        backend, count = render_preview.render(
+            pptx_path, png_dir, 800, None, "libreoffice"
+        )
+
+        assert backend == "libreoffice"
+        assert count == len(deck["slides"])
+        images = sorted(png_dir.glob("slide_*.png"))
+        assert len(images) == len(deck["slides"])
+        for image_path in images:
+            with Image.open(image_path) as rendered:
+                assert rendered.size[0] == 800
+                assert rendered.size[1] > 0
+
+
 def main() -> None:
     test_skill_links()
     test_slide_number_parser()
     test_libreoffice_page_selection()
     test_auto_backend_fallback()
     test_content_to_pptx_smoke()
+    test_libreoffice_backend_smoke()
     print("pptxdsl skill: ALL OK")
 
 
