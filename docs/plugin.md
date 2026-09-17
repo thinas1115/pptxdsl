@@ -31,6 +31,37 @@ Portable形式の`plugin.json`を生成し、`.codex-plugin/plugin.json`も互�
 
 ## 導入と受け入れ確認
 
+### Codexでの導入
+
+ChatGPT向けとCodex向けでSkillやrendererを分岐させない。同じ配布物にCodex用の
+`.codex-plugin/plugin.json`と`skills/pptxdsl/`が入っている。
+リポジトリの`plugins/pptxdsl/`はmetadataの正本だけなので、そのままインストールせず、
+ビルド済みの`out/plugins/pptxdsl/`またはZIPを展開したPluginルートを使用する。
+
+1. Codexへ次のように依頼し、個人設定を変更する承認を与える。
+   「`$plugin-creator`で、このビルド済みpptxdsl Pluginを個人marketplaceへ登録してください。
+   同梱Skillと本処理を保持し、既存Plugin・marketplace項目は上書きしないでください。」
+2. 登録後、Codexを再読み込みし、Plugins Directoryの個人タブからpptxdslをインストールする。
+   CLIが利用できる場合は、登録済みmarketplaceの実際の名前で以下を実行して確認できる。
+
+   ```text
+   codex plugin list --marketplace <marketplace名> --available --json
+   codex plugin add pptxdsl@<marketplace名> --json
+   codex plugin list --marketplace <marketplace名> --json
+   ```
+
+3. 新しいタスクで「pptxdsl Pluginで、添付資料と要件から目視確認済みのPPTXを作って」と依頼する。
+   リポジトリ内のSkillを直接読ませる試験と混同しないよう、cloneを開いていない作業領域でも確認する。
+
+標準の個人marketplaceは暗黙に検出されるため、`codex plugin marketplace add`は不要。
+利用者が別のmarketplaceを指定した場合だけ、その配布元の登録が必要になる。
+更新時は登録元のPluginを更新し、plugin-creatorのcachebuster・再インストール手順を使って
+新しいタスクで確認する。生成物だけでなくCodexのPlugin一覧でインストール済みか確認する。
+個人設定への登録・インストールは、配布ビルドとは別の操作であり、ビルド時に自動実行しない。
+Pluginの導入と新しい会話での利用は[公式のPlugin利用ガイド](https://learn.chatgpt.com/docs/plugins)を参照する。
+
+### ChatGPT Workでの導入
+
 開発時は、ビルドした`out/plugins/pptxdsl/`を個人のlocal marketplaceへ登録し、
 ChatGPT WorkまたはCodexを再読み込みしてPlugins Directoryからインストールする。
 登録は`@plugin-creator`または`$plugin-creator`へ、Pluginフォルダと個人marketplaceへの追加希望を指定して依頼できる。
@@ -66,3 +97,4 @@ JSON検証、PPTX生成、配置検査、backend探索を実行する。配布�
 CIのLinux環境では`PPTXDSL_PLUGIN_REQUIRE_RENDER=1`を指定し、展開したPluginからLibreOfficeで
 PNG化と一覧画像生成まで実行する。これは配布物の実行試験であり、ChatGPT Work内の
 Plugin選択・有効化・Skill自動選択そのものの試験とは区別する。
+Codexでも同様に、配布物の隔離実行が成功しただけでPluginの登録・インストール済みとは扱わない。
