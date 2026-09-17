@@ -11,22 +11,26 @@ import json
 import sys
 from pathlib import Path
 
+# 従来のファイル実行と python -m slidegen.generate_from_json を同じimportに統一する。
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from pptx import Presentation
 from pptx.util import Inches
 
-import generate
-from org_layout import s_org
-from diagrams2 import s_matrix, s_process, s_program_roadmap
-from diagram_layout import render_diagram
-from image_slide import s_image, s_image_compare
-from candidate_renderers import (
+from slidegen import generate
+from slidegen.org_layout import s_org
+from slidegen.diagrams2 import s_matrix, s_process, s_program_roadmap
+from slidegen.diagram_layout import render_diagram
+from slidegen.image_slide import s_image, s_image_compare
+from slidegen.candidate_renderers import (
     s_mapping, s_paired_comparison, s_scope, s_sequence, s_summary, s_swimlane,
 )
-from training_renderers import (
+from slidegen.training_renderers import (
     s_code_lab, s_concept, s_knowledge_check, s_network, s_protocol_state_flow,
     s_protocol_anatomy,
 )
-from validate_content import validate
+from slidegen.validate_content import validate
 
 
 def s_diagram(slide, spec, page):

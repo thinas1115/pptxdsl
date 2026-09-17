@@ -1,7 +1,9 @@
 """回帰検証用サンプルの文言が通常デッキへ混入するのを検出する。"""
 import re
+import json
 import unicodedata
 from functools import lru_cache
+from pathlib import Path
 
 
 MIN_FINGERPRINT_LENGTH = 14
@@ -35,37 +37,11 @@ def _strings(value, path=""):
             yield from _strings(child, f"{path}[{index}]")
 
 
-def _sample_sources():
-    # 遅延importにして、通常のschema検証起動時だけ回帰データを読み込む。
-    from content import DECK
-    from content_ext import EXTRA_SLIDES
-    from content_lead_patterns import LEAD_PATTERN_DECK
-    from content_patterns import PATTERN_DECK
-    from content_stress_patterns import STRESS_PATTERN_DECK
-    from diagram_specs import AWS_MULTIAZ_EXAMPLE, AWS_SIMPLE_EXAMPLE
-
-    return (
-        DECK,
-        {"slides": EXTRA_SLIDES},
-        PATTERN_DECK,
-        LEAD_PATTERN_DECK,
-        STRESS_PATTERN_DECK,
-        AWS_SIMPLE_EXAMPLE,
-        AWS_MULTIAZ_EXAMPLE,
-    )
-
-
 @lru_cache(maxsize=1)
 def sample_fingerprints():
-    """正規化したサンプル文言から、表示用の原文への辞書を返す。"""
-    fingerprints = {}
-    for source in _sample_sources():
-        for _, text in _strings(source):
-            normalized = _normalize(text)
-            if (len(normalized) >= MIN_FINGERPRINT_LENGTH
-                    and _JAPANESE.search(normalized)):
-                fingerprints.setdefault(normalized, " ".join(text.split()))
-    return fingerprints
+    """同梱の混入検出辞書を読む。テスト専用の内容モジュールは読み込まない。"""
+    path = Path(__file__).with_name("data") / "sample_fingerprints.json"
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def sample_reuse_paths(deck):

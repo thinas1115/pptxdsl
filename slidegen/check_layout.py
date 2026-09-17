@@ -13,12 +13,16 @@
   SEQ-CLEARANCE: sequence自己処理の戻り線とメッセージラベルの接触
 """
 import sys
+from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
-from cover_footer import COVER_BACKGROUND_NAME
-from quality_markers import (
+from slidegen.cover_footer import COVER_BACKGROUND_NAME
+from slidegen.quality_markers import (
     MIN_SURFACE_CONTRAST,
     MIN_SURFACE_EDGE_CONTRAST,
     SEQUENCE_LABEL_CLEARANCE,
@@ -26,7 +30,7 @@ from quality_markers import (
     SEQUENCE_SELF_ROUTE_PREFIX,
     SURFACE_ON_CANVAS_PREFIX,
 )
-from textfit import line_height_in, wrap_text
+from slidegen.textfit import line_height_in, wrap_text
 
 EMU = 914400
 EDGE = 0.03          # 枠線の当たり判定幅
@@ -74,7 +78,7 @@ def glyph_rect_for_text_frame(tf, box):
             align = p.alignment
     if not lines:
         return None
-    from textfit import text_width_in
+    from slidegen.textfit import text_width_in
     w = max(text_width_in(t, s, wt) for t, s, wt in lines)
     h = sum(line_height_in(s) for _, s, _ in lines)
     if align == PP_ALIGN.CENTER:

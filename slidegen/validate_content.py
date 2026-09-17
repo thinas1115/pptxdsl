@@ -15,11 +15,14 @@ import re
 import sys
 from pathlib import Path
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from PIL import Image
 
-from asset_paths import resolve_icon_path, resolve_image_path
-from sample_content_guard import sample_reuse_paths
-from timeline_layout import resolve_marker, resolve_program_span
+from slidegen.asset_paths import resolve_icon_path, resolve_image_path
+from slidegen.sample_content_guard import sample_reuse_paths
+from slidegen.timeline_layout import resolve_marker, resolve_program_span
 
 # noteを実際に描画するtype。それ以外への指定はエラーにする。
 NOTE_TYPES = {"table", "chart", "process", "program_roadmap",
