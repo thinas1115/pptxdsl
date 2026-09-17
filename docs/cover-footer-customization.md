@@ -27,9 +27,9 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 
 同じオプションは次のgeneratorでも使用できる。
 
-- `tools/gallery/generate_basic.py`
-- `tools/gallery/generate_extended.py`
-- `tools/gallery/generate_patterns.py`
+- `slidegen/generate.py`
+- `slidegen/generate2.py`
+- `slidegen/generate_patterns.py`
 
 ## content.jsonとの責任分担
 

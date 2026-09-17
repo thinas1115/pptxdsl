@@ -41,24 +41,27 @@ jobs:
         shell: pwsh
         run: |
           $env:PYTHONIOENCODING = "utf-8"
-          python -m compileall -q slidegen tests tools
+          python -m compileall -q slidegen
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m tests
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem slidegen\test_*.py | Sort-Object Name | ForEach-Object {
+            Write-Host "==> $($_.Name)"
+            python $_.FullName
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
       - name: 主要デッキを生成して機械検証
         shell: pwsh
         run: |
           $env:PYTHONIOENCODING = "utf-8"
-          python -m tools.gallery.generate_basic out\basic.pptx
+          python slidegen\generate.py out\basic.pptx
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m tools.gallery.generate_extended out\extended.pptx
+          python slidegen\generate2.py out\extended.pptx
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m tools.gallery.generate_patterns out\pattern_gallery.pptx
+          python slidegen\generate_patterns.py out\pattern_gallery.pptx
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m tools.gallery.generate_lead_patterns out\lead_gallery.pptx
+          python slidegen\generate_lead_patterns.py out\lead_gallery.pptx
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m tools.gallery.generate_stress_patterns out\stress_gallery.pptx
+          python slidegen\generate_stress_patterns.py out\stress_gallery.pptx
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem out\*.pptx | ForEach-Object {
             python slidegen\check_layout.py $_.FullName
@@ -95,9 +98,7 @@ jobs:
           PYTHONIOENCODING: utf-8
           PPTXDSL_REQUIRE_LIBREOFFICE: "1"
           PPTXDSL_RENDER_SMOKE_OUT: out/libreoffice-smoke
-        run: |
-          python -m tests.test_repository_structure
-          python -m tests.test_pptxdsl_skill
+        run: python slidegen/test_pptxdsl_skill.py
 
       - name: 一覧画像を生成
         run: python contact_sheet.py out/libreoffice-smoke

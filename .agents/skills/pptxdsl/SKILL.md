@@ -11,7 +11,7 @@ description: pptxdslで資料要件と情報源からcontent.jsonを設計し、
 
 - リポジトリルートから作業し、最初に`AGENTS.md`を読む。
 - 主張、固有名詞、数値、画像の根拠は、利用者の資料要件と指定された情報源だけに限定する。
-- `tests/fixtures/gallery/content*.py`、`tests/fixtures/gallery/diagram_specs.py`、ギャラリーは回帰検証用であり、新規資料の内容やページ構成の参考にしない。
+- `slidegen/content*.py`、`slidegen/diagram_specs.py`、ギャラリーは回帰検証用であり、新規資料の内容やページ構成の参考にしない。
 - 正確な資料を作るために不足している情報があれば、不足を埋める質問だけを行い、仮の内容で先へ進めない。
 
 ## 完成までの流れ

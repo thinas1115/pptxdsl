@@ -53,12 +53,6 @@
 
 ## レイヤーモデル
 
-実行時のコードは`slidegen/`に置く。`tests/`はテスト、`tests/fixtures/gallery/`は
-回帰専用入力、`tools/gallery/`は検証デッキの生成・掲載、`tools/assets/`は素材の保守を担当する。
-`slidegen/`から`tests/`や`tools/`をimportしない。通常入力のサンプル混入検出には
-`slidegen/data/sample_fingerprints.json`を使い、回帰データの変更時に開発ツールで再生成する。
-全テストは`python -m tests`で、各モジュールを独立プロセスとして実行する。
-
 実装は4つの層に分けて考える。
 
 | 層 | 責務 | 主な実装 | 再利用範囲 |

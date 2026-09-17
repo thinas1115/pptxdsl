@@ -1,7 +1,7 @@
 """工程表rendererの期間解決・レーン割当・収容計算。"""
 from dataclasses import dataclass
 
-from slidegen.layout_fit import select_fit, stepped
+from layout_fit import select_fit, stepped
 
 PROGRAM_ROADMAP_STEP = 0.25
 
