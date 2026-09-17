@@ -40,6 +40,9 @@ CodexまたはGitHub CopilotでPPTX作成を一括して依頼する場合は、
 `content.json`の成形、PPTX生成、実行環境に応じたPNGレンダリング、目視QA、修正までを
 1つの作業として扱います。
 
+ChatGPT Work・CodexへPluginとして配布する場合は、[Pluginガイド](docs/plugin.md)を参照してください。
+`python -m tools.plugin.build`で、Skill・本処理・素材を同梱したclone不要の配布ZIPを作れます。
+
 ### 1. content.jsonを作る
 
 生成AIに作らせる場合:
@@ -104,6 +107,8 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 | `tests/fixtures/gallery/` | 回帰専用の内容データ・構成図仕様 |
 | `tools/gallery/` | 回帰ギャラリーの生成・検証・掲載画像作成 |
 | `tools/assets/` | 素材の取得・点検。通常生成には不要 |
+| `tools/plugin/` | Skillと本処理を同梱するPlugin配布用ビルド |
+| `plugins/pptxdsl/` | Pluginの表示情報・配布metadataの正本 |
 | `slidegen/assets/icons/` | 同梱済みのAWS・Fluentアイコン |
 | `slidegen/assets/images/` | 本文で使用する画像 |
 | `slidegen/assets/cover/` | 利用者が差し替える表紙背景画像 |

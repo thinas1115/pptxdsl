@@ -11,7 +11,7 @@
 - 直線・分岐・差戻しを含む工程は`process`。担当レーンも必要なら`swimlane_flow`。関係者や機器間の送受信順が主役なら`message_sequence`。
 - 期間と並行作業が主役なら`program_roadmap`。階層は`org`。要素間の接続や境界は`diagram`。
 - 用語や判断基準の初出説明は`concept`。設定例と確認観点は`config_lab`。選択式の理解確認は`knowledge_check`。
-- AWSのVPC・AZ・Subnet境界が主役なら`aws_vpc_layout`。物理機器と論理セグメント、Access・Trunk・L3接続を同時に示すなら`nw_topology`。
+- 物理機器と論理セグメント、Access・Trunk・L3接続を同時に示すなら`nw_topology`。
 - 同一フレームまたはパケットの段階別状態変化は`nw_protocol_flow`。フィールド構造は`nw_frame_anatomy`。
 
 ## 選ばない理由も確認する

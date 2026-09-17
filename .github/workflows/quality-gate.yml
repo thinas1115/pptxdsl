@@ -95,9 +95,15 @@ jobs:
           PYTHONIOENCODING: utf-8
           PPTXDSL_REQUIRE_LIBREOFFICE: "1"
           PPTXDSL_RENDER_SMOKE_OUT: out/libreoffice-smoke
+          PPTXDSL_PLUGIN_REQUIRE_RENDER: "1"
+          PPTXDSL_PLUGIN_SMOKE_OUT: out/plugin-smoke
         run: |
           python -m tests.test_repository_structure
           python -m tests.test_pptxdsl_skill
+          python -m tests.test_plugin_package
+
+      - name: Plugin配布ZIPを生成
+        run: python -m tools.plugin.build
 
       - name: 一覧画像を生成
         run: python contact_sheet.py out/libreoffice-smoke
@@ -106,5 +112,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: libreoffice-render
-          path: out/libreoffice-smoke/*.png
+          path: |
+            out/libreoffice-smoke/*.png
+            out/plugin-smoke/*.png
+          if-no-files-found: error
+
+      - name: Plugin配布物を保存
+        uses: actions/upload-artifact@v4
+        with:
+          name: pptxdsl-plugin
+          path: out/plugins/*.zip
           if-no-files-found: error

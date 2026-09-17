@@ -14,7 +14,15 @@ import sys
 import tempfile
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+def _project_root() -> Path:
+    for parent in Path(__file__).resolve().parents:
+        for candidate in (parent / "project", parent):
+            if (candidate / "slidegen/generate_from_json.py").is_file():
+                return candidate
+    raise RuntimeError("同梱のpptxdsl本処理が見つかりません")
+
+
+REPO_ROOT = _project_root()
 RENDER_PS1 = REPO_ROOT / "render.ps1"
 
 
