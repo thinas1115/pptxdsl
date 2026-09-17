@@ -4,13 +4,13 @@ from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
-from slidegen.generate import (ACCENT, CORAL, GRAY, LIGHT, NAVY, RULE, SURFACE, TEXT, WHITE,
+from generate import (ACCENT, CORAL, GRAY, LIGHT, NAVY, RULE, SURFACE, TEXT, WHITE,
                       ZEBRA, ContentArea, add_rect, add_text, header, note_line)
-from slidegen.diagrams import add_arrow, arrow_label
-from slidegen.diagrams3 import route
-from slidegen.layout_fit import FitError, ensure_within, fit_text_or_raise, select_fit
-from slidegen.textfit import text_width_in
-from slidegen.timeline_layout import (centered_label_box, fit_program_roadmap,
+from diagrams import add_arrow, arrow_label
+from diagrams3 import route
+from layout_fit import FitError, ensure_within, fit_text_or_raise, select_fit
+from textfit import text_width_in
+from timeline_layout import (centered_label_box, fit_program_roadmap,
                              pack_activities, resolve_marker)
 
 PROGRAM_LINE_PT = 1.4

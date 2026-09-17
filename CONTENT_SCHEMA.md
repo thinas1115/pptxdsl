@@ -12,7 +12,7 @@
 [docs/type-selection-guide.md](docs/type-selection-guide.md)の「選ぶ場面・選ばない場面・代替」に従い、
 実際の文言・固有名詞・数値は資料要件と指定された情報源から作成する。
 
-`tests/fixtures/gallery/content*.py`と`tests/fixtures/gallery/diagram_specs.py`はrendererの回帰検証と目視QAのためのデータであり、
+`slidegen/content*.py`と`slidegen/diagram_specs.py`はrendererの回帰検証と目視QAのためのデータであり、
 schema例ではない。通常のvalidatorは、そこにある正規化後14文字以上の日本語文言を流用した入力を拒否する。
 
 ## typeカテゴリー
@@ -1190,7 +1190,7 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
   - `title`: 表示名
   - `sub`: 補足ラベル(任意)
   - `icon`: `slidegen/assets/` からの相対PNGパス(必須)。同梱Fluent/AWSアイコンから選ぶ
-    - Fluentアイコン(`icons/fluent/<名前>.png`、72種同梱済み)。次の名前だけを使い、ファイル名を発明しない。`python -m tools.assets.fetch_fluent_icons --list` でも確認できる
+    - Fluentアイコン(`icons/fluent/<名前>.png`、72種同梱済み)。次の名前だけを使い、ファイル名を発明しない。`python slidegen/fetch_fluent_icons.py --list` でも確認できる
       - インフラ・端末: `server` `router` `database` `desktop` `laptop` `tablet` `phone` `printer` `hard_drive` `storage`
       - ネットワーク・クラウド: `cloud` `globe` `wifi` `ethernet` `link` `gateway` `sync` `upload` `download` `switch`
       - セキュリティ: `shield` `shield_lock` `shield_check` `lock` `key` `certificate`

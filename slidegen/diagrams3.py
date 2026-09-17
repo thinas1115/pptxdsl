@@ -1,4 +1,4 @@
-"""直角配線ユーティリティ。
+﻿"""直角配線ユーティリティ。
 
 ポイント: プリセットのカギ線コネクタは折れ位置を制御できず他ノードを
 貫通しうるため、ウェイポイント明示のroute()で配線レーンを決める。
@@ -7,7 +7,7 @@ from pptx.enum.shapes import MSO_CONNECTOR
 from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
-from slidegen.diagrams import LINE, add_arrow
+from diagrams import LINE, add_arrow
 
 
 def plain_line(slide, x1, y1, x2, y2, *, color=LINE, width=1.25, dash=None):

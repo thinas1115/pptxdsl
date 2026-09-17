@@ -19,7 +19,7 @@
 - 表紙が必要な場合だけ`title`、章扉が必要な場合だけ`section_divider`を使う。ギャラリーのページ順やtype順を流用しない。
 - システムやネットワーク図のノード・エッジには意味だけを書き、配置はrendererへ任せる。存在しないアイコン名を発明しない。
 - 画像typeでは、実在して利用可能なリポジトリ相対パスだけを書く。追加素材の出典とライセンスは`slidegen/assets/CREDITS.md`へ記録する。
-- `tests/fixtures/gallery/content*.py`と`tests/fixtures/gallery/diagram_specs.py`から題材、文言、数値、ページ構成をコピーしない。
+- `slidegen/content*.py`と`slidegen/diagram_specs.py`から題材、文言、数値、ページ構成をコピーしない。
 
 ## 収容エラーの直し方
 

@@ -95,10 +95,10 @@
 
 ## 検証方法
 
-`tools/gallery/generate_candidate_review.py`で24枚の回帰デッキを生成する。
+`slidegen/generate_candidate_review.py`で24枚の回帰デッキを生成する。
 
 ```powershell
-python -m tools.gallery.generate_candidate_review out\candidate_review.pptx
+python slidegen/generate_candidate_review.py out\candidate_review.pptx
 python slidegen/check_layout.py out\candidate_review.pptx
 powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out\candidate_review.pptx -OutDir out\png_candidate_review
 python contact_sheet.py out\png_candidate_review 4 390

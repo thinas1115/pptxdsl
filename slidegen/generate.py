@@ -1,31 +1,27 @@
-"""基本renderer、共通描画部品とテーマ定数。"""
-if __name__ == "__main__":
-    raise SystemExit(
-        "NG: 基本サンプル生成は python -m tools.gallery.generate_basic を使用してください。\n"
-        "通常の資料生成は python slidegen/generate_from_json.py content.json out/deck.pptx を使用してください。")
-
+"""python-pptxとテキスト実測による基本サンプルデッキ生成。"""
+import argparse
 import math
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
+from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
-from slidegen.cover_footer import load_cover_footer_config, render_cover, render_footer
-from slidegen.layout_fit import (
+from content import DECK
+from cover_footer import load_cover_footer_config, render_cover, render_footer
+from layout_fit import (
     FitError,
     fit_text_or_raise,
     fit_vertical_stacks,
     select_fit,
     stepped,
 )
-from slidegen.textfit import line_height_in, text_width_in, wrap_natural, wrap_text
-
-# 入力デッキは生成入口から設定する。回帰用データを初期値として読み込まない。
-DECK = {"meta": {}, "slides": []}
+from textfit import line_height_in, text_width_in, wrap_natural, wrap_text
 
 # ---- テーマ ----
 NAVY = RGBColor(0x18, 0x2C, 0x43)
@@ -857,3 +853,34 @@ def render_slide(renderer, slide, spec, idx):
         raise SystemExit(
             f"NG: slides[{idx - 1}] (type={spec['type']}) の生成に失敗:\n"
             f"  {e}") from e
+
+
+def main(out_path, cover_footer_config=None):
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        configure_cover_footer(cover_footer_config)
+    except ValueError as e:
+        raise SystemExit(f"NG: 表紙・フッター設定: {e}") from e
+    prs = Presentation()
+    prs.slide_width = Inches(SLIDE_W)
+    prs.slide_height = Inches(SLIDE_H)
+    blank = prs.slide_layouts[6]
+    total = len(DECK["slides"])
+    for idx, spec in enumerate(DECK["slides"], 1):
+        slide = prs.slides.add_slide(blank)
+        render_slide(RENDER[spec["type"]], slide, spec, idx)
+        if spec["type"] != "title":
+            footer(slide, idx)
+    prs.save(out_path)
+    print(f"saved: {out_path} ({total} slides)")
+
+
+if __name__ == "__main__":
+    default_out = Path(__file__).resolve().parent.parent / "out" / "sample_basic.pptx"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("out_path", nargs="?", default=default_out)
+    parser.add_argument("--cover-footer-config", metavar="PATH",
+                        help="表紙・フッター設定JSON")
+    args = parser.parse_args()
+    main(args.out_path, args.cover_footer_config)

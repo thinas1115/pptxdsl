@@ -58,16 +58,16 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/image_slide.py` | 大判画像の比率維持・中央トリミング・右下影・段階的収容 |
 | `slidegen/diagrams3.py` | route() 直角配線 |
 | `slidegen/diagram_layout.py` | 宣言的レイアウトエンジン (グリッド仕様→座標。diagram type の本体) |
-| `tests/fixtures/gallery/diagram_specs.py` | 公開diagramスキーマだけで書いた構成図の回帰試験用サンプル |
+| `slidegen/diagram_specs.py` | 公開diagramスキーマだけで書いた構成図の回帰試験用サンプル |
 | `slidegen/training_renderers.py` | concept / nw_topology / nw_frame_anatomy / config_lab / knowledge_check renderer |
 | `slidegen/validate_content.py` | content.json の生成前検証。typeごとの `_v_*` 関数 |
 | `slidegen/generate_from_json.py` | content.json→PPTX。**新規資料の正式経路** |
-| `tools/gallery/generate_patterns.py` + `tests/fixtures/gallery/content_patterns.py` | 全typeの検証ギャラリー |
+| `slidegen/generate_patterns.py` + `content_patterns.py` | 全typeの検証ギャラリー |
 | `slidegen/check_layout.py` | 生成済みPPTXの重なり・はみ出し機械検知 |
 | `slidegen/textfit.py` | フォント実測 (游ゴシックをPillowで測る) |
 | `slidegen/layout_fit.py` | 標準→裁量余白圧縮→要素縮小→明示停止の共通契約 |
-| `tests/test_training_renderers.py` | 技術研修rendererの意味検証、標準入力、過密入力、明示停止 |
-| `tools/assets/fetch_fluent_icons.py` / `extract_aws_icons.py` | アイコン素材の追加取得 (`slidegen/assets/icons/fluent/`・`slidegen/assets/icons/aws/` に同梱済み。条件は `slidegen/assets/CREDITS.md`。Fluentは要 svglib+reportlab+rlPyCairo) |
+| `slidegen/test_training_renderers.py` | 技術研修rendererの意味検証、標準入力、過密入力、明示停止 |
+| `slidegen/fetch_fluent_icons.py` / `extract_aws_icons.py` | アイコン素材の追加取得 (`slidegen/assets/icons/fluent/`・`slidegen/assets/icons/aws/` に同梱済み。条件は `slidegen/assets/CREDITS.md`。Fluentは要 svglib+reportlab+rlPyCairo) |
 
 ## 絶対に守る不変条件(全て実際の不具合から学んだもの)
 
@@ -189,10 +189,8 @@ render_diagram(slide, spec, note, content_area=None) # 描画一式
    入れ子objectごとに`allow_keys()`を呼ぶ。未知フィールドを黙って無視するrendererはマージ不可。
 4. **CONTENT_SCHEMA.md**: 必須/任意フィールド・制約・JSON例のセクションを追加。
 5. **AI_DECK_PROMPT.md**: 対応済みtype一覧に追加。
-6. **ギャラリー**: `tests/fixtures/gallery/content_patterns.py` に検証スライドを1枚追加
+6. **ギャラリー**: `content_patterns.py` に検証スライドを1枚追加
    (これが将来のリグレッション検知網になる)。
-   回帰文言を変更したら`python -m tools.gallery.build_sample_fingerprints`を実行し、
-   `slidegen/data/sample_fingerprints.json`も更新する。辞書の更新漏れはテストで拒否する。
 7. **選択境界**: AIが選ぶ条件、選ばない条件、隣接typeとの違いを`docs/type-selection-guide.md`へ書く。
    動機となった資料固有の題材だけで説明せず、別題材でも成立する情報構造として定義する。
 8. **収容ポリシー**: 標準→裁量余白圧縮→ジャンル固有要素縮小→`FitError`停止を実装し、
@@ -242,23 +240,23 @@ render_diagram(slide, spec, note, content_area=None) # 描画一式
 
 ```powershell
 python slidegen/validate_content.py content.json                       # 新typeのschema検証
-python -m tests.test_layout_fit                                     # 共通収容契約
-python -m tests.test_ai_content_contract                            # AI入力の未知キー・任意表紙・未確定文言
-python -m tests.test_generate_errors                                # JSON構文エラーの安全な診断
-python -m tests.test_check_layout                                   # 壊れた表・グラフ・可変サイズPPTXの検出
-python -m tests.test_sample_content_guard                           # 回帰サンプル文言の通常入力への混入防止
-python -m tests.test_timeline_layout                               # roadmap系の期間解決・レーン割当・段階的収容
-python -m tests.test_image_slide                                   # 大判画像の比率維持・crop・schema・収容停止
-python -m tests.test_org_layout                                    # 体制図の階層DAG・配線・段階的収容
-python -m tests.test_renderer_fit                                   # 通常・圧縮・縮小・停止
-python -m tests.test_generalized_renderers                         # 件数・構造・種類の汎用化回帰
-python -m tests.test_diagram_examples                               # 図解の配置・配線・縮小
-python -m tests.test_lead_layout                                    # 全rendererのlead領域・停止
-python -m tests.test_shrink_behavior                                # 大規模表・20ノード図の縮小発動
+python slidegen/test_layout_fit.py                                     # 共通収容契約
+python slidegen/test_ai_content_contract.py                            # AI入力の未知キー・任意表紙・未確定文言
+python slidegen/test_generate_errors.py                                # JSON構文エラーの安全な診断
+python slidegen/test_check_layout.py                                   # 壊れた表・グラフ・可変サイズPPTXの検出
+python slidegen/test_sample_content_guard.py                           # 回帰サンプル文言の通常入力への混入防止
+python slidegen/test_timeline_layout.py                               # roadmap系の期間解決・レーン割当・段階的収容
+python slidegen/test_image_slide.py                                   # 大判画像の比率維持・crop・schema・収容停止
+python slidegen/test_org_layout.py                                    # 体制図の階層DAG・配線・段階的収容
+python slidegen/test_renderer_fit.py                                   # 通常・圧縮・縮小・停止
+python slidegen/test_generalized_renderers.py                         # 件数・構造・種類の汎用化回帰
+python slidegen/test_diagram_examples.py                               # 図解の配置・配線・縮小
+python slidegen/test_lead_layout.py                                    # 全rendererのlead領域・停止
+python slidegen/test_shrink_behavior.py                                # 大規模表・20ノード図の縮小発動
 python slidegen/generate_from_json.py content.json out\deck.pptx       # 新規資料経路
-python -m tools.gallery.generate_patterns out\pattern_gallery.pptx          # ギャラリー(全type)
-python -m tools.gallery.generate_lead_patterns out\lead_gallery.pptx        # lead指定時の全type
-python -m tools.gallery.generate_stress_patterns out\stress_gallery.pptx    # 段階的縮小の境界ケース
+python slidegen/generate_patterns.py out\pattern_gallery.pptx          # ギャラリー(全type)
+python slidegen/generate_lead_patterns.py out\lead_gallery.pptx        # lead指定時の全type
+python slidegen/generate_stress_patterns.py out\stress_gallery.pptx    # 段階的縮小の境界ケース
 python slidegen\check_layout.py out\pattern_gallery.pptx               # exit 0 必須
 python slidegen\check_layout.py out\lead_gallery.pptx                  # exit 0 必須
 python slidegen\check_layout.py out\stress_gallery.pptx                # exit 0 必須
@@ -274,7 +272,7 @@ python contact_sheet.py out\png_pg                                      # → sh
 - 出力先pptxをPowerPointで開いたままだと PermissionError。閉じてから実行。
 - コンソールの日本語はcp932で文字化けすることがある。判定に使う出力は
   ファイルにリダイレクトしてから読む(**読めない出力を根拠に成功と報告しない**)。
-- `tests/fixtures/gallery/content*.py`と`tests/fixtures/gallery/diagram_specs.py`の内容は回帰検証専用。ギャラリー生成器は
+- `slidegen/content*.py`と`slidegen/diagram_specs.py`の内容は回帰検証専用。ギャラリー生成器は
   `validate(..., allow_sample_content=True)`を明示し、通常の`content.json`生成経路へこの許可を渡さない。
 
 ## 既知の落とし穴
