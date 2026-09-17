@@ -10,11 +10,7 @@ out/
 # アイコン素材 (slidegen/assets/) は CREDITS.md のクレジット表記とともにコミットする
 # (AWS: 無改変・技術資料用途の許諾範囲内 / Fluent: MIT)
 
-# 調査・テストの一時レポート
-slidegen/*_report.txt
-slidegen/s3_labels.txt
-slidegen/lbl.txt
-slidegen/test_result.txt
+# 調査・テストの一時レポートもout/へ保存する
 
 # Officeが編集中に作る一時ロックファイル
 ~$*.pptx
