@@ -1,0 +1,540 @@
+"""候補rendererの標準・過密入力と段階的な収容処理を検証する。"""
+
+from copy import deepcopy
+
+from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.util import Inches, Pt
+
+from slidegen import generate
+from slidegen.candidate_renderers import (
+    ACCENT,
+    RULE,
+    SWIMLANE_ACCENT,
+    SWIMLANE_LIGHT,
+    SWIMLANE_RULE,
+    _fit_rows,
+    _mapping_items_by_min_crossings,
+    s_mapping,
+    s_paired_comparison,
+    s_scope,
+    s_sequence,
+    s_summary,
+    s_swimlane,
+)
+from tests.fixtures.gallery.candidate_review_cases import REVIEW_DECK
+from slidegen.check_layout import contrast_ratio
+from tests.fixtures.gallery.content_patterns import PATTERN_DECK
+from slidegen.layout_fit import FitError
+from slidegen.quality_markers import (
+    MIN_SURFACE_CONTRAST,
+    MIN_SURFACE_EDGE_CONTRAST,
+    SURFACE_ON_CANVAS_PREFIX,
+)
+from slidegen.validate_content import validate
+
+
+RENDERERS = {
+    "scope_boundary": s_scope,
+    "decision_summary": s_summary,
+    "paired_comparison": s_paired_comparison,
+    "relationship_map": s_mapping,
+    "swimlane_flow": s_swimlane,
+    "message_sequence": s_sequence,
+}
+
+
+def _presentation():
+    prs = Presentation()
+    prs.slide_width = Inches(generate.SLIDE_W)
+    prs.slide_height = Inches(generate.SLIDE_H)
+    return prs
+
+
+def _render(prs, spec):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    RENDERERS[spec["type"]](slide, spec, len(prs.slides))
+    return slide
+
+
+def _assert_in_slide(slide):
+    tolerance = Inches(0.01)
+    slide_width = Inches(generate.SLIDE_W)
+    slide_height = Inches(generate.SLIDE_H)
+    for shape in slide.shapes:
+        assert shape.left >= -tolerance
+        assert shape.top >= -tolerance
+        assert shape.left + shape.width <= slide_width + tolerance
+        assert shape.top + shape.height <= slide_height + tolerance
+
+
+def _base(type_):
+    return {"type": type_, "kicker": "検証", "title": "最大件数でも読みやすさを維持する"}
+
+
+def _dense_specs():
+    scope = dict(
+        _base("scope_boundary"),
+        lead="着手前に必要な前提条件を確認する。",
+        in_scope=[f"実施対象{i + 1}の要件と作業範囲" for i in range(6)],
+        out_of_scope=[f"対象外{i + 1}の責任範囲" for i in range(6)],
+    )
+    summary = dict(
+        _base("decision_summary"),
+        lead="複数の論点を踏まえて次の判断へ進む。",
+        sections=[
+            {"heading": f"論点{i + 1}", "body": "判断に必要な事実と示唆を簡潔に整理する。"}
+            for i in range(4)
+        ],
+    )
+    paired = dict(
+        _base("paired_comparison"), left_label="現行", right_label="将来",
+        lead="評価軸ごとの差を踏まえて採用方針を判断する。",
+        rows=[
+            {"criterion": f"評価軸{i + 1}", "left": "現行方式の特徴を記載する",
+             "right": "将来方式の特徴を記載する"}
+            for i in range(6)
+        ],
+    )
+    left = [{"id": f"l{i}", "text": f"課題{i + 1}"} for i in range(6)]
+    right = [{"id": f"r{i}", "text": f"施策{i + 1}"} for i in range(6)]
+    links = [{"from": f"l{i}", "to": f"r{i}"} for i in range(6)]
+    links.extend([
+        {"from": "l0", "to": "r2"}, {"from": "l1", "to": "r4"},
+        {"from": "l3", "to": "r5"}, {"from": "l5", "to": "r1"},
+    ])
+    mapping = dict(
+        _base("relationship_map"), left_label="課題", right_label="施策",
+        left_items=left, right_items=right, links=links,
+    )
+    lanes = [{"id": f"lane{i}", "label": f"担当{i + 1}"} for i in range(6)]
+    stages = [{"id": f"stage{i}", "label": f"段階{i + 1}"} for i in range(6)]
+    steps = [
+        {"id": f"step{i}", "name": f"作業{i + 1}",
+         "lane": f"lane{i % 6}", "stage": f"stage{i // 2}"}
+        for i in range(12)
+    ]
+    edges = [{"from": f"step{i}", "to": f"step{i + 1}"} for i in range(11)]
+    edges.append({"from": "step11", "to": "step0", "kind": "feedback"})
+    swimlane = dict(
+        _base("swimlane_flow"), lanes=lanes, stages=stages, steps=steps, edges=edges,
+    )
+    participants = [
+        {"id": f"participant{i}", "label": f"関係者{i + 1}"}
+        for i in range(6)
+    ]
+    messages = [
+        {"id": f"message{i}", "from": f"participant{i % 6}",
+         "to": f"participant{(i + 2) % 6}", "label": f"確認{i + 1}",
+         "kind": "return" if i % 4 == 3 else "request"}
+        for i in range(12)
+    ]
+    sequence = dict(
+        _base("message_sequence"), participants=participants, messages=messages,
+        phases=[
+            {"label": "準備", "from": "message0", "to": "message3"},
+            {"label": "実行", "from": "message4", "to": "message7"},
+            {"label": "確認", "from": "message8", "to": "message11"},
+        ],
+    )
+    return [scope, summary, paired, mapping, swimlane, sequence]
+
+
+def _assert_fit_stages():
+    args = dict(
+        count=5, row_h=0.68, min_row_h=0.46,
+        gap=0.08, min_gap=0.02, font=13.5, min_font=10.0,
+    )
+    assert _fit_rows("test", 4.0, **args).stage == "standard"
+    assert _fit_rows("test", 3.6, **args).stage == "gap"
+    assert _fit_rows("test", 3.3, **args).stage == "element"
+    assert _fit_rows("test", 2.4, **args).stage == "font"
+    try:
+        _fit_rows("test", 2.2, **args)
+    except FitError:
+        pass
+    else:
+        raise AssertionError("最小値でも収まらない入力を明示停止できていません")
+
+
+def _assert_mapping_order():
+    expected_crossings = {"疎": 0, "標準": 0, "上限": 3, "長文": 0}
+    specs = [spec for spec in REVIEW_DECK["slides"] if spec["type"] == "relationship_map"]
+    for spec in specs:
+        left, right, crossings = _mapping_items_by_min_crossings(
+            spec["left_items"], spec["right_items"], spec["links"])
+        variant = spec["kicker"].split("/")[-1].strip()
+        assert crossings == expected_crossings[variant], (variant, crossings)
+        assert {item["id"] for item in left} == {
+            item["id"] for item in spec["left_items"]}
+        assert {item["id"] for item in right} == {
+            item["id"] for item in spec["right_items"]}
+
+
+def _assert_mapping_column_alignment():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "relationship_map" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    by_text = {
+        shape.text.strip(): shape
+        for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False) and shape.text.strip()
+    }
+    left_header = by_text[spec["left_label"]]
+    right_header = by_text[spec["right_label"]]
+    first_left = by_text[spec["left_items"][0]["text"]]
+    first_right = by_text[spec["right_items"][0]["text"]]
+    assert abs(left_header.left - first_left.left) <= Inches(0.01)
+    assert abs(right_header.left - first_right.left) <= Inches(0.01)
+    slide_center = _presentation().slide_width / 2
+    assert left_header.left + left_header.width < slide_center
+    assert right_header.left > slide_center
+
+
+def _assert_sequence_structure():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "message_sequence" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    texts = {
+        shape.text.strip()
+        for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False)
+    }
+    redundant = {f"{index + 1:02d}" for index in range(len(spec["messages"]))}
+    assert texts.isdisjoint(redundant), texts & redundant
+    assert {phase["label"] for phase in spec["phases"]} <= texts
+    participant_shapes = [
+        shape for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False)
+        and shape.text.strip() in {item["label"] for item in spec["participants"]}
+    ]
+    center = sum(
+        shape.left + shape.width / 2 for shape in participant_shapes
+    ) / len(participant_shapes)
+    assert abs(center - _presentation().slide_width / 2) <= Inches(0.05)
+
+    dense_spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "message_sequence" and "上限" in spec["kicker"]
+    ))
+    dense_slide = _render(_presentation(), dense_spec)
+    self_message = next(
+        message for message in dense_spec["messages"]
+        if message["from"] == message["to"]
+    )
+    route_prefix = f"sequence-self-route:{self_message['id']}:"
+    route_shapes = [
+        shape for shape in dense_slide.shapes
+        if shape.name.startswith(route_prefix)
+    ]
+    assert {shape.name.removeprefix(route_prefix) for shape in route_shapes} == {
+        "out", "turn", "return"
+    }
+    label = next(
+        shape for shape in dense_slide.shapes
+        if shape.name == f"sequence-message-label:{self_message['id']}"
+    )
+    route_right = max(shape.left + shape.width for shape in route_shapes)
+    assert label.left >= route_right + Inches(0.08)
+    outgoing = next(shape for shape in route_shapes if shape.name.endswith(":out"))
+    turn = next(shape for shape in route_shapes if shape.name.endswith(":turn"))
+    returned = next(shape for shape in route_shapes if shape.name.endswith(":return"))
+    assert outgoing.width >= Inches(0.50)
+    assert turn.height >= Inches(0.24)
+    return_line_xml = returned.line._get_or_add_ln().xml
+    assert 'type="triangle"' in return_line_xml
+    assert 'w="med"' in return_line_xml
+    assert 'len="med"' in return_line_xml
+    assert not any(
+        shape.name.startswith("sequence-self-arrowhead:")
+        for shape in dense_slide.shapes
+    )
+    self_index = dense_spec["messages"].index(self_message)
+    next_message = dense_spec["messages"][self_index + 1]
+    next_label = next(
+        shape for shape in dense_slide.shapes
+        if shape.name == f"sequence-message-label:{next_message['id']}"
+    )
+    assert next_label.top >= returned.top + Inches(0.03)
+
+
+def _assert_swimlane_legend():
+    specs = {
+        spec["kicker"].split("/")[-1].strip(): deepcopy(spec)
+        for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane_flow"
+    }
+    legend_texts = {"凡例", "順方向", "差戻し"}
+    dense_slide = _render(_presentation(), specs["上限"])
+    dense_texts = {
+        shape.text.strip()
+        for shape in dense_slide.shapes
+        if getattr(shape, "has_text_frame", False)
+    }
+    assert legend_texts <= dense_texts
+    standard_slide = _render(_presentation(), specs["標準"])
+    standard_texts = {
+        shape.text.strip()
+        for shape in standard_slide.shapes
+        if getattr(shape, "has_text_frame", False)
+    }
+    assert legend_texts.isdisjoint(standard_texts)
+
+
+def _rgb(shape):
+    try:
+        return shape.line.color.rgb
+    except (AttributeError, TypeError):
+        return None
+
+
+def _fill_rgb(shape):
+    try:
+        return shape.fill.fore_color.rgb
+    except (AttributeError, TypeError):
+        return None
+
+
+def _assert_scope_panel_integration():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "scope_boundary" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    panels = [
+        shape for shape in slide.shapes
+        if Inches(5.0) <= shape.width <= Inches(7.0)
+        and shape.height >= Inches(2.5)
+    ]
+    assert len(panels) == 2
+    assert all(_rgb(shape) == RULE for shape in panels)
+
+
+def _assert_paired_comparison_connector_hierarchy():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "paired_comparison" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    shapes = list(slide.shapes)
+    connectors = [
+        shape for shape in shapes
+        if shape.shape_type == MSO_SHAPE_TYPE.LINE
+        and Inches(0.15) <= shape.width <= Inches(0.25)
+        and shape.height == 0
+    ]
+    dots = [
+        shape for shape in shapes
+        if shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+        and shape.auto_shape_type == generate.MSO_SHAPE.OVAL
+        and shape.width <= Inches(0.11)
+        and shape.height <= Inches(0.11)
+    ]
+    expected = len(spec["rows"]) * 2
+    assert len(connectors) == expected
+    assert len(dots) == expected
+    assert all(shape.line.width >= Pt(1.25) for shape in connectors)
+    assert max(shapes.index(shape) for shape in connectors) < min(
+        shapes.index(shape) for shape in dots)
+
+
+def _assert_swimlane_node_frames_and_routes():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    framed_nodes = [
+        shape for shape in slide.shapes
+        if Inches(0.45) <= shape.height <= Inches(0.70)
+        and Inches(0.80) <= shape.width <= Inches(2.5)
+        and _rgb(shape) == SWIMLANE_ACCENT
+    ]
+    assert len(framed_nodes) >= len(spec["steps"])
+    diagonal_lines = [
+        shape for shape in slide.shapes
+        if shape.shape_type == MSO_SHAPE_TYPE.LINE
+        and shape.width > Inches(0.01)
+        and shape.height > Inches(0.01)
+    ]
+    assert not diagonal_lines
+
+
+def _assert_swimlane_stage_surface_contrast():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    stages = [
+        shape for shape in slide.shapes
+        if shape.name.startswith(SURFACE_ON_CANVAS_PREFIX)
+    ]
+    assert len(stages) == len(spec["stages"])
+    for shape in stages:
+        surface_rgb = tuple(shape.fill.fore_color.rgb)
+        edge_rgb = tuple(shape.line.color.rgb)
+        assert (
+            contrast_ratio(surface_rgb, tuple(generate.CANVAS))
+            >= MIN_SURFACE_CONTRAST
+            or contrast_ratio(edge_rgb, tuple(generate.CANVAS))
+            >= MIN_SURFACE_EDGE_CONTRAST
+        )
+
+
+def _assert_swimlane_body_uses_canvas():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    lane_bodies = [
+        shape for shape in slide.shapes
+        if shape.width >= Inches(8.0)
+        and shape.width <= Inches(12.0)
+        and shape.height >= Inches(0.5)
+        and _fill_rgb(shape) == generate.CANVAS
+    ]
+    assert len(lane_bodies) == len(spec["lanes"])
+
+
+def _assert_swimlane_reference_palette():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    lane_labels = [
+        shape for shape in slide.shapes
+        if Inches(1.20) <= shape.width <= Inches(1.35)
+        and shape.height >= Inches(0.5)
+        and _fill_rgb(shape) == SWIMLANE_LIGHT
+    ]
+    node_cards = [
+        shape for shape in slide.shapes
+        if Inches(0.45) <= shape.height <= Inches(0.70)
+        and Inches(0.80) <= shape.width <= Inches(2.5)
+        and _rgb(shape) == SWIMLANE_ACCENT
+    ]
+    assert len(lane_labels) == len(spec["lanes"])
+    assert len(node_cards) >= len(spec["steps"])
+    assert {_fill_rgb(shape) for shape in node_cards} <= {
+        generate.SURFACE, SWIMLANE_LIGHT,
+    }
+    stage_surfaces = [
+        shape for shape in slide.shapes
+        if shape.name.startswith(SURFACE_ON_CANVAS_PREFIX)
+    ]
+    assert all(_fill_rgb(shape) == generate.CANVAS for shape in stage_surfaces)
+    assert all(_rgb(shape) == SWIMLANE_RULE for shape in stage_surfaces)
+
+
+def _assert_swimlane_header_and_stage_divider():
+    spec = deepcopy(next(
+        spec for spec in REVIEW_DECK["slides"]
+        if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
+    ))
+    slide = _render(_presentation(), spec)
+    kicker = next(
+        shape for shape in slide.shapes
+        if getattr(shape, "has_text_frame", False)
+        and shape.text.strip() == spec["kicker"]
+    )
+    assert abs(kicker.left - Inches(0.72)) <= Inches(0.01)
+    assert abs(kicker.top - Inches(0.27)) <= Inches(0.01)
+
+    old_header_rules = [
+        shape for shape in slide.shapes
+        if shape.shape_type == MSO_SHAPE_TYPE.LINE
+        and shape.top <= Inches(0.30)
+        and shape.width >= Inches(12.0)
+        and shape.line.width >= Pt(2.5)
+    ]
+    assert not old_header_rules
+
+    stage_surfaces = [
+        shape for shape in slide.shapes
+        if shape.name.startswith(SURFACE_ON_CANVAS_PREFIX)
+    ]
+    stage_left = min(shape.left for shape in stage_surfaces)
+    stage_right = max(shape.left + shape.width for shape in stage_surfaces)
+    stage_bottom = max(shape.top + shape.height for shape in stage_surfaces)
+    dividers = [
+        shape for shape in slide.shapes
+        if shape.shape_type == MSO_SHAPE_TYPE.LINE
+        and shape.height == 0
+        and abs(shape.top - stage_bottom) <= Inches(0.01)
+        and abs(shape.left - stage_left) <= Inches(0.01)
+        and abs(shape.left + shape.width - stage_right) <= Inches(0.02)
+        and _rgb(shape) == SWIMLANE_RULE
+        and shape.line.width >= Pt(0.85)
+    ]
+    assert dividers
+
+
+def main():
+    errors = validate(deepcopy(PATTERN_DECK), allow_sample_content=True)
+    assert not errors, "\n".join(errors)
+    review_errors = validate(deepcopy(REVIEW_DECK), allow_sample_content=True)
+    assert not review_errors, "\n".join(review_errors)
+
+    samples = [
+        deepcopy(spec) for spec in PATTERN_DECK["slides"]
+        if spec["type"] in RENDERERS
+    ]
+    assert {spec["type"] for spec in samples} == set(RENDERERS)
+    prs = _presentation()
+    review_specs = [deepcopy(spec) for spec in REVIEW_DECK["slides"]]
+    assert len(review_specs) == len(RENDERERS) * 4
+    for spec in samples + review_specs + _dense_specs():
+        slide = _render(prs, spec)
+        _assert_in_slide(slide)
+
+    legacy_fields = {
+        "scope_boundary": ("assumptions", ["前提条件"]),
+        "decision_summary": ("conclusion", "結論"),
+        "paired_comparison": ("takeaway", "判断"),
+        "relationship_map": ("takeaway", "判断"),
+        "swimlane_flow": ("takeaway", "判断"),
+        "message_sequence": ("takeaway", "判断"),
+    }
+    for type_, (field, value) in legacy_fields.items():
+        legacy = deepcopy(next(spec for spec in samples if spec["type"] == type_))
+        legacy[field] = value
+        errors = validate(
+            {"meta": {"title": "検証"}, "slides": [legacy]},
+            allow_sample_content=True,
+        )
+        assert any(field in error and '"lead"' in error for error in errors), errors
+
+    bad_mapping = deepcopy(next(spec for spec in samples if spec["type"] == "relationship_map"))
+    bad_mapping["links"][0]["to"] = "undefined"
+    errors = validate({"meta": {"title": "検証"}, "slides": [bad_mapping]},
+                      allow_sample_content=True)
+    assert any("未定義id" in error for error in errors)
+    bad_summary = deepcopy(next(spec for spec in samples if spec["type"] == "decision_summary"))
+    bad_summary["sections"][0]["icon"] = "存在しないアイコン"
+    errors = validate({"meta": {"title": "検証"}, "slides": [bad_summary]},
+                      allow_sample_content=True)
+    assert any("icon=" in error and "見つかりません" in error for error in errors)
+    _assert_fit_stages()
+    _assert_mapping_order()
+    _assert_mapping_column_alignment()
+    _assert_sequence_structure()
+    _assert_swimlane_legend()
+    _assert_scope_panel_integration()
+    _assert_paired_comparison_connector_hierarchy()
+    _assert_swimlane_node_frames_and_routes()
+    _assert_swimlane_stage_surface_contrast()
+    _assert_swimlane_body_uses_canvas()
+    _assert_swimlane_reference_palette()
+    _assert_swimlane_header_and_stage_divider()
+    print("candidate renderer tests: OK")
+
+
+if __name__ == "__main__":
+    main()

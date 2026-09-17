@@ -1,12 +1,12 @@
 """階層・ノード・関係だけから体制図を配置する専用レイアウタ。"""
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 
-from diagrams import add_arrow, arrow_label
-from diagrams3 import plain_line, route
-from generate import (ACCENT, BODY_W, GRAY, LIGHT, MARGIN, NAVY,
+from slidegen.diagrams import add_arrow, arrow_label
+from slidegen.diagrams3 import plain_line, route
+from slidegen.generate import (ACCENT, BODY_W, GRAY, LIGHT, MARGIN, NAVY,
                       RULE, SURFACE, TEXT, WHITE, ZEBRA, ContentArea, add_rect, add_text,
                       header, note_line)
-from layout_fit import FitError, fit_text_or_raise, select_fit
+from slidegen.layout_fit import FitError, fit_text_or_raise, select_fit
 
 FRAME_X = MARGIN + 0.10
 FRAME_W = BODY_W - 0.20

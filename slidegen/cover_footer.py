@@ -15,8 +15,8 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
 
-from layout_fit import fit_text_or_raise
-from textfit import (
+from slidegen.layout_fit import fit_text_or_raise
+from slidegen.textfit import (
     line_height_in,
     text_width_in,
     title_lines_are_natural,

@@ -68,10 +68,15 @@ git status --short
 
 ## 実装原則
 
+- 本処理は`slidegen/`、テストは`tests/`、回帰専用入力は`tests/fixtures/gallery/`、
+  ギャラリー生成・素材管理などの開発ツールは`tools/`へ置く。本処理からテストや開発ツールをimportしない。
+- テストは`python -m tests`、単体は`python -m tests.test_check_layout`のように実行する。
+  回帰文言を変更したときは`python -m tools.gallery.build_sample_fingerprints`で同梱の混入検出辞書を更新する。
+
 - `content.json`には文言、type、要素間の関係などの構造だけを書き、座標・余白・フォント値を入れない。
 - すべてのページタイトルは名詞句または短い疑問形にし、提案資料風の結論文を使わない。
   結論・因果・行動は`lead`または本文へ書く。文章型タイトルは回帰検証ギャラリーの内部生成だけで許可する。
-- `slidegen/content*.py`と`slidegen/diagram_specs.py`は回帰検証専用とし、新規資料の題材・文言・数値・
+- `tests/fixtures/gallery/content*.py`と`tests/fixtures/gallery/diagram_specs.py`は回帰検証専用とし、新規資料の題材・文言・数値・
   ページ順へ流用しない。ギャラリーを検証するときだけ`validate(..., allow_sample_content=True)`を
   明示し、通常入力では許可しない。新規資料は利用者が示した要件と情報源だけから作る。
 - 座標、文字実測、配線、描画順はrendererまたはレイアウトエンジンで決める。
@@ -101,9 +106,9 @@ PowerPoint以外でレンダリングした場合は、使用したbackendとPow
 新しいrendererまたは収容処理を変更した場合は、通常入力の回帰テストに加え、余白圧縮、要素縮小、
 最小値での明示停止までを通る過密入力テストを実行する。
 
-`check_layout.py`を変更した場合は`python slidegen/test_check_layout.py`を実行し、正常なデッキだけでなく、
+`check_layout.py`を変更した場合は`python -m tests.test_check_layout`を実行し、正常なデッキだけでなく、
 意図的にはみ出す表・グラフ・図形を拒否できることも確認する。入力処理を変更した場合は
-`python slidegen/test_generate_errors.py`を実行し、利用者向けエラーにtracebackや絶対パスを出さない。
+`python -m tests.test_generate_errors`を実行し、利用者向けエラーにtracebackや絶対パスを出さない。
 
 `check_layout.py`の合格だけでは完成扱いにしない。文字の視認性、余白、コントラスト、線の見え方、
 内容の正確性はPNGと情報源を使って確認する。

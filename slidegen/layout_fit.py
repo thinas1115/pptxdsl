@@ -6,7 +6,7 @@
 from dataclasses import dataclass
 from typing import Callable, Iterable, Mapping, Sequence
 
-from textfit import (fit_font_size, line_height_in, text_width_in,
+from slidegen.textfit import (fit_font_size, line_height_in, text_width_in,
                      title_lines_are_natural, wrapper_for_role)
 
 

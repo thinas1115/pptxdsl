@@ -20,7 +20,7 @@
 | 資料要件・指定された情報源 | 主張、根拠、固有名詞、数値を決める | 内容の唯一の根拠 |
 | `CONTENT_SCHEMA.md` | 許可フィールドとJSON構造を確認する | 値とページ順は流用しない |
 | このガイド | メッセージに合う`type`を選ぶ | 選定基準だけを使う |
-| `slidegen/content*.py`と`slidegen/diagram_specs.py` | rendererの回帰検証と目視QA | 題材、文言、数値、構成を参照しない |
+| `tests/fixtures/gallery/content*.py`と`tests/fixtures/gallery/diagram_specs.py` | rendererの回帰検証と目視QA | 題材、文言、数値、構成を参照しない |
 
 ## 選定手順
 
