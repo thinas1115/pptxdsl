@@ -77,7 +77,8 @@ def test_archive_and_runtime() -> None:
         _run(runner, task, "check", "out/deck.pptx")
         assert len(Presentation(task / "out/deck.pptx").slides) == len(deck["slides"])
         details = json.loads(_run(runner, task, "probe").stdout)
-        assert details["powerpoint"]["render_script"] == str(project / "render.ps1")
+        # Windowsの一時ディレクトリは短縮名・長い名前のどちらでも同じ場所を指す。
+        assert Path(details["powerpoint"]["render_script"]).resolve() == (project / "render.ps1").resolve()
         available = details["available_backends"]
         required = os.environ.get("PPTXDSL_PLUGIN_REQUIRE_RENDER") == "1"
         assert available or not required, "Pluginの実レンダリング手段がありません"
