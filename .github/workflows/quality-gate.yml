@@ -70,3 +70,42 @@ jobs:
 
       - name: 差分の空白エラーを確認
         run: git diff --check
+
+  libreoffice-render:
+    name: LibreOffice実レンダリング
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v7
+
+      - name: Pythonを準備
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: LibreOfficeと日本語フォントを導入
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libreoffice-impress poppler-utils fonts-noto-cjk
+
+      - name: 依存ライブラリを導入
+        run: python -m pip install -r requirements.txt
+
+      - name: LibreOffice backendを実行
+        env:
+          PYTHONIOENCODING: utf-8
+          PPTXDSL_REQUIRE_LIBREOFFICE: "1"
+          PPTXDSL_RENDER_SMOKE_OUT: out/libreoffice-smoke
+        run: python slidegen/test_pptxdsl_skill.py
+
+      - name: 一覧画像を生成
+        run: python contact_sheet.py out/libreoffice-smoke
+
+      - name: PNGを検証成果物として保存
+        uses: actions/upload-artifact@v4
+        with:
+          name: libreoffice-render
+          path: out/libreoffice-smoke/*.png
+          if-no-files-found: error
