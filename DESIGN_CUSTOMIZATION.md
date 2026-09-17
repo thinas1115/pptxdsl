@@ -46,7 +46,7 @@ rendererと共通部品の範囲に閉じ込めやすい。
 | 構成図の色名 | `slidegen/diagram_layout.py` の `COLORS` | diagram specで指定できる離散的な色名と実色の対応 |
 | 構成図レイアウト | `diagram_layout.py` の `Layout` / `render_diagram()` | 座標、行間、配線、コンテナ。色だけの変更では触らない |
 | アイコン | `slidegen/assets/icons/` / `slidegen/assets/CREDITS.md` | 素材の追加とクレジット。AWSアイコン自体の色・比率・形状は変更禁止 |
-| デザイン検証一覧 | `slidegen/content_patterns.py` | 全rendererを1デッキで確認するためのサンプル内容 |
+| デザイン検証一覧 | `tests/fixtures/gallery/content_patterns.py` | 全rendererを1デッキで確認するためのサンプル内容 |
 | 品質検証 | `check_layout.py` / `render.ps1` / `contact_sheet.py` | 衝突検査、PowerPoint実レンダリング、一覧目視 |
 
 ## 変更内容別の最小修正範囲
@@ -111,7 +111,7 @@ renderer内部の配置を変えなければ、本文パターンへの影響は
 - `CONTENT_SCHEMA.md`
 - `AI_DECK_PROMPT.md`
 - `slidegen/validate_content.py`
-- `slidegen/diagram_specs.py`
+- `tests/fixtures/gallery/diagram_specs.py`
 - `slidegen/generate_from_json.py`
 
 ## 必須検証
@@ -119,7 +119,7 @@ renderer内部の配置を変えなければ、本文パターンへの影響は
 デザイン変更は色・Z順・コントラストを伴うため、機械検査だけでは完了にしない。
 
 ```powershell
-python slidegen/generate_patterns.py out\pattern_gallery.pptx
+python -m tools.gallery.generate_patterns out\pattern_gallery.pptx
 python slidegen/check_layout.py out\pattern_gallery.pptx
 powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath out\pattern_gallery.pptx -OutDir out\png_pg
 python contact_sheet.py out\png_pg
@@ -127,7 +127,7 @@ python contact_sheet.py out\png_pg
 python slidegen/generate_from_json.py content.json out\content_deck.pptx
 python slidegen/check_layout.py out\content_deck.pptx
 
-python slidegen/generate2.py out\sample_16slides.pptx
+python -m tools.gallery.generate_extended out\sample_16slides.pptx
 python slidegen/check_layout.py out\sample_16slides.pptx
 ```
 

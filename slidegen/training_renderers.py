@@ -8,9 +8,9 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
-from asset_paths import resolve_icon_path
-from diagrams import add_arrow, arrow_label
-from generate import (
+from slidegen.asset_paths import resolve_icon_path
+from slidegen.diagrams import add_arrow, arrow_label
+from slidegen.generate import (
     ACCENT,
     BODY_W,
     CANVAS,
@@ -28,8 +28,8 @@ from generate import (
     add_text,
     header,
 )
-from layout_fit import FitError, fit_text_or_raise, select_fit, stepped
-from textfit import line_height_in, text_width_in, wrap_compact, wrap_text
+from slidegen.layout_fit import FitError, fit_text_or_raise, select_fit, stepped
+from slidegen.textfit import line_height_in, text_width_in, wrap_compact, wrap_text
 
 
 _LANE_PALETTE = (

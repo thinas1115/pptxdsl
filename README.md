@@ -98,7 +98,12 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 | パス | 内容 |
 |---|---|
 | `.agents/skills/pptxdsl/` | AIエージェント向けのPPTX作成Skill |
-| `slidegen/` | renderer、レイアウトエンジン、validator、テスト |
+| `slidegen/` | renderer、レイアウトエンジン、validator、PPTX検査の本処理 |
+| `slidegen/data/` | 通常入力へのサンプル混入を防ぐ生成済み辞書 |
+| `tests/` | 契約・回帰テスト。全件実行は`python -m tests` |
+| `tests/fixtures/gallery/` | 回帰専用の内容データ・構成図仕様 |
+| `tools/gallery/` | 回帰ギャラリーの生成・検証・掲載画像作成 |
+| `tools/assets/` | 素材の取得・点検。通常生成には不要 |
 | `slidegen/assets/icons/` | 同梱済みのAWS・Fluentアイコン |
 | `slidegen/assets/images/` | 本文で使用する画像 |
 | `slidegen/assets/cover/` | 利用者が差し替える表紙背景画像 |
@@ -109,6 +114,11 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 
 `examples/gallery/pattern_gallery.pptx`はclone後に人間が確認する配布用サンプルです。
 新しい資料を作る生成AIには渡さず、内容・文言・ページ順の参考資料にも使用しません。
+
+テストや開発ツールはリポジトリルートからmoduleとして実行します。
+単体実行例は`python -m tests.test_check_layout`、ギャラリー生成は
+`python -m tools.gallery.generate_patterns out/pattern_gallery.pptx`です。
+通常のJSON生成・検証は従来のファイル実行とmodule実行の両方に対応します。
 
 ## ライセンス
 

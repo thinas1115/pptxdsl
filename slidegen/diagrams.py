@@ -6,10 +6,10 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
-from asset_paths import ASSET_DIR, resolve_icon_path
-from generate import CANVAS, GRAY, NAVY, TEXT, add_text
-from layout_fit import fit_text_or_raise
-from textfit import line_height_in, text_width_in
+from slidegen.asset_paths import ASSET_DIR, resolve_icon_path
+from slidegen.generate import CANVAS, GRAY, NAVY, TEXT, add_text
+from slidegen.layout_fit import fit_text_or_raise
+from slidegen.textfit import line_height_in, text_width_in
 
 ORANGE = RGBColor(0xE8, 0x7B, 0x1E)   # compute
 GREEN = RGBColor(0x3F, 0x86, 0x24)    # storage

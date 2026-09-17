@@ -9,10 +9,10 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
-from asset_paths import resolve_icon_path
-from diagrams import add_arrow
-from diagrams3 import plain_line, route
-from generate import (
+from slidegen.asset_paths import resolve_icon_path
+from slidegen.diagrams import add_arrow
+from slidegen.diagrams3 import plain_line, route
+from slidegen.generate import (
     ACCENT,
     BODY_W,
     CANVAS,
@@ -29,13 +29,13 @@ from generate import (
     add_text,
     header,
 )
-from layout_fit import FitError, fit_text_or_raise, select_fit, stepped
-from quality_markers import (
+from slidegen.layout_fit import FitError, fit_text_or_raise, select_fit, stepped
+from slidegen.quality_markers import (
     SEQUENCE_MESSAGE_LABEL_PREFIX,
     SEQUENCE_SELF_ROUTE_PREFIX,
     SURFACE_ON_CANVAS_PREFIX,
 )
-from textfit import text_width_in, wrap_natural
+from slidegen.textfit import text_width_in, wrap_natural
 
 
 # 参照デザインから採取したswimlane本文用パレット。背景とヘッダーは全体テーマを使う。

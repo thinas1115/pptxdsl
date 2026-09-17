@@ -4,11 +4,11 @@ from pptx.oxml import parse_xml
 from pptx.oxml.ns import nsdecls, qn
 from pptx.util import Inches
 
-from asset_paths import resolve_image_path
-from generate import (
+from slidegen.asset_paths import resolve_image_path
+from slidegen.generate import (
     ACCENT, BODY_W, GRAY, LIGHT, ZEBRA, add_rect, add_text, header,
 )
-from layout_fit import select_fit, stepped
+from slidegen.layout_fit import select_fit, stepped
 
 FRAME_X = 0.72
 FRAME_W = BODY_W - 0.34

@@ -10,7 +10,7 @@
 3. 埋めたテンプレート、`CONTENT_SCHEMA.md`、`docs/type-selection-guide.md` の中身を生成AIに渡す。
 
 新規資料の内容作成に使うのは、埋めた資料要件と指定された情報源だけとする。`CONTENT_SCHEMA.md`はJSON構造、
-`docs/type-selection-guide.md`はtype選定だけに使う。`slidegen/content*.py`と`slidegen/diagram_specs.py`は回帰検証用であり、
+`docs/type-selection-guide.md`はtype選定だけに使う。`tests/fixtures/gallery/content*.py`と`tests/fixtures/gallery/diagram_specs.py`は回帰検証用であり、
 題材、文言、数値、ページ順の参考にしない。
 
 ## 依頼文テンプレート
