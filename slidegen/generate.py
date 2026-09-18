@@ -195,6 +195,137 @@ def s_title(slide, spec, page):
                  add_text=add_text, add_rect=add_rect)
 
 
+# 中扉は共通ヘッダーではなく、章ラベル・章タイトル・leadだけを置く専用構図。
+# フッターは通常スライドと同じrender_footer()を呼び出し側で後描画する。
+SECTION_DIVIDER_TOP = 2.22
+SECTION_DIVIDER_BOTTOM = 6.12
+SECTION_DIVIDER_X = 1.02
+SECTION_DIVIDER_W = 10.45
+SECTION_DIVIDER_KICKER_W = 5.10
+SECTION_DIVIDER_TITLE_SPACING = 1.02
+SECTION_DIVIDER_LEAD_SPACING = 1.16
+
+
+def _section_divider_measure(text, width, size, weight, spacing, wrapper):
+    """中扉の候補を選ぶため、実測行高と横方向の不足量を返す。"""
+    lines = wrapper(text, width, size, weight)
+    widest = max(
+        (text_width_in(line, size, weight) for line in lines), default=0.0)
+    used = len(lines) * line_height_in(size, spacing)
+    if widest > width:
+        # select_fit()が縦方向の候補を誤って採用しないよう、横超過も必要量へ加える。
+        used += (widest - width) + 0.25
+    return lines, used
+
+
+def _section_divider_candidate_values(spec):
+    """標準→余白圧縮→文字縮小の順で中扉の候補を生成する。"""
+    title = spec["title"]
+    lead = spec.get("lead")
+    title_wrap = wrap_natural
+    lead_wrap = wrap_text
+
+    def measure(kicker_size, title_size, lead_size, kicker_gap, lead_gap):
+        _kicker_lines, kicker_h = _section_divider_measure(
+            spec["kicker"], SECTION_DIVIDER_KICKER_W, kicker_size,
+            "bold", 1.10, title_wrap)
+        _title_lines, title_h = _section_divider_measure(
+            title, SECTION_DIVIDER_W, title_size, "bold",
+            SECTION_DIVIDER_TITLE_SPACING, title_wrap)
+        # 描画時に各テキストボックスへ加える実測余白も候補へ含める。
+        used = (kicker_h + 0.02) + kicker_gap + (title_h + 0.02)
+        if lead:
+            _lead_lines, lead_h = _section_divider_measure(
+                lead, SECTION_DIVIDER_W, lead_size, "regular",
+                SECTION_DIVIDER_LEAD_SPACING, lead_wrap)
+            used += lead_gap + lead_h + 0.02
+        return used
+
+    # 1. 標準配置
+    yield (
+        "standard",
+        {"kicker_size": 20.0, "title_size": 40.0,
+         "lead_size": 18.0 if lead else None,
+         "kicker_gap": 0.30, "lead_gap": 0.34 if lead else 0.0},
+        measure(20.0, 40.0, 18.0 if lead else 18.0, 0.30,
+                0.34 if lead else 0.0),
+    )
+
+    # 2. 内容間の裁量余白だけを圧縮
+    for kicker_gap in stepped(0.30, 0.12, 0.03):
+        for lead_gap in stepped(0.34, 0.16, 0.03):
+            if kicker_gap == 0.30 and lead_gap == 0.34:
+                continue
+            yield (
+                "gap",
+                {"kicker_size": 20.0, "title_size": 40.0,
+                 "lead_size": 18.0 if lead else None,
+                 "kicker_gap": kicker_gap,
+                 "lead_gap": lead_gap if lead else 0.0},
+                measure(20.0, 40.0, 18.0 if lead else 18.0,
+                        kicker_gap, lead_gap if lead else 0.0),
+            )
+
+    # 3. 余白を下限まで使った後、文字を段階的に縮小
+    for title_size in stepped(39.0, 28.0, 0.5):
+        for lead_size in stepped(17.5, 13.0, 0.5):
+            yield (
+                "font",
+                {"kicker_size": 20.0, "title_size": title_size,
+                 "lead_size": lead_size if lead else None,
+                 "kicker_gap": 0.12, "lead_gap": 0.16 if lead else 0.0},
+                measure(20.0, title_size, lead_size, 0.12,
+                        0.16 if lead else 0.0),
+            )
+
+
+def s_section_divider(slide, spec, page):
+    """章ラベル、章タイトル、任意leadだけの控えめな中扉。"""
+    add_rect(slide, 0, 0, SLIDE_W, SLIDE_H, CANVAS)
+    available = SECTION_DIVIDER_BOTTOM - SECTION_DIVIDER_TOP
+    fit = select_fit(
+        "section_divider", available,
+        _section_divider_candidate_values(spec),
+        guidance="章タイトルまたはleadを短くするか、中扉を分割してください。",
+    )
+    values = fit.values
+
+    kicker_size, kicker_lines = fit_text_or_raise(
+        "section_divider", "kicker", spec["kicker"],
+        SECTION_DIVIDER_KICKER_W, available, values["kicker_size"],
+        min_pt=values["kicker_size"], weight="bold", spacing=1.10,
+        wrapper=wrap_natural)
+    kicker_h = len(kicker_lines) * line_height_in(kicker_size, 1.10) + 0.02
+
+    title_size, title_lines = fit_text_or_raise(
+        "section_divider", "title", spec["title"], SECTION_DIVIDER_W, available,
+        values["title_size"], min_pt=values["title_size"], weight="bold",
+        spacing=SECTION_DIVIDER_TITLE_SPACING, wrapper=wrap_natural)
+    title_h = len(title_lines) * line_height_in(
+        title_size, SECTION_DIVIDER_TITLE_SPACING) + 0.02
+
+    kicker_y = SECTION_DIVIDER_TOP
+    title_y = kicker_y + kicker_h + values["kicker_gap"]
+    add_text(slide, SECTION_DIVIDER_X, kicker_y, SECTION_DIVIDER_KICKER_W,
+             kicker_h, "\n".join(kicker_lines), kicker_size,
+             bold=True, color=ACCENT, spacing=1.10)
+    add_text(slide, SECTION_DIVIDER_X, title_y, SECTION_DIVIDER_W, title_h,
+             "\n".join(title_lines), title_size, bold=True, color=NAVY,
+             spacing=SECTION_DIVIDER_TITLE_SPACING)
+
+    if spec.get("lead"):
+        lead_size, lead_lines = fit_text_or_raise(
+            "section_divider", "lead", spec["lead"], SECTION_DIVIDER_W, available,
+            values["lead_size"], min_pt=values["lead_size"], spacing=SECTION_DIVIDER_LEAD_SPACING,
+            wrapper=wrap_text)
+        lead_h = len(lead_lines) * line_height_in(
+            lead_size, SECTION_DIVIDER_LEAD_SPACING) + 0.02
+        lead_y = title_y + title_h + values["lead_gap"]
+        add_text(slide, SECTION_DIVIDER_X, lead_y, SECTION_DIVIDER_W, lead_h,
+                 "\n".join(lead_lines), lead_size, color=GRAY,
+                 spacing=SECTION_DIVIDER_LEAD_SPACING)
+
+
 def _normalize_bullet(item):
     """公開object形式と既存の2要素配列を同じ描画入力へ揃える。"""
     if isinstance(item, dict):
@@ -845,7 +976,8 @@ def _modern_legend(slide, bounds, series, palette):
         add_text(slide, lx + 0.18, y, 1.72, 0.26, name, 8.2, color=GRAY)
 
 
-RENDER = {"title": s_title, "bullets": s_bullets, "cards": s_cards,
+RENDER = {"title": s_title, "section_divider": s_section_divider,
+          "bullets": s_bullets, "cards": s_cards,
           "table": s_table, "two_column": s_twocol, "chart": s_chart}
 
 

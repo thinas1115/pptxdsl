@@ -19,6 +19,7 @@ from pptx import Presentation
 from pptx.util import Inches
 
 from slidegen import generate
+from slidegen.aws_vpc_layout import s_aws_vpc_layout
 from slidegen.org_layout import s_org
 from slidegen.diagrams2 import s_matrix, s_process, s_program_roadmap
 from slidegen.diagram_layout import render_diagram
@@ -49,6 +50,7 @@ RENDER = dict(generate.RENDER,
               process=s_process, program_roadmap=s_program_roadmap,
               matrix=s_matrix,
               diagram=s_diagram, image=s_image, image_compare=s_image_compare,
+              aws_vpc_layout=s_aws_vpc_layout,
               scope_boundary=s_scope, decision_summary=s_summary,
               paired_comparison=s_paired_comparison, relationship_map=s_mapping,
               swimlane_flow=s_swimlane, message_sequence=s_sequence,

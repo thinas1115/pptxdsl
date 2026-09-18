@@ -10,8 +10,8 @@
 
 | category | type |
 |---|---|
-| Common | `title`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
-| NW | `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
+| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
+| NW | `aws_vpc_layout`, `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
 
 ## 参照情報の役割
 
@@ -37,7 +37,8 @@
 
 | type | 選ぶ場面 | 選ばない場面 | 主な代替 |
 |---|---|---|---|
-| `title` | 表紙、章扉 | 本文の見出しだけを強調したい | 通常スライドの`title` |
+| `title` | 表紙 | 章扉・中扉、本文の見出しだけを強調したい | `section_divider`、通常スライドの`title` |
+| `section_divider` | 章扉・中扉。章ラベル、章タイトル、任意のleadだけを置く | 表紙、本文の見出し、章の根拠や工程を説明する | `title`、通常スライドの`title` |
 | `bullets` | 手順、順序を持たない要点、完了状態付きタスクを文字中心で示す | 数値比較、工程、階層を表す | `table`、`process`、`org` |
 | `cards` | 主結論と複数の独立した根拠、選択肢、事例、KPIを比較する | 読み順のある要点、情報が少ないだけ、工程や図の要素を並べる | `bullets`、`process`、`diagram` |
 | `table` | 同じ評価軸で複数項目を比較・一覧する | 時系列の推移や関係を見せる | `chart`、`program_roadmap` |
@@ -55,8 +56,9 @@
 | `swimlane_flow` | 担当レーンと工程段階を同時に示し、引き継ぎを確認する | 厳密な時間間隔や機器間メッセージが主役 | `message_sequence`、`program_roadmap` |
 | `message_sequence` | 関係者・機器間のメッセージを上から時系列に追う | 担当別の作業箱や分岐工程が主役 | `swimlane_flow`、`process` |
 | `org` | 複数トップ、多段階層、複数親、横連携を示す | システムやデータの接続を示す | `diagram` |
-| `diagram` | システム、クラウド、業務要素の接続・境界・データフローを示す | VLANなど論理セグメントと物理リンク種別の対応を示す | `nw_topology`、`process` |
+| `diagram` | システム、クラウド、業務要素の接続・境界・データフローを示す | VLANなど論理セグメントと物理リンク種別の対応、AWSのVPC/AZ/Subnet階層を主役にする | `nw_topology`、`aws_vpc_layout`、`process` |
 | `concept` | 専門用語や判断基準を初めて定義し、要点と誤解しやすい境界を説明する | 複数案の比較、要素間の接続、単なる箇条書き | `bullets`、`diagram` |
+| `aws_vpc_layout` | AWSのVPC、AZ、Subnetの境界と、その中のリソース配置・通信経路を同時に示す | AZやSubnet境界が学習対象でない一般的なクラウド構成、物理NW機器とVLANを示す | `diagram`、`nw_topology` |
 | `nw_topology` | 物理機器、論理セグメント、Access・Trunk・L3接続を同時に示す | 一般的なシステム構成や業務フローを示す | `diagram`、`process` |
 | `nw_protocol_flow` | 同じフレームやパケットの状態が、端末・装置内部・伝送区間ごとにどう変わるかを追跡する | 物理構成全体、単なるメッセージ順、ビット配置を示す | `nw_topology`、`message_sequence`、`nw_frame_anatomy` |
 | `nw_frame_anatomy` | フレームやパケットのフィールド構成、ビット長、注目箇所を示す | 通信順序や機器間の流れを示す | `message_sequence`、`table` |

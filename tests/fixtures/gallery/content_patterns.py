@@ -16,7 +16,13 @@ PATTERN_DECK = {
         {
             "type": "title",
             "title": "社内スライド\nパターンライブラリ",
-            "subtitle": "意思決定から技術研修まで、24のTypeを34枚で検証",
+            "subtitle": "意思決定から技術研修まで、27のTypeを37枚で検証",
+        },
+        {
+            "type": "section_divider",
+            "kicker": "第2章",
+            "title": "導入計画",
+            "lead": "試験導入から展開判断まで",
         },
         {
             "type": "bullets",
@@ -383,6 +389,75 @@ PATTERN_DECK = {
             "diagram": deepcopy(AWS_MULTIAZ_EXAMPLE),
             "kicker": "高密度構成図",
             "title": "高密度なAWS構成も、グリッド仕様で自動配置する",
+        },
+        {
+            "type": "aws_vpc_layout",
+            "kicker": "AWS構成図",
+            "title": "VPC・AZ・Subnetの入れ子構造",
+            "lead": "クラウド構成図では、通信経路だけでなく配置境界も読み取れる形にする。",
+            "vpc": {"label": "VPC", "cidr": "10.0.0.0/16"},
+            "external": [
+                {"id": "user", "label": "利用者", "icon": "icons/aws/users.png"},
+            ],
+            "azs": [
+                {
+                    "id": "az_a",
+                    "label": "AZ-a",
+                    "subnets": [
+                        {"id": "public_a", "label": "public subnet",
+                         "cidr": "10.0.0.0/24",
+                         "resources": [
+                             {"id": "alb_a", "label": "ALB node",
+                              "icon": "icons/aws/alb.png"},
+                         ]},
+                        {"id": "app_a", "label": "private app subnet",
+                         "cidr": "10.0.10.0/24",
+                         "resources": [
+                             {"id": "app_a_node", "label": "App A",
+                              "icon": "icons/fluent/server.png"},
+                         ]},
+                        {"id": "db_a", "label": "private db subnet",
+                         "cidr": "10.0.20.0/24",
+                         "resources": [
+                             {"id": "rds_a", "label": "RDS Primary",
+                              "icon": "icons/aws/rds.png"},
+                         ]},
+                    ],
+                },
+                {
+                    "id": "az_c",
+                    "label": "AZ-c",
+                    "subnets": [
+                        {"id": "public_c", "label": "public subnet",
+                         "cidr": "10.0.1.0/24",
+                         "resources": [
+                             {"id": "alb_c", "label": "ALB node",
+                              "icon": "icons/aws/alb.png"},
+                         ]},
+                        {"id": "app_c", "label": "private app subnet",
+                         "cidr": "10.0.11.0/24",
+                         "resources": [
+                             {"id": "app_c_node", "label": "App B",
+                              "icon": "icons/fluent/server.png"},
+                         ]},
+                        {"id": "db_c", "label": "private db subnet",
+                         "cidr": "10.0.21.0/24",
+                         "resources": [
+                             {"id": "rds_c", "label": "RDS Standby",
+                              "icon": "icons/aws/rds.png"},
+                         ]},
+                    ],
+                },
+            ],
+            "flows": [
+                {"from": "user", "to": "alb_a", "label": "HTTPS"},
+                {"from": "alb_a", "to": "app_a_node", "label": "HTTP"},
+                {"from": "alb_c", "to": "app_c_node", "label": "HTTP"},
+                {"from": "app_a_node", "to": "rds_a", "label": "SQL"},
+                {"from": "app_c_node", "to": "rds_c", "label": "SQL"},
+                {"from": "rds_a", "to": "rds_c", "label": "同期",
+                 "dash": "dash"},
+            ],
         },
         {
             # AWS以外の構成図も、同梱Fluentアイコンを指定して描けることを検証する。

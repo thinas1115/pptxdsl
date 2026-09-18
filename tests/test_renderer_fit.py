@@ -3,9 +3,10 @@ from pptx import Presentation
 from pptx.util import Inches
 
 from slidegen import generate
+from slidegen.aws_vpc_layout import s_aws_vpc_layout
 from slidegen.org_layout import s_org
 from slidegen.diagrams2 import s_matrix, s_process, s_program_roadmap
-from slidegen.layout_fit import FitError
+from slidegen.layout_fit import FitError, select_fit
 
 
 LONG = "提出品質を維持できないほど長い説明文です。" * 10
@@ -32,6 +33,60 @@ def _base(type_):
 
 
 def main():
+    # section_divider: leadなし・leadありの標準配置と、実測した開始位置を確認する。
+    section = _base("section_divider")
+    section.update(kicker="第2章", title="導入計画")
+    section_slide = _slide()
+    generate.s_section_divider(section_slide, section, 1)
+    section_texts = [shape for shape in section_slide.shapes
+                     if getattr(shape, "has_text_frame", False)
+                     and shape.text]
+    assert [shape.text for shape in section_texts[:2]] == ["第2章", "導入計画"]
+    assert section_texts[0].top / Inches(1) == generate.SECTION_DIVIDER_TOP
+    assert section_texts[1].top / Inches(1) > section_texts[0].top / Inches(1)
+
+    section_with_lead = dict(section, lead="試験導入から展開判断まで")
+    lead_slide = _slide()
+    generate.s_section_divider(lead_slide, section_with_lead, 1)
+    lead_text = next(shape for shape in lead_slide.shapes
+                     if getattr(shape, "has_text_frame", False)
+                     and shape.text == section_with_lead["lead"])
+    assert lead_text.top / Inches(1) > section_texts[1].top / Inches(1)
+    assert (lead_text.top + lead_text.height) / Inches(1) \
+        <= generate.SECTION_DIVIDER_BOTTOM + 0.01
+
+    wrapped_kicker = dict(section_with_lead,
+                          kicker="第2章 導入計画に関する長い章ラベルを自然に改行して表示する")
+    wrapped_kicker_slide = _slide()
+    generate.s_section_divider(wrapped_kicker_slide, wrapped_kicker, 1)
+    wrapped_kicker_shape = next(shape for shape in wrapped_kicker_slide.shapes
+                                if getattr(shape, "has_text_frame", False)
+                                and shape.text.replace("\n", "")
+                                == wrapped_kicker["kicker"])
+    assert wrapped_kicker_shape.top / Inches(1) == generate.SECTION_DIVIDER_TOP
+    assert (wrapped_kicker_shape.top + wrapped_kicker_shape.height) / Inches(1) \
+        <= generate.SECTION_DIVIDER_BOTTOM + 0.01
+
+    # 余白圧縮と文字縮小が標準の後に発動することを確認する。
+    gap_spec = dict(section_with_lead,
+                    lead="試験導入から展開判断まで。" * 21)
+    gap_fit = select_fit(
+        "section_divider",
+        generate.SECTION_DIVIDER_BOTTOM - generate.SECTION_DIVIDER_TOP,
+        generate._section_divider_candidate_values(gap_spec), guidance="x")
+    assert gap_fit.stage == "gap", gap_fit
+    font_spec = dict(section_with_lead,
+                     lead="試験導入から展開判断まで。" * 23)
+    font_fit = select_fit(
+        "section_divider",
+        generate.SECTION_DIVIDER_BOTTOM - generate.SECTION_DIVIDER_TOP,
+        generate._section_divider_candidate_values(font_spec), guidance="x")
+    assert font_fit.stage == "font", font_fit
+
+    overfull = dict(section_with_lead,
+                    lead="ABCDEFGHIJ" * 100)
+    _must_fail(generate.s_section_divider, overfull, "不足")
+
     spec = _base("bullets")
     spec["bullets"] = [[LONG, None] for _ in range(6)]
     _must_fail(generate.s_bullets, spec, "不足")
@@ -120,6 +175,26 @@ def main():
                   for i in range(5)],
     }
     _must_fail(s_org, spec, "最小設定")
+
+    dense_aws = _base("aws_vpc_layout")
+    dense_aws.update(
+        lead="長いリード文" * 20,
+        vpc={"label": "VPC", "cidr": "10.0.0.0/16"},
+        azs=[
+            {"id": f"az{i}", "label": f"AZ-{i}", "subnets": [
+                {"id": f"subnet{i}_{j}", "label": "very long private subnet label",
+                 "resources": [
+                     {"id": f"node{i}_{j}_a", "label": "Application Node A",
+                      "icon": "icons/fluent/server.png"},
+                     {"id": f"node{i}_{j}_b", "label": "Application Node B",
+                      "icon": "icons/fluent/server.png"},
+                 ]}
+                for j in range(4)
+            ]}
+            for i in range(3)
+        ],
+    )
+    _must_fail(s_aws_vpc_layout, dense_aws, "subnet")
 
     print("renderer fit tests passed")
 

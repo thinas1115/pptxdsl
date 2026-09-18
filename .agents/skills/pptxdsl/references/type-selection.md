@@ -6,12 +6,14 @@
 
 見た目ではなく、読み手が追う関係で選ぶ。
 
+- 資料の表紙は`title`、章の区切りは`section_divider`。章番号や章ラベルは`kicker`へ明示する。
 - 文字中心の列挙は`bullets`。独立した根拠、選択肢、事例、KPIの比較は`cards`。
 - 同じ評価軸で一覧するなら`table`。2案を行単位で対応させるなら`paired_comparison`。2つの状態や観点を大きく対比するなら`two_column`。
 - 直線・分岐・差戻しを含む工程は`process`。担当レーンも必要なら`swimlane_flow`。関係者や機器間の送受信順が主役なら`message_sequence`。
 - 期間と並行作業が主役なら`program_roadmap`。階層は`org`。要素間の接続や境界は`diagram`。
 - 用語や判断基準の初出説明は`concept`。設定例と確認観点は`config_lab`。選択式の理解確認は`knowledge_check`。
 - 物理機器と論理セグメント、Access・Trunk・L3接続を同時に示すなら`nw_topology`。
+- AWSのVPC・AZ・subnetの階層とリソース間の通信は`aws_vpc_layout`。任意の境界や経路を扱う構成図は`diagram`。
 - 同一フレームまたはパケットの段階別状態変化は`nw_protocol_flow`。フィールド構造は`nw_frame_anatomy`。
 
 ## 選ばない理由も確認する

@@ -21,6 +21,22 @@ def _hashes(root: Path) -> dict[str, str]:
             for path in root.rglob("*") if path.is_file()}
 
 
+def _plugin_smoke_deck() -> dict:
+    deck = _smoke_deck()
+    deck["slides"].extend([
+        {"type": "section_divider", "kicker": "第2章", "title": "ネットワーク構成",
+         "lead": "VPCとsubnetの境界"},
+        {"type": "aws_vpc_layout", "kicker": "構成", "title": "VPC構成",
+         "vpc": {"label": "VPC", "cidr": "10.0.0.0/16"},
+         "external": [{"id": "user", "label": "利用者", "icon": "icons/aws/users.png"}],
+         "azs": [{"id": "az-a", "label": "AZ-a", "subnets": [
+             {"id": "private", "label": "private subnet", "resources": [
+                 {"id": "service", "label": "Lambda", "icon": "icons/aws/lambda.png"}]}]}],
+         "flows": [{"from": "user", "to": "service", "label": "HTTPS"}]},
+    ])
+    return deck
+
+
 def _run(script: Path, cwd: Path, *args: str, success: bool = True):
     env = os.environ.copy()
     env.update(PYTHONIOENCODING="utf-8", PYTHONDONTWRITEBYTECODE="1", PYTHONPATH="")
@@ -69,7 +85,7 @@ def test_archive_and_runtime() -> None:
         before = _hashes(installed)
         task = base / "task with spaces"
         task.mkdir()
-        deck = _smoke_deck()
+        deck = _plugin_smoke_deck()
         (task / "content.json").write_text(json.dumps(deck, ensure_ascii=False), encoding="utf-8")
         runner = skill / "scripts/run.py"
         _run(runner, task, "validate", "content.json")
