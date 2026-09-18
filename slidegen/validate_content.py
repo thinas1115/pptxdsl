@@ -21,6 +21,7 @@ if __package__ in (None, ""):
 from PIL import Image
 
 from slidegen.asset_paths import resolve_icon_path, resolve_image_path
+from slidegen.aws_icon_policy import icon_policy_error
 from slidegen.sample_content_guard import sample_reuse_paths
 from slidegen.timeline_layout import resolve_marker, resolve_program_span
 
@@ -45,9 +46,9 @@ _TITLE_ASSERTIVE_QUALITY = re.compile(
 
 _TOP_LEVEL_KEYS = {"meta", "slides"}
 _META_KEYS = {"title", "footer", "date", "organization", "author"}
-_BASE_SLIDE_KEYS = {"type", "kicker", "title", "lead"}
+_BASE_SLIDE_KEYS = {"type", "kicker", "title", "lead", "footnote"}
 _TYPE_KEYS = {
-    "title": {"type", "title", "subtitle"},
+    "title": {"type", "title", "subtitle", "footnote"},
     "section_divider": _BASE_SLIDE_KEYS,
     "bullets": _BASE_SLIDE_KEYS | {"style", "bullets"},
     "cards": _BASE_SLIDE_KEYS | {"style", "cards"},
@@ -69,9 +70,6 @@ _TYPE_KEYS = {
     "scope_boundary": _BASE_SLIDE_KEYS | {
         "in_label", "out_label", "in_scope", "out_of_scope", "assumptions",
     },
-    "decision_summary": _BASE_SLIDE_KEYS | {
-        "sections", "conclusion", "conclusion_label",
-    },
     "paired_comparison": _BASE_SLIDE_KEYS | {
         "left_label", "right_label", "criterion_label", "rows", "takeaway",
     },
@@ -86,7 +84,7 @@ _TYPE_KEYS = {
         "participants", "messages", "phases", "takeaway",
     },
     "concept": _BASE_SLIDE_KEYS | {
-        "term", "definition", "points", "misconception", "icon",
+        "term", "definition", "points", "icon",
     },
     "nw_topology": _BASE_SLIDE_KEYS | {
         "lanes", "columns", "nodes", "links",
@@ -109,7 +107,6 @@ _TYPE_KEYS = {
 # 移行エラーを出すためだけに_TYPE_KEYSには残し、rendererでは描画しない。
 _LEAD_ONLY_FIELDS = {
     "scope_boundary": {"assumptions"},
-    "decision_summary": {"conclusion", "conclusion_label"},
     "paired_comparison": {"takeaway"},
     "relationship_map": {"takeaway"},
     "swimlane_flow": {"takeaway"},
@@ -749,12 +746,14 @@ def _v_diagram(s):
         if not isinstance(n, dict):
             s.err(f"nodes.{name} はオブジェクトにしてください")
             continue
-        s.allow_keys(n, {"col", "row", "title", "sub", "icon"},
+        s.allow_keys(n, {"col", "row", "title", "sub", "icon", "service"},
                      f"diagram.nodes.{name}")
         if not _is_str(n.get("title")):
             s.err(f"nodes.{name}.title (文字列) が必要です")
         if "sub" in n and not _is_str(n["sub"]):
             s.err(f"nodes.{name}.sub は空でない文字列にしてください")
+        if "service" in n and not _is_str(n["service"]):
+            s.err(f"nodes.{name}.service は空でないAWSサービス識別名にしてください")
         if isinstance(cols, list) and n.get("col") not in cols:
             s.err(f"nodes.{name}.col={n.get('col')!r} が diagram.cols に"
                   f"ありません")
@@ -774,6 +773,14 @@ def _v_diagram(s):
                 if not icon_path.is_file():
                     s.err(f"nodes.{name}.icon={n['icon']!r} が assets/ にありません。"
                           f"Fluent一覧は fetch_fluent_icons.py --list で確認してください")
+                if _is_str(n.get("title")) and ("service" not in n or _is_str(n["service"])):
+                    try:
+                        policy_error = icon_policy_error(n["title"], n["icon"], n.get("service"))
+                    except ValueError as error:
+                        s.err(f"nodes.{name}.service: {error}")
+                    else:
+                        if policy_error:
+                            s.err(f"nodes.{name}.icon: {policy_error}")
     cont_names = set()
     containers = d.get("containers", [])
     if not isinstance(containers, list):
@@ -1026,23 +1033,6 @@ def _v_scope(s):
         if key in s.spec and not _is_str(s.spec[key]):
             s.err(f"{key} は空でない文字列にしてください")
 
-
-def _v_summary(s):
-    sections = s.req_list("sections", 2, 4, "論点") or []
-    for index, section in enumerate(sections):
-        if not isinstance(section, dict):
-            s.err(f"sections[{index}] はオブジェクトにしてください")
-            continue
-        s.allow_keys(section, {"heading", "body", "icon"}, f"sections[{index}]")
-        for key in ("heading", "body"):
-            if not _is_str(section.get(key)):
-                s.err(f"sections[{index}].{key} は空でない文字列にしてください")
-        if "icon" in section:
-            if not _is_str(section["icon"]):
-                s.err(f"sections[{index}].icon はFluentアイコン名にしてください")
-            elif not resolve_icon_path(
-                    f"icons/fluent/{section['icon']}.png").is_file():
-                s.err(f"sections[{index}].icon={section['icon']!r} が見つかりません")
 
 
 def _v_paired_comparison(s):
@@ -1349,8 +1339,6 @@ def _v_concept(s):
         s.allow_keys(point, {"label", "text"}, path)
         if not _is_str(point.get("label")) or not _is_str(point.get("text")):
             s.err(f"{path} にはlabel / text (文字列) が必要です")
-    if "misconception" in s.spec and not _is_str(s.spec["misconception"]):
-        s.err("misconception は空でない文字列にしてください")
     if "icon" in s.spec:
         if not _is_str(s.spec["icon"]):
             s.err("icon は空でない文字列にしてください")
@@ -1557,7 +1545,7 @@ VALIDATORS = {
     "matrix": _v_matrix,
     "org": _v_org, "diagram": _v_diagram,
     "aws_vpc_layout": _v_aws_vpc_layout,
-    "scope_boundary": _v_scope, "decision_summary": _v_summary,
+    "scope_boundary": _v_scope,
     "paired_comparison": _v_paired_comparison, "relationship_map": _v_mapping,
     "swimlane_flow": _v_swimlane, "message_sequence": _v_sequence,
     "concept": _v_concept, "nw_topology": _v_network,
@@ -1642,6 +1630,17 @@ def validate(deck, *, allow_sample_content=False):
         if "note" in spec and t not in NOTE_TYPES:
             s.err(f'"note" は {", ".join(sorted(NOTE_TYPES))} でのみ描画され'
                   f"ます (このtypeでは無視されるため削除してください)")
+        if "footnote" in spec:
+            footnote = spec["footnote"]
+            if not isinstance(footnote, dict):
+                s.err('footnoteはtextと任意のlabelを持つオブジェクトにしてください')
+            else:
+                for key in _unknown_keys(footnote, {"text", "label"}):
+                    s.err(f'footnote.{key}: 未対応のフィールドです')
+                if not _is_str(footnote.get("text")):
+                    s.err('footnote.textは空でない文字列にしてください')
+                if "label" in footnote and not _is_str(footnote["label"]):
+                    s.err('footnote.labelは指定する場合、空でない文字列にしてください')
         VALIDATORS[t](s)
     return errors
 

@@ -181,7 +181,11 @@ def _assert_concept_contract(samples):
         if getattr(shape, "has_text_frame", False) and shape.text.strip()
     }
     assert concept["term"] in texts
-    assert concept["misconception"] in texts
+    assert concept["footnote"]["text"] not in texts
+    common_prs = _presentation()
+    common_slide = common_prs.slides.add_slide(common_prs.slide_layouts[6])
+    generate.render_slide(s_concept, common_slide, concept, 1)
+    assert any(shape.name == "slide-footnote:text" for shape in common_slide.shapes)
 
     dense = deepcopy(concept)
     dense["definition"] = "復旧目標の起点と終点を合意する説明です。" * 40

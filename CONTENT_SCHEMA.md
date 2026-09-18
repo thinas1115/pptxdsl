@@ -21,7 +21,7 @@ schema例ではない。通常のvalidatorは、そこにある正規化後14文
 
 | category | type |
 |---|---|
-| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
+| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
 | NW | `aws_vpc_layout`, `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
 
 ## 機械検証
@@ -87,6 +87,12 @@ python slidegen/validate_content.py content.json
   `validate_content.py`が生成前に拒否する。
 - `type: "title"` 以外は `lead` (string) を任意指定できる。タイトル直下に要旨を置き、指定時だけ本文開始位置が下がる。未指定時の本文位置は変わらない。
 - `lead` は本文を読む前に伝える結論・前提・読み方を1〜2行で書く。単なるタイトルの言い換えや本文項目の列挙には使わない。文字数の固定上限はないが、最小フォントでも領域へ収まらない場合は生成を停止する。
+- `footnote`は表紙・中扉を含む全type共通の任意補足欄。`text`は必須の空でない文字列、
+  `label`は任意の空でない文字列。未指定時は欄・ラベル・区切り線を描画せず、本文配置も変えない。
+  指定時だけ本文下端を上げ、補足欄をページ番号などの資料共通フッターの上へ描画する。
+  収容は標準13pt、余白圧縮、11.5ptまでの文字縮小の順。最小値でも収まらない入力は停止する。
+  `note`は図・表などの局所注記、`footnote`はそのページ全体の補足として使い分ける。
+  例: `"footnote": {"label": "誤解しやすい点", "text": "補足本文"}`。
 - JSONなので、Pythonのタプルではなく配列を使う。
 - `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `program_roadmap` / `matrix` / `org` / `diagram` / `aws_vpc_layout` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
 - 一般的なシステム構成・クラウド構成・データフローは`diagram`で書く。物理機器と論理セグメント、
@@ -673,36 +679,6 @@ python slidegen/validate_content.py content.json
 }
 ```
 
-### decision_summary
-
-用途: 2〜4個の論点を読み順に並べる。最終判断は`lead`に記載する。
-
-必須:
-
-- `type`: `"decision_summary"`
-- `kicker` / `title`: string
-- `sections`: 2〜4件
-  - `heading`: 論点見出し
-  - `body`: 論点の説明
-
-任意:
-
-- `sections[*].icon`: 内容を直接表すFluentアイコン名。装飾目的では指定しない
-
-```json
-{
-  "type": "decision_summary",
-  "kicker": "意思決定",
-  "title": "エグゼクティブサマリー",
-  "lead": "論点から導いた最終判断。",
-  "sections": [
-    {"heading": "背景", "icon": "info", "body": "判断の前提となる事実。"},
-    {"heading": "判断", "icon": "check", "body": "比較して得られた示唆。"},
-    {"heading": "提案", "icon": "send", "body": "次に実施する内容。"}
-  ]
-}
-```
-
 ### paired_comparison
 
 用途: 2案を共通の評価軸で1行ずつ対応させて比較する。
@@ -877,7 +853,7 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 任意:
 
 - `icon`: `slidegen/assets/`からの相対パス。用語の意味を補助できる場合だけ指定する
-- `misconception`: 読み手が混同しやすい概念、適用範囲外、誤った理解
+- 混同しやすい点は全type共通の`footnote`へ書く。concept専用の補足欄は設けない
 - `lead`: 定義を読む前に必要な前提
 
 制約:
@@ -897,7 +873,7 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
     {"label": "起点", "text": "業務へ影響する障害が発生した時点。"},
     {"label": "終点", "text": "利用者が必要な業務を再開できる状態へ戻った時点。"}
   ],
-  "misconception": "実際に要した復旧時間の実績値ではなく、事前に合意する目標値です。"
+  "footnote": {"label": "誤解しやすい点", "text": "実際に要した復旧時間の実績値ではなく、事前に合意する目標値です。"}
 }
 ```
 
@@ -1221,6 +1197,10 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
   - `col` / `row`: 所属セル(cols/rowsの名前)
   - `title`: 表示名
   - `sub`: 補足ラベル(任意)
+  - `service`: 任意。AWSサービスを機能名で表示する場合の識別名。例: `title: "Event API"`,
+    `service: "appsync"`, `icon: "icons/aws/appsync.png"`。識別名は下記AWSアイコン一覧の説明を参照。
+    `AppSync`など明確なサービス名、または明示`service`と異なるアイコンはvalidatorが拒否する。
+    `データソース`など複数サービスを含む一般概念には`service`を指定せずFluentを使える。
   - `icon`: `slidegen/assets/` からの相対PNGパス(必須)。同梱Fluent/AWSアイコンから選ぶ
     - Fluentアイコン(`icons/fluent/<名前>.png`、72種同梱済み)。次の名前だけを使い、ファイル名を発明しない。`python -m tools.assets.fetch_fluent_icons --list` でも確認できる
       - インフラ・端末: `server` `router` `database` `desktop` `laptop` `tablet` `phone` `printer` `hard_drive` `storage`
@@ -1231,14 +1211,12 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
       - コミュニケーション・業務: `mail` `chat` `video` `call` `send` `calendar` `task` `cart` `money` `chart`
       - 運用・状態: `alert` `warning` `info` `check` `search` `clock` `history` `settings` `toolbox` `wrench` `monitor`
       - 物理移動: `truck` `car` `airplane`
-    - AWSアイコン(同梱済み): `icons/aws/alb.png` `icons/aws/bedrock.png` `icons/aws/cloudfront.png` `icons/aws/cloudwatch.png` `icons/aws/dynamodb.png` `icons/aws/ecr.png` `icons/aws/fargate.png` `icons/aws/rds.png` `icons/aws/route53.png` `icons/aws/s3.png` `icons/aws/sqs.png` `icons/aws/user.png` `icons/aws/users.png` のみ。増やす場合は `extract_aws_icons.py`
-- `diagram.edges`: object の配列
-  - `from` / `to`: ノード名(または `@コンテナ名`)
-  - `label`: 線上ラベル(任意)。幅と配置区間はrendererが文字実測と経路から決める
-  - `exit` / `enter`: 発着辺 `"left" | "right" | "top" | "bottom"`(任意。省略時は位置関係から自動)
-  - `via`: 経由チャネル名の配列(任意)
-  - `dash`: `"dash"` で点線、`both`: true で双方向(任意)
-  - `from_row`: `from`が`@コンテナ名`の場合だけ必須。接続元に使う`diagram.rows`の名前
+    - 主要AWSサービス79種と基本リソース、計103PNGを同梱。1絵柄につき1件とし、
+      明暗・サイズ・形式違いの重複を収録しない。未収録サービスのファイル名は発明しない。
+      名称・相対パス・出典・SHA-256は`slidegen/assets/icons/aws/catalog.json`に記録。
+      名称検索: `python -m slidegen.aws_icons AppSync`。検索語を省略すると収録PNG全件を表示する。
+      サービス識別名は名称からAWS/Amazonと空白・記号を除いた小文字。例: `appsync`, `ec2`。
+      収録範囲と追加手順は[docs/aws-icon-selection.md](docs/aws-icon-selection.md)を参照。
 
 任意:
 

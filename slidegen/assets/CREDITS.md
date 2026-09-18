@@ -21,6 +21,9 @@
 - 最新版・追加アイコンが必要な場合は公式デッキまたは公式Icon packageを入手し、
   必要なPNGを無改変で追加する
 - 同梱時の帰属表示と条件: [`icons/aws/NOTICE.md`](icons/aws/NOTICE.md)
+- `icons/aws/appsync.png`: 2026年7月31日版公式Icon packageの
+  `Arch_Application-Integration/64/Arch_AWS-AppSync_64@5x.png`を無改変で追加。
+  出典と利用条件は上記AWS Architecture Iconsと同じ。
 
 ## Fluent UI System Icons (`icons/fluent/*.png`)
 
@@ -48,3 +51,13 @@
   利用者がOutputを所有し、OpenAIがOutputについて持つ権利を利用者へ譲渡すると定めている。
 - OpenAIおよびgpt-imageへの言及は生成元を示すものであり、OpenAIによる本プロジェクトの
   後援、承認、提携を示すものではない。
+
+## 追加の主要AWSサービス (`icons/aws/official/`)
+
+- 出典: [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/)、2026年7月31日版。
+- 主要サービスの公式PNGを、標準の絵柄・最大解像度の1件に絞って無改変で同梱。
+  既存同梱の同じサービスと重複するファイル、明暗・サイズ・形式違いは追加しない。
+- 既存素材を含む収録一覧は103PNG。各ファイルの出典区分とSHA-256は`icons/aws/catalog.json`に記録。
+  `source: existing/...`は本リポジトリへ以前に無改変抽出した公式素材を示す。
+- 権利者・ライセンス・改変禁止条件は上記AWS Architecture Iconsと同じ。
+- 追加素材の元パッケージ内相対パスも一覧へ記録する。

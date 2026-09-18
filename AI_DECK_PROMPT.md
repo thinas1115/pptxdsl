@@ -75,13 +75,14 @@
    グリッド仕様(列・行・ノード・エッジ)を**「資料要件」のテーマと情報源に基づいて新規に**書く。
    **座標やサイズの数値は一切書かない**(レイアウトエンジンが計算する)。全ノードの `icon` は必須。
    同梱済みのFluent 72種またはAWSアイコンから選び、存在しないファイル名を発明しない。
+   AppSyncは`icons/aws/appsync.png`を使う。`Event API`など機能名で表示する場合はノードに`service: "appsync"`を明示する。
    AWSサービスを表すノードは、対応するAWS公式アイコンがある場合に必ずそれを使う。Fluentアイコンは
    人、組織、端末、オンプレミス、一般概念、または対応するAWS素材がない要素に使う。
    VLANやセキュリティゾーンのように、物理機器と論理セグメント、Access・Trunk・L3接続の意味を
    同時に示す場合は`diagram`へ押し込まず`nw_topology`を使う。AWSのVPC、AZ、Subnetの境界を
    学習対象として見せる場合は、`diagram`ではなく`aws_vpc_layout`を使う。
 6. 研修・解説資料で専門用語や判断基準を初めて示す場合は、図解より先に`concept`で定義する。
-   `term`と`definition`で意味を固定し、理解に必要な要点を`points`、誤解しやすい境界を`misconception`へ書く。
+   `term`と`definition`で意味を固定し、理解に必要な要点を`points`、誤解しやすい境界は全type共通の`footnote.text`へ書く。ラベルは`footnote.label`で任意指定する。
    用語を未定義のまま構成図や詳細手順から始めない。
 7. 同じフレームやパケットが端末・装置内部・伝送区間を通る間の状態変化は`nw_protocol_flow`、
    フィールド構成は`nw_frame_anatomy`、設定例と確認観点は`config_lab`、選択式の設問と正答解説は
@@ -132,7 +133,6 @@ Common:
 - `program_roadmap`
 - `matrix` (ラベル位置を自動調整する2軸図)
 - `scope_boundary` (実施範囲・対象外。成立条件は`lead`)
-- `decision_summary` (2〜4論点の要約。最終判断は`lead`)
 - `paired_comparison` (共通の評価軸による2案比較)
 - `relationship_map` (左右項目の一対一・一対多・多対多の対応確認)
 - `swimlane_flow` (担当レーンと工程段階を持つ業務フロー)
@@ -150,8 +150,6 @@ NW:
 - `nw_protocol_flow` (端末・装置・伝送区間ごとのフレームまたはパケット状態の変化)
 - `nw_frame_anatomy` (フレーム・パケットのフィールド構造と注釈)
 
-`decision_summary.sections[*].icon`は、各論点を見分ける助けになるFluentアイコンがある場合だけ指定する。
-アイコンを埋めること自体を目的にせず、適切なものがなければ省略する。
 
 ## サンプル由来のアンチパターン
 

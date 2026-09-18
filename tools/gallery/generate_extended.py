@@ -12,7 +12,7 @@ from slidegen.org_layout import s_org
 from slidegen.diagrams2 import s_matrix, s_process, s_program_roadmap
 from slidegen.diagram_layout import render_diagram
 from slidegen.candidate_renderers import (
-    s_mapping, s_paired_comparison, s_scope, s_sequence, s_summary, s_swimlane,
+    s_mapping, s_paired_comparison, s_scope, s_sequence, s_swimlane,
 )
 
 
@@ -29,7 +29,7 @@ RENDER_EXTENDED = dict(generate.RENDER,
                        process=s_process, program_roadmap=s_program_roadmap,
                        matrix=s_matrix,
                        diagram=s_diagram,
-                       scope_boundary=s_scope, decision_summary=s_summary,
+                       scope_boundary=s_scope,
                        paired_comparison=s_paired_comparison, relationship_map=s_mapping,
                        swimlane_flow=s_swimlane, message_sequence=s_sequence)
 

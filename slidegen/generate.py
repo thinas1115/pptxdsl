@@ -7,6 +7,7 @@ if __name__ == "__main__":
 import math
 import re
 from dataclasses import dataclass
+from contextvars import ContextVar
 
 from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
@@ -23,6 +24,7 @@ from slidegen.layout_fit import (
     stepped,
 )
 from slidegen.textfit import line_height_in, text_width_in, wrap_natural, wrap_text
+from slidegen.slide_footnote import fit_footnote
 
 # 入力デッキは生成入口から設定する。回帰用データを初期値として読み込まない。
 DECK = {"meta": {}, "slides": []}
@@ -51,6 +53,7 @@ TABLE_TOP_GAP = 0.38
 TABLE_BOTTOM_GAP = 0.15
 TABLE_NOTE_H = 0.30
 COVER_FOOTER = load_cover_footer_config()
+_CONTENT_BOTTOM = ContextVar("slide_content_bottom", default=BODY_BOTTOM)
 
 
 @dataclass(frozen=True)
@@ -146,7 +149,8 @@ def header(slide, kicker, title, lead=None):
     add_text(slide, 0.72, 0.67, 11.9, 0.86, "\n".join(lines), size,
              bold=True, color=NAVY, spacing=1.12)
     if not lead:
-        return ContentArea()
+        bottom = _CONTENT_BOTTOM.get()
+        return ContentArea(bottom=bottom, shifted=bottom != BODY_BOTTOM)
 
     lead_size, lead_lines = fit_text_or_raise(
         "header", "lead", lead, 11.9, LEAD_MAX_H, 14,
@@ -154,7 +158,8 @@ def header(slide, kicker, title, lead=None):
     lead_h = len(lead_lines) * line_height_in(lead_size, 1.18) + 0.03
     add_text(slide, 0.72, LEAD_Y, 11.9, lead_h, "\n".join(lead_lines),
              lead_size, color=GRAY, spacing=1.18)
-    return ContentArea(top=LEAD_Y + lead_h + 0.17, shifted=True)
+    return ContentArea(top=LEAD_Y + lead_h + 0.17,
+                       bottom=_CONTENT_BOTTOM.get(), shifted=True)
 
 
 def page_label(page):
@@ -176,7 +181,7 @@ def note_line(slide, note, link=None):
     size, _ = fit_text_or_raise(
         "note", "text", display_text, BODY_W, 0.25, 8.5,
         min_pt=7, spacing=1.1)
-    tb = add_text(slide, MARGIN, 6.62, BODY_W, 0.25, note, size,
+    tb = add_text(slide, MARGIN, _CONTENT_BOTTOM.get() - 0.23, BODY_W, 0.25, note, size,
                   color=GRAY, align=PP_ALIGN.RIGHT)
     if link:
         p = tb.text_frame.paragraphs[0]
@@ -192,7 +197,8 @@ def s_title(slide, spec, page):
     meta = DECK["meta"]
     total = len(DECK["slides"])
     render_cover(slide, spec, meta, total, COVER_FOOTER,
-                 add_text=add_text, add_rect=add_rect)
+                 add_text=add_text, add_rect=add_rect,
+                 content_bottom=_CONTENT_BOTTOM.get())
 
 
 # 中扉は共通ヘッダーではなく、章ラベル・章タイトル・leadだけを置く専用構図。
@@ -282,7 +288,7 @@ def _section_divider_candidate_values(spec):
 def s_section_divider(slide, spec, page):
     """章ラベル、章タイトル、任意leadだけの控えめな中扉。"""
     add_rect(slide, 0, 0, SLIDE_W, SLIDE_H, CANVAS)
-    available = SECTION_DIVIDER_BOTTOM - SECTION_DIVIDER_TOP
+    available = min(SECTION_DIVIDER_BOTTOM, _CONTENT_BOTTOM.get()) - SECTION_DIVIDER_TOP
     fit = select_fit(
         "section_divider", available,
         _section_divider_candidate_values(spec),
@@ -983,9 +989,38 @@ RENDER = {"title": s_title, "section_divider": s_section_divider,
 
 def render_slide(renderer, slide, spec, idx):
     """rendererの収容エラーをスライド位置つきの運用メッセージへ変換する。"""
+    token = None
     try:
+        footnote = spec.get("footnote")
+        layout = fit_footnote(footnote, BODY_W) if footnote else None
+        if layout:
+            reserve = layout.height + layout.padding * 2 + 0.12
+            token = _CONTENT_BOTTOM.set(BODY_BOTTOM - reserve)
         renderer(slide, spec, idx)
+        if layout:
+            y = _CONTENT_BOTTOM.get() + 0.12
+            if spec["type"] == "title":
+                panel = add_rect(slide, MARGIN - 0.08, y - 0.04,
+                                 BODY_W + 0.16, BODY_BOTTOM - y + 0.08, CANVAS)
+                panel.name = "slide-footnote:surface"
+            rule = add_rect(slide, MARGIN, y, BODY_W, 0.01, RULE)
+            rule.name = "slide-footnote:rule"
+            text_y = y + layout.padding
+            if layout.label_lines:
+                label = add_text(slide, MARGIN, text_y, layout.label_width - 0.16,
+                                 layout.height, "\n".join(layout.label_lines),
+                                 layout.label_size, bold=True, color=CORAL,
+                                 spacing=1.12)
+                label.name = "slide-footnote:label"
+            text = add_text(slide, MARGIN + layout.label_width, text_y,
+                            BODY_W - layout.label_width, layout.height,
+                            "\n".join(layout.lines), layout.size,
+                            color=TEXT, spacing=1.12)
+            text.name = "slide-footnote:text"
     except (ValueError, FileNotFoundError) as e:
         raise SystemExit(
             f"NG: slides[{idx - 1}] (type={spec['type']}) の生成に失敗:\n"
             f"  {e}") from e
+    finally:
+        if token is not None:
+            _CONTENT_BOTTOM.reset(token)

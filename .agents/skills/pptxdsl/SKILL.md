@@ -16,6 +16,16 @@ description: pptxdslで資料要件と情報源からcontent.jsonを設計し、
 - `tests/fixtures/gallery/content*.py`、`tests/fixtures/gallery/diagram_specs.py`、ギャラリーは回帰検証用であり、新規資料の内容やページ構成の参考にしない。
 - 正確な資料を作るために不足している情報があれば、不足を埋める質問だけを行い、仮の内容で先へ進めない。
 
+## 内容指定の注意
+
+- AWSサービスの図には同梱公式アイコンを使う。AppSyncは`icons/aws/appsync.png`。
+  `Event API`など機能名をノード名にする場合は`service: "appsync"`も指定する。
+  主要サービスと基本リソースの公式PNGを同梱。`python -m slidegen.aws_icons <サービス名>`で名称とPNGパスを検索する。
+- ページ下部の補足は全type共通の`footnote: {"text": "補足本文"}`で指定する。
+  任意ラベルは`label`へ書く。旧`concept.misconception`は使用しない。
+- 独立した操作・選択肢・事例・判断材料の整理は`cards`。旧`decision_summary`は廃止した。
+
+
 ## 完成までの流れ
 
 1. テーマ、想定読者、目的、必須内容、使用可能な情報源、枚数目安を確認する。内容の根拠と網羅性を点検するときは[内容QA](references/content-qa.md)を読む。

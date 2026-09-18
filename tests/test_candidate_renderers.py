@@ -19,7 +19,6 @@ from slidegen.candidate_renderers import (
     s_paired_comparison,
     s_scope,
     s_sequence,
-    s_summary,
     s_swimlane,
 )
 from tests.fixtures.gallery.candidate_review_cases import REVIEW_DECK
@@ -36,7 +35,7 @@ from slidegen.validate_content import validate
 
 RENDERERS = {
     "scope_boundary": s_scope,
-    "decision_summary": s_summary,
+    "cards": generate.s_cards,
     "paired_comparison": s_paired_comparison,
     "relationship_map": s_mapping,
     "swimlane_flow": s_swimlane,
@@ -80,9 +79,9 @@ def _dense_specs():
         out_of_scope=[f"対象外{i + 1}の責任範囲" for i in range(6)],
     )
     summary = dict(
-        _base("decision_summary"),
+        _base("cards"),
         lead="複数の論点を踏まえて次の判断へ進む。",
-        sections=[
+        cards=[
             {"heading": f"論点{i + 1}", "body": "判断に必要な事実と示唆を簡潔に整理する。"}
             for i in range(4)
         ],
@@ -496,7 +495,6 @@ def main():
 
     legacy_fields = {
         "scope_boundary": ("assumptions", ["前提条件"]),
-        "decision_summary": ("conclusion", "結論"),
         "paired_comparison": ("takeaway", "判断"),
         "relationship_map": ("takeaway", "判断"),
         "swimlane_flow": ("takeaway", "判断"),
@@ -516,11 +514,9 @@ def main():
     errors = validate({"meta": {"title": "検証"}, "slides": [bad_mapping]},
                       allow_sample_content=True)
     assert any("未定義id" in error for error in errors)
-    bad_summary = deepcopy(next(spec for spec in samples if spec["type"] == "decision_summary"))
-    bad_summary["sections"][0]["icon"] = "存在しないアイコン"
-    errors = validate({"meta": {"title": "検証"}, "slides": [bad_summary]},
-                      allow_sample_content=True)
-    assert any("icon=" in error and "見つかりません" in error for error in errors)
+    legacy_summary = {"type": "decision_summary", "sections": []}
+    errors = validate({"meta": {"title": "検証"}, "slides": [legacy_summary]}, allow_sample_content=True)
+    assert any("未対応のtype" in error for error in errors)
     _assert_fit_stages()
     _assert_mapping_order()
     _assert_mapping_column_alignment()

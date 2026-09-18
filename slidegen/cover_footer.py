@@ -343,7 +343,8 @@ def _add_cover_background_image(slide, source):
     return picture
 
 
-def render_cover(slide, spec, meta, total, config, *, add_text, add_rect):
+def render_cover(slide, spec, meta, total, config, *, add_text, add_rect,
+                 content_bottom=6.85):
     """固定レイアウト内で、設定済みの表紙要素を描画する。"""
     cover = config.cover
     add_rect(slide, 0, 0, 13.333, 7.5, cover.background_color)
@@ -428,7 +429,7 @@ def render_cover(slide, spec, meta, total, config, *, add_text, add_rect):
         author_size, _ = fit_text_or_raise(
             "cover", "author", meta["author"], 4.8, 0.3, 10.5,
             min_pt=8.5, weight="bold", spacing=1.1)
-        add_text(slide, 0.9, 6.5, 4.8, 0.3, meta["author"], author_size,
+        add_text(slide, 0.9, min(6.5, content_bottom - 0.35), 4.8, 0.3, meta["author"], author_size,
                  bold=True, color=cover.title_color)
 
 

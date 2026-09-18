@@ -12,7 +12,6 @@ from slidegen.candidate_renderers import (
     s_paired_comparison,
     s_scope,
     s_sequence,
-    s_summary,
     s_swimlane,
 )
 from tests.fixtures.gallery.candidate_review_cases import REVIEW_DECK
@@ -21,7 +20,7 @@ from slidegen.validate_content import validate
 
 RENDER = {
     "scope_boundary": s_scope,
-    "decision_summary": s_summary,
+    "cards": generate.s_cards,
     "paired_comparison": s_paired_comparison,
     "relationship_map": s_mapping,
     "swimlane_flow": s_swimlane,
