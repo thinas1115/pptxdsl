@@ -72,6 +72,9 @@ def main():
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     gallery = next(item for item in PATTERN_DECK["slides"] if item["type"] == "aws_vpc_layout")
     s_aws_vpc_layout(slide, gallery, 1)
+    for shape in slide.shapes:
+        if shape.name.startswith("aws-vpc-layout:") and shape.name.endswith(":label"):
+            assert shape.text_frame.word_wrap is False
     frames = [shape for shape in slide.shapes if shape.name.startswith("aws-vpc-layout:")
               and ":label" not in shape.name and shape.name != "aws-vpc-layout:flow-label"]
     labels = [shape for shape in slide.shapes if shape.name == "aws-vpc-layout:flow-label"]

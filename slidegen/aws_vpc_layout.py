@@ -90,6 +90,8 @@ def _box_label(slide, x, y, w, text, *, color, name):
         slide, x, y, label_w, label_h, rendered, size,
         bold=True, color=color, anchor=MSO_ANCHOR.MIDDLE, spacing=1.05)
     tb.name = name
+    # 改行は実測済みlinesだけを使う。互換Officeで狭いラベルを二重改行させない。
+    tb.text_frame.word_wrap = False
     tb.fill.solid()
     tb.fill.fore_color.rgb = generate.CANVAS
     return tb
@@ -127,6 +129,7 @@ def _node_label(slide, cx, y, text, *, max_w, size, min_pt, bold, color):
         slide, cx - label_w / 2, y, label_w, label_h, rendered, actual_size,
         bold=bold, color=color, align=PP_ALIGN.CENTER,
         anchor=MSO_ANCHOR.MIDDLE, spacing=1.05)
+    tb.text_frame.word_wrap = False
     tb.fill.solid()
     tb.fill.fore_color.rgb = generate.CANVAS
     return tb
