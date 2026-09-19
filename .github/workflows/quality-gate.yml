@@ -102,8 +102,8 @@ jobs:
           python -m tests.test_pptxdsl_skill
           python -m tests.test_plugin_package
 
-      - name: Plugin配布ZIPを生成
-        run: python -m tools.plugin.build
+      - name: Skill・Plugin配布候補を生成
+        run: python -m tools.distribution.build --output-dir out/release
 
       - name: 一覧画像を生成
         run: python contact_sheet.py out/libreoffice-smoke
@@ -117,9 +117,12 @@ jobs:
             out/plugin-smoke/*.png
           if-no-files-found: error
 
-      - name: Plugin配布物を保存
+      - name: Skill・Plugin配布候補を保存
         uses: actions/upload-artifact@v4
         with:
-          name: pptxdsl-plugin
-          path: out/plugins/*.zip
+          name: pptxdsl-distributions
+          path: |
+            out/release/*.zip
+            out/release/pattern_gallery.pptx
+            out/release/SHA256SUMS.txt
           if-no-files-found: error

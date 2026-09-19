@@ -7,6 +7,10 @@ pptxdslをskills-only Pluginとして配布する。資料要件と情報源の�
 
 ## 配布物の作成
 
+正式配布は[GitHub Release v1.0.0](https://github.com/thinas1115/pptxdsl/releases/tag/v1.0.0)の
+`pptxdsl-plugin-v1.0.0.zip`を使用する。同じReleaseにある`pptxdsl-skill-v1.0.0.zip`は
+Skillとして直接導入する配布物であり、Plugin manifestを含まない。
+
 ビルドにはPython 3.10以上とGitが必要。リポジトリルートで実行する。
 
 ```text
@@ -14,10 +18,19 @@ python -m tools.plugin.build
 ```
 
 - `out/plugins/pptxdsl/`: インストール対象の自己完結したPluginフォルダ
-- `out/plugins/pptxdsl-0.1.0.zip`: フォルダと同じ内容の配布ZIP。ZIP直下がPluginルート
+- `out/plugins/pptxdsl-plugin-v1.0.0.zip`: フォルダと同じ内容の配布ZIP。ZIP直下がPluginルート
 
 既存出力を上書きしない。再ビルド時は`--output-dir out/plugins-next`など、未使用の出力先を指定する。
 生成済みのPluginフォルダとZIPはGitへコミットしない。
+
+Skill ZIP、Plugin ZIP、パターンギャラリー、SHA-256一覧をRelease候補としてまとめる場合は次を実行する。
+
+```text
+python -m tools.distribution.build --tag v1.0.0 --output-dir out/release
+```
+
+タグとmanifestのバージョンが一致しない場合は生成を停止する。`v1.0.0`タグのpushでは
+`.github/workflows/release.yml`が全テストを実行し、タグがmainに含まれることを確認してからReleaseを公開する。
 
 追跡する正本は`.agents/skills/pptxdsl/`、`slidegen/`、公開スキーマと説明文書、
 `plugins/pptxdsl/.codex-plugin/plugin.json`。Plugin専用のrendererやSkill複製を管理しない。
@@ -81,7 +94,7 @@ ChatGPT WorkまたはCodexを再読み込みしてPlugins Directoryからイン�
 5. Python依存・日本語フォント・レンダリング手段が不足する場合は、未確認を完了扱いにしない。
 
 PluginがPython依存、フォント、Office互換ソフトを自動的に提供するわけではない。
-同梱Skillの[Plugin実行環境](../.agents/skills/pptxdsl/references/plugin-runtime.md)に前提条件と
+同梱Skillの[Release配布の実行環境](../.agents/skills/pptxdsl/references/bundled-runtime.md)に前提条件と
 インストール先を変更せずに実行する入口を記載している。
 
 ## 自動検証

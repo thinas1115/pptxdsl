@@ -10,8 +10,9 @@ description: pptxdslで資料要件と情報源からcontent.jsonを設計し、
 ## 前提
 
 - cloneではリポジトリルートから作業し、最初に`AGENTS.md`を読む。
-  Pluginとして読み込まれた場合は[Plugin実行環境](references/plugin-runtime.md)を先に読み、
-  同梱の`project/`を本処理・文書のルート、利用者の作業領域を入出力先として区別する。
+  Release配布のSkillまたはPluginとして読み込まれた場合は
+  [同梱実行環境](references/bundled-runtime.md)を先に読み、同梱の`project/`を本処理・文書のルート、
+  利用者の作業領域を入出力先として区別する。
 - 主張、固有名詞、数値、画像の根拠は、利用者の資料要件と指定された情報源だけに限定する。
 - `tests/fixtures/gallery/content*.py`、`tests/fixtures/gallery/diagram_specs.py`、ギャラリーは回帰検証用であり、新規資料の内容やページ構成の参考にしない。
 - 正確な資料を作るために不足している情報があれば、不足を埋める質問だけを行い、仮の内容で先へ進めない。

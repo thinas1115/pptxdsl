@@ -1,6 +1,6 @@
-# Plugin実行環境
+# Release配布の実行環境
 
-ChatGPT Work・CodexにPluginとしてインストールされた場合だけ使用する。
+GitHub ReleaseのSkill ZIPを展開した場合、またはPluginとしてインストールされた場合に使用する。
 Skillフォルダ内の`project/`へ本処理、素材、スキーマ、type選定ガイド、依存一覧、ライセンスを同梱している。
 clone、GitHub認証、MCP接続は不要。資料作成のためにリポジトリを開発・変更しない。
 
@@ -10,7 +10,7 @@ clone、GitHub認証、MCP接続は不要。資料作成のためにリポジト
 - 手順内の`CONTENT_SCHEMA.md`、`AI_DECK_PROMPT.md`、`docs/`、`slidegen/`は`project/`内を参照する。
 - 利用者の作業領域に`content.json`と`out/`を作る。インストール先へ成果物やローカル設定を保存しない。
 - 以下の`<Skill>/scripts/run.py`を実際のスクリプトパスへ置き換え、利用者の作業領域から実行する。
-  参照文書にあるリポジトリ相対のコマンドも、Pluginではこの入口へ読み替える。
+  参照文書にあるリポジトリ相対のコマンドも、Release配布版ではこの入口へ読み替える。
 
 ```text
 python <Skill>/scripts/run.py validate content.json
@@ -38,7 +38,7 @@ Python実行ができない通常チャットやレンダリング手段のな�
 PNG化できなければ目視QAを完了扱いにせず、不足と調査結果を報告する。
 代替backendではPowerPointとの描画差が残る可能性を報告する。
 
-追加画像や独自の配色が必要な場合は、利用者の作業領域へPlugin全体をコピーし、コピー側の
+追加画像や独自の配色が必要な場合は、利用者の作業領域へSkill全体をコピーし、コピー側の
 `project/slidegen/assets/`とクレジットを更新して、コピー側の`run.py`を使用する。
 インストールされた正本は変更しない。画像パスは引き続き同梱assets内の相対パスで指定する。
 情報源の確認、全ページ一覧と原寸での目視QA、修正後の再確認は通常のSkill手順と同じ。

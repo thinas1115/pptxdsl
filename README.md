@@ -38,17 +38,23 @@ python -m pip install -r requirements.txt
 
 | 利用形態 | 向いている用途 | 実行に使うもの |
 |---|---|---|
-| Skill | このリポジトリ内で資料を作る、rendererや素材も編集する | `.agents/skills/pptxdsl/`とcloneした本処理 |
-| Plugin | 任意の作業領域で資料を作る、他の利用者へ配布する | インストール済みPluginに同梱されたSkill・本処理・素材 |
+| Skill | Skillとして直接導入する、またはこのリポジトリ内で開発する | ReleaseのSkill ZIP、または`.agents/skills/pptxdsl/`とcloneした本処理 |
+| Plugin | Plugins Directoryから導入する、他の利用者へPluginとして配布する | ReleaseのPlugin ZIPに同梱されたmanifest・Skill・本処理・素材 |
 
 どちらも、資料要件と情報源の確認、`content.json`の設計、PPTX生成、機械検証、PNG化、
 全ページの目視QA、修正後の再確認までを1つの作業として実行します。
 
 ### Skillとして使う
 
-1. [セットアップ](#セットアップ)を完了し、Codexでこのリポジトリのルートを開く。
-2. 新しいタスクで`$pptxdsl`を明示して依頼する。Codexは作業ディレクトリからリポジトリルートまでの
-   `.agents/skills/`を探索するため、別の場所へSkillをコピーする必要はない。
+GitHub Releaseの`pptxdsl-skill-v1.0.0.zip`は自己完結型です。ZIPを展開し、できた`pptxdsl/`を
+CodexのSkillディレクトリへ配置します。`SKILL.md`、renderer、schema、素材が同梱されているため、
+リポジトリのcloneは不要です。
+
+このリポジトリ内で開発しながら使う場合は、[セットアップ](#セットアップ)を完了してリポジトリのルートを開きます。
+Codexは作業ディレクトリからリポジトリルートまでの`.agents/skills/`を探索するため、
+リポジトリ内のSkillを別の場所へコピーする必要はありません。
+
+どちらの導入方法でも、新しいタスクで`$pptxdsl`を明示して依頼します。
 
 ```text
 $pptxdsl
@@ -73,13 +79,14 @@ Python 3.10以上、日本語フォント、PowerPointまたはLibreOfficeなど
 
 #### 1. 配布物を作る
 
-リポジトリを持つ作成者が、未使用の出力先を指定してビルドします。
+正式配布は[GitHub Release v1.0.0](https://github.com/thinas1115/pptxdsl/releases/tag/v1.0.0)の
+`pptxdsl-plugin-v1.0.0.zip`です。開発中の配布候補を作る場合は、未使用の出力先を指定してビルドします。
 
 ```powershell
 python -m tools.plugin.build --output-dir out\plugins
 ```
 
-インストール対象は`out/plugins/pptxdsl/`です。`out/plugins/pptxdsl-0.1.0.zip`を渡す場合は、
+インストール対象は`out/plugins/pptxdsl/`です。`out/plugins/pptxdsl-plugin-v1.0.0.zip`を渡す場合は、
 展開後に`plugin.json`が直下にあるフォルダをPluginルートとして使います。
 
 #### 2. Codexへ登録・インストールする
@@ -113,6 +120,25 @@ ChatGPTでは`@pptxdsl`、Codexでは`$pptxdsl`で明示選択できます。目
 
 OpenAI公式の基本仕様は[Skills](https://developers.openai.com/docs/build-skills)と
 [Pluginパッケージ](https://developers.openai.com/plugins/build/plugins)を参照してください。
+
+### Release配布物
+
+`v1.0.0`では、1つのGitHub Releaseに用途の異なる配布物を別アセットとして掲載します。
+
+| アセット | 用途 | ZIPのトップ階層 |
+|---|---|---|
+| `pptxdsl-skill-v1.0.0.zip` | Skillとして直接導入 | `pptxdsl/SKILL.md` |
+| `pptxdsl-plugin-v1.0.0.zip` | Pluginとして登録・導入 | `plugin.json`、`.codex-plugin/`、`skills/` |
+| `pattern_gallery.pptx` | 対応typeの出力確認 | PowerPointファイル |
+| `SHA256SUMS.txt` | ダウンロードした3ファイルの検証 | SHA-256一覧 |
+
+Release候補をまとめて生成する場合は、次を実行します。タグとPlugin manifestのバージョンが違う場合は停止します。
+
+```powershell
+python -m tools.distribution.build --tag v1.0.0 --output-dir out\release
+```
+
+`v1.0.0`タグをmainに含まれるコミットへ付けると、品質検証後に同じ4アセットをGitHub Releaseへ公開します。
 
 ## CLIで直接使う
 
@@ -182,7 +208,9 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 | `tests/fixtures/gallery/` | 回帰専用の内容データ・構成図仕様 |
 | `tools/gallery/` | 回帰ギャラリーの生成・検証・掲載画像作成 |
 | `tools/assets/` | 素材の取得・点検。通常生成には不要 |
-| `tools/plugin/` | Skillと本処理を同梱するPlugin配布用ビルド |
+| `tools/distribution/` | Skill・Plugin・GitHub Releaseアセットの共通ビルド |
+| `tools/skill/` | 自己完結型Skill配布用ビルド |
+| `tools/plugin/` | 自己完結型Plugin配布用ビルド |
 | `plugins/pptxdsl/` | Pluginの表示情報・配布metadataの正本 |
 | `slidegen/assets/icons/` | 同梱済みのAWS・Fluentアイコン |
 | `slidegen/assets/images/` | 本文で使用する画像 |
