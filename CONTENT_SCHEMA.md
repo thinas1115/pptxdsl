@@ -210,7 +210,7 @@ python slidegen/validate_content.py content.json
 
 ### cards
 
-用途: 主結論と複数の独立した根拠、KPI、選択肢、事例の比較。出力は枠線に頼らないフラットな編集的カードになる。
+用途: 2〜6件の同格な選択肢、事例、判断材料、KPIの比較。出力は枠線に頼らないフラットな編集的カードになる。
 
 必須:
 
@@ -225,14 +225,14 @@ python slidegen/validate_content.py content.json
 
 - `style`: `"editorial"`(既定) / `"metrics"`
 - `cards[*].value`: KPI値。`metrics`では必須
-- `cards[*].emphasis`: boolean。主項目または強調KPIを示す
+- `cards[*].emphasis`: boolean。`metrics`で強調するKPIだけに指定する
 
 制約:
 
-- `cards` は2〜6件。件数に応じて1〜2行の列数と幅が自動計算される。
+- `cards` は2〜6件。全項目を同格に扱い、件数に応じて1〜2行の列数と幅が自動計算される。
 - 各項目が独立して比較できる場合に使う。読み順のある要点、フェーズ名、図のノードなど、別の構造に属する要素には使わない。
-- `editorial`: サマリ・選択肢・事例向け。4件で`emphasis: true`が1件なら、その項目を主項目として描画する。
-- `metrics`: KPI向け。`heading`と`value`を分けて書き、rendererが文字列から数値を推測しないようにする。
+- `editorial`: 同格の選択肢・事例・判断材料向け。`emphasis`は指定できない。
+- `metrics`: KPI向け。`heading`と`value`を分け、必要なKPIだけ`emphasis: true`で強調する。
 
 ```json
 {
@@ -241,8 +241,8 @@ python slidegen/validate_content.py content.json
   "kicker": "分類",
   "title": "タイトル",
   "cards": [
-    {"heading": "最重要の要点", "body": "要点本文", "emphasis": true},
-    {"heading": "要点見出し", "body": "要点本文"}
+    {"heading": "選択肢A", "body": "選択肢Aの説明"},
+    {"heading": "選択肢B", "body": "選択肢Bの説明"}
   ]
 }
 ```
