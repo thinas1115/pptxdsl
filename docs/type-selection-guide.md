@@ -10,7 +10,7 @@
 
 | category | type |
 |---|---|
-| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
+| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check`, `references` |
 | NW | `aws_vpc_layout`, `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
 
 ## 参照情報の役割
@@ -50,7 +50,6 @@
 | `program_roadmap` | 少数フェーズ、判定点、複数テーマの並行作業を時間軸で示す | 工程間の分岐・差戻しが主役 | `process` |
 | `matrix` | 2軸上の位置関係や優先度を示す | 正確な値の比較や時系列 | `chart`、`table` |
 | `scope_boundary` | 実施範囲と対象外を分け、成立条件を`lead`で示す | 2案の優劣や施策の比較 | `two_column`、`paired_comparison` |
-| `decision_summary` | 2〜4個の論点を読み順に並べ、最終判断を`lead`で示す | 独立項目の比較や詳細な箇条書き | `cards`、`bullets` |
 | `paired_comparison` | 2案を同じ評価軸で1行ずつ対応させて比較する | 評価軸が揃わない比較、3案以上の比較 | `table`、`two_column` |
 | `relationship_map` | 課題と施策、要件と機能などの対応漏れ・多対多関係を示す | 工程順、システム境界、時系列を示す | `diagram`、`process` |
 | `swimlane_flow` | 担当レーンと工程段階を同時に示し、引き継ぎを確認する | 厳密な時間間隔や機器間メッセージが主役 | `message_sequence`、`program_roadmap` |
@@ -63,7 +62,8 @@
 | `nw_protocol_flow` | 同じフレームやパケットの状態が、端末・装置内部・伝送区間ごとにどう変わるかを追跡する | 物理構成全体、単なるメッセージ順、ビット配置を示す | `nw_topology`、`message_sequence`、`nw_frame_anatomy` |
 | `nw_frame_anatomy` | フレームやパケットのフィールド構成、ビット長、注目箇所を示す | 通信順序や機器間の流れを示す | `message_sequence`、`table` |
 | `config_lab` | 設定例やコードと、その確認観点・検証コマンドを同じページで示す | 概念説明や工程だけを示す | `process`、`image` |
-| `knowledge_check` | 選択式の設問と、対応する正答・解説を研修資料へ組み込む | 通常の要点整理や結論を示す | `bullets`、`decision_summary` |
+| `knowledge_check` | 選択式の設問と、対応する正答・解説を研修資料へ組み込む | 通常の要点整理や結論を示す | `bullets`、`cards` |
+| `references` | 巻末に情報源名と実URLを表示し、必要な項目だけ参照範囲タグを付ける | 本文の比較表、URLのない参考文献一覧 | `table` |
 
 ### `nw_protocol_flow`の選択境界
 
@@ -79,6 +79,8 @@
 - 文を同じ重要度で並べる、順番を示す、完了状態を示す場合は`bullets`。
 - 各項目に独立した見出しと説明があり、主結論と根拠または選択肢を比較する場合は`cards`。
 - 要素間の接続や関係名を示す場合は、見た目を近づけず`diagram`または`org`を使う。
+- 統合、委譲、接続経路、境界、処理連鎖を説明する場合は、要素名だけの`cards`を使わない。ノードとラベル付きエッジで関係を示す。
+- Merged API、Pipeline resolverのように内部構造が理解の前提となる機能は独立した図解ページにし、性質の異なる機能と1枚へまとめない。
 - 上記のどれにも収まらない情報構造は、新rendererを検討する。
 
 ## アンチパターン

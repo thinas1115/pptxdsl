@@ -46,10 +46,10 @@ _FIELD_FILLS = {
 }
 
 
-def _fit_concept(area, definition, points, has_misconception):
+def _fit_concept(area, definition, points):
     left_w = 5.45
     right_w = BODY_W - left_w - 0.72
-    available = area.height - 0.34 - (0.72 if has_misconception else 0.08)
+    available = area.height - 0.34 - 0.08
 
     def used(values):
         definition_h = len(wrap_text(
@@ -94,11 +94,10 @@ def _fit_concept(area, definition, points, has_misconception):
 
 
 def s_concept(slide, spec, page):
-    """技術用語を定義し、要点と誤解を一続きの視線で説明する。"""
+    """技術用語を定義し、理解に必要な観点を並べる。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     points = spec["points"]
-    misconception = spec.get("misconception")
-    fitted = _fit_concept(area, spec["definition"], points, bool(misconception))
+    fitted = _fit_concept(area, spec["definition"], points)
     values = fitted.values
 
     top = area.top + 0.34
@@ -106,7 +105,7 @@ def s_concept(slide, spec, page):
     divider_x = MARGIN + left_w + 0.34
     right_x = divider_x + 0.38
     right_w = MARGIN + BODY_W - right_x
-    content_bottom = area.bottom - (0.78 if misconception else 0.10)
+    content_bottom = area.bottom - 0.10
 
     term_x = MARGIN + 0.04
     term_w = left_w - 0.10
@@ -170,18 +169,6 @@ def s_concept(slide, spec, page):
         )
         if index < len(points) - 1:
             add_rect(slide, right_x, y + row_h - 0.02, right_w, 0.008, RULE)
-
-    if misconception:
-        y = area.bottom - 0.63
-        add_rect(slide, MARGIN, y, BODY_W, 0.01, RULE)
-        add_text(slide, MARGIN + 0.04, y + 0.13, 1.18, 0.24,
-                 "誤解しやすい点", 10.5, bold=True, color=CORAL)
-        size, lines = fit_text_or_raise(
-            "concept", "misconception", misconception, BODY_W - 1.42,
-            0.38, 13.0, min_pt=11.0, spacing=1.10, role="compact",
-        )
-        add_text(slide, MARGIN + 1.42, y + 0.10, BODY_W - 1.42, 0.38,
-                 "\n".join(lines), size, color=TEXT, spacing=1.10)
 
 
 def _set_connector_arrow(connector, *, both=False, dash=None):

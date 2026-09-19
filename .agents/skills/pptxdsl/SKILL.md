@@ -16,6 +16,23 @@ description: pptxdslで資料要件と情報源からcontent.jsonを設計し、
 - `tests/fixtures/gallery/content*.py`、`tests/fixtures/gallery/diagram_specs.py`、ギャラリーは回帰検証用であり、新規資料の内容やページ構成の参考にしない。
 - 正確な資料を作るために不足している情報があれば、不足を埋める質問だけを行い、仮の内容で先へ進めない。
 
+## 内容指定の注意
+
+- AWSサービスの図には同梱公式アイコンを使う。AppSyncは`icons/aws/appsync.png`。
+  `Event API`など機能名をノード名にする場合は`service: "appsync"`も指定する。
+  主要サービスと基本リソースの公式PNGを同梱。`python -m slidegen.aws_icons <サービス名>`で名称とPNGパスを検索する。
+- ページ下部の補足は全type共通の`footnote: {"text": "補足本文"}`で指定する。
+  任意ラベルは`label`へ書く。typeを理由に自動追加せず、ページ全体への補足が本文と独立して必要な場合だけ使う。
+  conceptの理解に必要な境界や注意点は`points`へ書く。旧`concept.misconception`は使用しない。
+- 独立した操作・選択肢・事例・判断材料の整理は`cards`。旧`decision_summary`は廃止した。
+- 巻末の参考資料一覧は`references`を使い、各項目の`url`へ実際に確認した完全な`http`または`https` URLを必ず書く。URLを発表者ノートや別ファイルだけへ置かない。`scope`は、その情報源が裏付ける章・論点を明示したい項目だけに付け、省略時はタグを表示しない。情報源ごとに異なり得る確認日をスライド共通の`lead`で一括表示しない。
+- `concept.icon`は必須。用語・判断基準を識別できる同梱アイコンを指定する。
+- 統合、委譲、接続経路、境界、処理連鎖を理解させるページは、名称と説明だけを`cards`や`bullets`へ並べない。
+  構成要素をノード、関係をラベル付きエッジとして`diagram`、`message_sequence`、`swimlane_flow`のいずれかで示す。
+  Merged APIやPipeline resolverのように内部構造が判断材料になる機能は、独立した図解ページを設ける。
+  性質の異なる複数機能を1枚のカードへまとめて接続関係を失う場合は、機能ごとにページを分ける。
+
+
 ## 完成までの流れ
 
 1. テーマ、想定読者、目的、必須内容、使用可能な情報源、枚数目安を確認する。内容の根拠と網羅性を点検するときは[内容QA](references/content-qa.md)を読む。

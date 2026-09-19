@@ -1,0 +1,998 @@
+{
+  "source": "https://aws.amazon.com/architecture/icons/",
+  "package": [
+    "Architecture-Group-Icons_07312026",
+    "Architecture-Service-Icons_07312026",
+    "Category-Icons_07312026",
+    "Resource-Icons_07312026"
+  ],
+  "selection": {
+    "services": [
+      "amplify",
+      "apigateway",
+      "appsync",
+      "athena",
+      "aurora",
+      "backup",
+      "batch",
+      "bedrock",
+      "budgets",
+      "certificatemanager",
+      "clientvpn",
+      "clouddevelopmentkit",
+      "cloudformation",
+      "cloudfront",
+      "cloudtrail",
+      "cloudwan",
+      "cloudwatch",
+      "codebuild",
+      "codedeploy",
+      "codepipeline",
+      "cognito",
+      "config",
+      "controltower",
+      "costexplorer",
+      "databasemigrationservice",
+      "datafirehose",
+      "datasync",
+      "directconnect",
+      "documentdb",
+      "dynamodb",
+      "ec2",
+      "ec2autoscaling",
+      "efs",
+      "elasticache",
+      "elasticblockstore",
+      "elasticcontainerregistry",
+      "elasticcontainerservice",
+      "elastickubernetesservice",
+      "elasticloadbalancing",
+      "emr",
+      "eventbridge",
+      "fargate",
+      "fsx",
+      "globalaccelerator",
+      "glue",
+      "guardduty",
+      "iamidentitycenter",
+      "identityandaccessmanagement",
+      "inspector",
+      "keymanagementservice",
+      "kinesisdatastreams",
+      "lakeformation",
+      "lambda",
+      "managedstreamingforapachekafka",
+      "networkfirewall",
+      "opensearchservice",
+      "organizations",
+      "privatelink",
+      "rds",
+      "redshift",
+      "route53",
+      "sagemakerai",
+      "secretsmanager",
+      "securityhub",
+      "shield",
+      "simpleemailservice",
+      "simplenotificationservice",
+      "simplequeueservice",
+      "simplestorageservice",
+      "sitetositevpn",
+      "stepfunctions",
+      "systemsmanager",
+      "transferfamily",
+      "transitgateway",
+      "verifiedaccess",
+      "virtualprivatecloud",
+      "vpclattice",
+      "waf",
+      "xray"
+    ],
+    "variants": "1絵柄1PNG・明暗違いなし"
+  },
+  "icons": [
+    {
+      "label": "AWS Amplify",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Front-End-Web-Mobile/64/Arch_AWS-Amplify_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Front-End-Web-Mobile/64/Arch_AWS-Amplify_64@5x.png",
+      "kind": "service",
+      "service": "amplify",
+      "format": "png",
+      "sha256": "2a0d29cfe82f331436a7e9fb69eef63c43d267229efdc7660acc6740710d63fb"
+    },
+    {
+      "label": "Amazon API Gateway",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Networking-Content-Delivery/64/Arch_Amazon-API-Gateway_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Networking-Content-Delivery/64/Arch_Amazon-API-Gateway_64@5x.png",
+      "kind": "service",
+      "service": "apigateway",
+      "format": "png",
+      "sha256": "ff7762b429c15f65bddf866b248c814b91dce3eb38ab0689698ab08862b6f91d"
+    },
+    {
+      "label": "AWS AppSync",
+      "path": "icons/aws/appsync.png",
+      "source": "existing/appsync.png",
+      "kind": "service",
+      "format": "png",
+      "service": "appsync",
+      "sha256": "18b189bd1bf198cd76e115af33fa8d68aa48d1fc3cd4887e25aca06f6455ffb5"
+    },
+    {
+      "label": "Amazon Athena",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-Athena_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-Athena_64@5x.png",
+      "kind": "service",
+      "service": "athena",
+      "format": "png",
+      "sha256": "f9b2d148aa429dc89c4bce88114110e3d1ee97f743047ec09384e0b9ee4342fe"
+    },
+    {
+      "label": "Amazon Aurora",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Databases/64/Arch_Amazon-Aurora_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Databases/64/Arch_Amazon-Aurora_64@5x.png",
+      "kind": "service",
+      "service": "aurora",
+      "format": "png",
+      "sha256": "d2b09f44362eed059f89e95897311b8028ccbbadf052257be19efb181e8552f7"
+    },
+    {
+      "label": "AWS Backup",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Storage/64/Arch_AWS-Backup_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Storage/64/Arch_AWS-Backup_64@5x.png",
+      "kind": "service",
+      "service": "backup",
+      "format": "png",
+      "sha256": "354d171bdb258b9c914588460f67d1103bd91acceb730bdcfa2b702f4380492f"
+    },
+    {
+      "label": "AWS Batch",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Compute/64/Arch_AWS-Batch_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Compute/64/Arch_AWS-Batch_64@5x.png",
+      "kind": "service",
+      "service": "batch",
+      "format": "png",
+      "sha256": "e3bdc812efe41fa5b9d9cae36a62e23d0e0e0cb77adbdf9f52c34b1a2b11d7a8"
+    },
+    {
+      "label": "Amazon Bedrock",
+      "path": "icons/aws/bedrock.png",
+      "source": "existing/bedrock.png",
+      "kind": "service",
+      "format": "png",
+      "service": "bedrock",
+      "sha256": "6e20b9b707d6b88976e96e681824018c1e5f6585cfa10a52681497d7ad64b220"
+    },
+    {
+      "label": "AWS Budgets",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Cloud-Financial-Management/64/Arch_AWS-Budgets_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Cloud-Financial-Management/64/Arch_AWS-Budgets_64@5x.png",
+      "kind": "service",
+      "service": "budgets",
+      "format": "png",
+      "sha256": "c6e935661d8cfc4376810439fc493eb95827e3efd2c9c529b29a398492b9e955"
+    },
+    {
+      "label": "AWS Certificate Manager",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Certificate-Manager_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Certificate-Manager_64@5x.png",
+      "kind": "service",
+      "service": "certificatemanager",
+      "format": "png",
+      "sha256": "85df66dfe3aaead0cd4a5b8e2b3960a021400c36a8e717c65396a79d8c58013d"
+    },
+    {
+      "label": "AWS Client VPN",
+      "path": "icons/aws/client_vpn.png",
+      "source": "existing/client_vpn.png",
+      "kind": "service",
+      "format": "png",
+      "service": "clientvpn",
+      "sha256": "e8f18b4775abd70f6c0c45837469a91cf262c7652031beda74c9605e7056badd"
+    },
+    {
+      "label": "AWS Cloud Development Kit",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Developer-Tools/64/Arch_AWS-Cloud-Development-Kit_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Developer-Tools/64/Arch_AWS-Cloud-Development-Kit_64@5x.png",
+      "kind": "service",
+      "service": "clouddevelopmentkit",
+      "format": "png",
+      "sha256": "211de54001e787a43e7d28ec006c17afba6a4dca369c5150274645bf8ea51b36"
+    },
+    {
+      "label": "AWS CloudFormation",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-CloudFormation_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-CloudFormation_64@5x.png",
+      "kind": "service",
+      "service": "cloudformation",
+      "format": "png",
+      "sha256": "895d930126d4ef82604cfaed457946d30fa6b02acc591185510da0fbd0a71e9f"
+    },
+    {
+      "label": "Amazon CloudFront",
+      "path": "icons/aws/cloudfront.png",
+      "source": "existing/cloudfront.png",
+      "kind": "service",
+      "format": "png",
+      "service": "cloudfront",
+      "sha256": "5c84dc039eca7ba6ff663854c5bf9a8a77353a59ec75d2a9c7f5cfdbf7a6cb55"
+    },
+    {
+      "label": "AWS CloudTrail",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-CloudTrail_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-CloudTrail_64@5x.png",
+      "kind": "service",
+      "service": "cloudtrail",
+      "format": "png",
+      "sha256": "da8934d60a3b9ecd267920670ffa9bae521d5a399e5d4870893bacc59411b34b"
+    },
+    {
+      "label": "AWS Cloud WAN",
+      "path": "icons/aws/cloud_wan.png",
+      "source": "existing/cloud_wan.png",
+      "kind": "service",
+      "format": "png",
+      "service": "cloudwan",
+      "sha256": "3e492226e16e327296469f600bfeafa8085dff06e50a27afbe5ae2fb06b52927"
+    },
+    {
+      "label": "Amazon CloudWatch",
+      "path": "icons/aws/cloudwatch.png",
+      "source": "existing/cloudwatch.png",
+      "kind": "service",
+      "format": "png",
+      "service": "cloudwatch",
+      "sha256": "cf4dfb1d86abe70efcf209d1e9ed29e7405d3de00e35ba62a2fbce4e6e138714"
+    },
+    {
+      "label": "AWS CodeBuild",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Developer-Tools/64/Arch_AWS-CodeBuild_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Developer-Tools/64/Arch_AWS-CodeBuild_64@5x.png",
+      "kind": "service",
+      "service": "codebuild",
+      "format": "png",
+      "sha256": "5bc1008f571e2dcb827d1f2052851b40be4cbbe897f1090f87859f774b31257c"
+    },
+    {
+      "label": "AWS CodeDeploy",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Developer-Tools/64/Arch_AWS-CodeDeploy_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Developer-Tools/64/Arch_AWS-CodeDeploy_64@5x.png",
+      "kind": "service",
+      "service": "codedeploy",
+      "format": "png",
+      "sha256": "d2a4da723622fd1a89ba51f44515d4f1bf6000a84f323eb32ab067dcb135e111"
+    },
+    {
+      "label": "AWS CodePipeline",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Developer-Tools/64/Arch_AWS-CodePipeline_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Developer-Tools/64/Arch_AWS-CodePipeline_64@5x.png",
+      "kind": "service",
+      "service": "codepipeline",
+      "format": "png",
+      "sha256": "9bb57d09c08583f1b3e38ebbdd2383f0d2d068dcf5775c7cc70c5f0a73614f59"
+    },
+    {
+      "label": "Amazon Cognito",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_Amazon-Cognito_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_Amazon-Cognito_64@5x.png",
+      "kind": "service",
+      "service": "cognito",
+      "format": "png",
+      "sha256": "702a8264c9bb81184318e99d9fe724686b9758d6ca6cdb79d7b04d729d945208"
+    },
+    {
+      "label": "AWS Config",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-Config_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-Config_64@5x.png",
+      "kind": "service",
+      "service": "config",
+      "format": "png",
+      "sha256": "4fe7d0edede8f452c9db5b9eff0be2bcc4c7b42e50ecba558dc2454f780aa0e9"
+    },
+    {
+      "label": "AWS Control Tower",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-Control-Tower_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-Control-Tower_64@5x.png",
+      "kind": "service",
+      "service": "controltower",
+      "format": "png",
+      "sha256": "e0d6353fe778c5fdad2e27ae9c1c97e4d860d7c55284fa69eeb23f35ee4fc13d"
+    },
+    {
+      "label": "AWS Cost Explorer",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Cloud-Financial-Management/64/Arch_AWS-Cost-Explorer_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Cloud-Financial-Management/64/Arch_AWS-Cost-Explorer_64@5x.png",
+      "kind": "service",
+      "service": "costexplorer",
+      "format": "png",
+      "sha256": "7150c41be18cb3b559d88e9b2e9d0d586eddd7c02a8cbe5398d000f0b0177478"
+    },
+    {
+      "label": "AWS Database Migration Service",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Databases/64/Arch_AWS-Database-Migration-Service_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Databases/64/Arch_AWS-Database-Migration-Service_64@5x.png",
+      "kind": "service",
+      "service": "databasemigrationservice",
+      "format": "png",
+      "sha256": "1751e87f30ffb2715206d49a5db301ee31c7e85465067d325d3472b40c89c0e4"
+    },
+    {
+      "label": "Amazon Data Firehose",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-Data-Firehose_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-Data-Firehose_64@5x.png",
+      "kind": "service",
+      "service": "datafirehose",
+      "format": "png",
+      "sha256": "b399912118844d6c3e14ebefd017fc8884683565aeb24c7af20d5151acdc9326"
+    },
+    {
+      "label": "AWS DataSync",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Migration-Modernization/64/Arch_AWS-DataSync_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Migration-Modernization/64/Arch_AWS-DataSync_64@5x.png",
+      "kind": "service",
+      "service": "datasync",
+      "format": "png",
+      "sha256": "e1e23c044b8277339d30882bd7e6bc27e1d743559b2e498decd109b1534ef169"
+    },
+    {
+      "label": "AWS Direct Connect",
+      "path": "icons/aws/direct_connect.png",
+      "source": "existing/direct_connect.png",
+      "kind": "service",
+      "format": "png",
+      "service": "directconnect",
+      "sha256": "66614a7b54d5de19bbe7f7673e9697429eb0a519b95c2095a1878b7743e2b15f"
+    },
+    {
+      "label": "Amazon DocumentDB",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Databases/64/Arch_Amazon-DocumentDB_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Databases/64/Arch_Amazon-DocumentDB_64@5x.png",
+      "kind": "service",
+      "service": "documentdb",
+      "format": "png",
+      "sha256": "f336a749c893ce439c54a65baee0c8b33318bd59e609dbb40dfc99f261fa51c8"
+    },
+    {
+      "label": "Amazon DynamoDB",
+      "path": "icons/aws/dynamodb.png",
+      "source": "existing/dynamodb.png",
+      "kind": "service",
+      "format": "png",
+      "service": "dynamodb",
+      "sha256": "3abb2ab43d2e1d3747c25df25bae4d54200e1450151a262714fd5f038508f197"
+    },
+    {
+      "label": "Amazon EC2",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Compute/64/Arch_Amazon-EC2_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Compute/64/Arch_Amazon-EC2_64@5x.png",
+      "kind": "service",
+      "service": "ec2",
+      "format": "png",
+      "sha256": "3187eba72879c8c318a9915f156b61b003670ca4065b42733574a008c7dd96b4"
+    },
+    {
+      "label": "Amazon EC2 Auto Scaling",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Compute/64/Arch_Amazon-EC2-Auto-Scaling_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Compute/64/Arch_Amazon-EC2-Auto-Scaling_64@5x.png",
+      "kind": "service",
+      "service": "ec2autoscaling",
+      "format": "png",
+      "sha256": "9330e91ceeb129e97dee6043b53a29c13c103e1995456634e77782918ff82155"
+    },
+    {
+      "label": "Amazon EFS",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Storage/64/Arch_Amazon-EFS_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Storage/64/Arch_Amazon-EFS_64@5x.png",
+      "kind": "service",
+      "service": "efs",
+      "format": "png",
+      "sha256": "8d1b0273efd4041a7b12063792e03434d1831c3eb8b47f75cc23ee8a043aa38d"
+    },
+    {
+      "label": "Amazon ElastiCache",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Databases/64/Arch_Amazon-ElastiCache_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Databases/64/Arch_Amazon-ElastiCache_64@5x.png",
+      "kind": "service",
+      "service": "elasticache",
+      "format": "png",
+      "sha256": "e3f10fe7f8141a0b6643a3c435b4f6b4153e96b42ebea810ef4b3c2758340bdc"
+    },
+    {
+      "label": "Amazon Elastic Block Store",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Storage/64/Arch_Amazon-Elastic-Block-Store_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Storage/64/Arch_Amazon-Elastic-Block-Store_64@5x.png",
+      "kind": "service",
+      "service": "elasticblockstore",
+      "format": "png",
+      "sha256": "3f921a31635a87f9aab26fe9dce16b88fbda80c87d1a4921d844dbfc58a87f37"
+    },
+    {
+      "label": "Amazon Elastic Container Registry",
+      "path": "icons/aws/ecr.png",
+      "source": "existing/ecr.png",
+      "kind": "service",
+      "format": "png",
+      "service": "elasticcontainerregistry",
+      "sha256": "a0736df4b9d6a1b0775a68053cf6a6ee2dba0dea95f9ff9766129695d9fcb79e"
+    },
+    {
+      "label": "Amazon Elastic Container Service",
+      "path": "icons/aws/ecs.png",
+      "source": "existing/ecs.png",
+      "kind": "service",
+      "format": "png",
+      "service": "elasticcontainerservice",
+      "sha256": "095c0d9d23c5b30144a62c04a57e5c91726725a78b9386ea1160a1069b011e3f"
+    },
+    {
+      "label": "Amazon Elastic Kubernetes Service",
+      "path": "icons/aws/eks.png",
+      "source": "existing/eks.png",
+      "kind": "service",
+      "format": "png",
+      "service": "elastickubernetesservice",
+      "sha256": "269287776a922ea03330b54457dbef54815d514c61669f3e4321f0f2ad0af798"
+    },
+    {
+      "label": "Elastic Load Balancing",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Networking-Content-Delivery/64/Arch_Elastic-Load-Balancing_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Networking-Content-Delivery/64/Arch_Elastic-Load-Balancing_64@5x.png",
+      "kind": "service",
+      "service": "elasticloadbalancing",
+      "format": "png",
+      "sha256": "7189b389ce54fe5b034728e620ffe31572e1dfeb3c638469cc5432a32503cc06"
+    },
+    {
+      "label": "Amazon EMR",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-EMR_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-EMR_64@5x.png",
+      "kind": "service",
+      "service": "emr",
+      "format": "png",
+      "sha256": "ffa021b36070632e2a2ba52c8c8b0aeba090f65e740b5f22f4d384dce2647198"
+    },
+    {
+      "label": "Amazon EventBridge",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Application-Integration/64/Arch_Amazon-EventBridge_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Application-Integration/64/Arch_Amazon-EventBridge_64@5x.png",
+      "kind": "service",
+      "service": "eventbridge",
+      "format": "png",
+      "sha256": "cafdb0f87364b9441a7bfc4dd72f2c45330723e8282bf2ebe632904b004d26c0"
+    },
+    {
+      "label": "AWS Fargate",
+      "path": "icons/aws/fargate.png",
+      "source": "existing/fargate.png",
+      "kind": "service",
+      "format": "png",
+      "service": "fargate",
+      "sha256": "827881ad23553ac54183d804f3b76442f51c7da50fd76cbcb62d78b99ec885be"
+    },
+    {
+      "label": "Amazon FSx",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Storage/64/Arch_Amazon-FSx_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Storage/64/Arch_Amazon-FSx_64@5x.png",
+      "kind": "service",
+      "service": "fsx",
+      "format": "png",
+      "sha256": "4a06d94f58c4a79f7a1e6b5c95e2191d8861068ffeb4e77076b8b75993988fef"
+    },
+    {
+      "label": "AWS Global Accelerator",
+      "path": "icons/aws/global_accelerator.png",
+      "source": "existing/global_accelerator.png",
+      "kind": "service",
+      "format": "png",
+      "service": "globalaccelerator",
+      "sha256": "488f4f203f7b38f4d3f6c9324aebaa4c43eaf5f0b0bbad7aee7c7f33019a4fb9"
+    },
+    {
+      "label": "AWS Glue",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_AWS-Glue_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_AWS-Glue_64@5x.png",
+      "kind": "service",
+      "service": "glue",
+      "format": "png",
+      "sha256": "3625275cdfe0c19b67df40d3f387dfd829274be97b2fc74f526360b51515087c"
+    },
+    {
+      "label": "Amazon GuardDuty",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_Amazon-GuardDuty_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_Amazon-GuardDuty_64@5x.png",
+      "kind": "service",
+      "service": "guardduty",
+      "format": "png",
+      "sha256": "ae8e3995076ab4dd53d1bfed0d8c11722d466a22b532e84f98a15b5b6edb316a"
+    },
+    {
+      "label": "AWS IAM Identity Center",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-IAM-Identity-Center_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-IAM-Identity-Center_64@5x.png",
+      "kind": "service",
+      "service": "iamidentitycenter",
+      "format": "png",
+      "sha256": "07208f030404082a7d9c6ed92b4ce60867c91519644f6e3c21b19628f77813e5"
+    },
+    {
+      "label": "AWS Identity and Access Management",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Identity-and-Access-Management_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Identity-and-Access-Management_64@5x.png",
+      "kind": "service",
+      "service": "identityandaccessmanagement",
+      "format": "png",
+      "sha256": "35063c9b904b22e39f7ec37e757b51038c3316c2cfb03fbd3aee1c3f8b6ace52"
+    },
+    {
+      "label": "Amazon Inspector",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_Amazon-Inspector_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_Amazon-Inspector_64@5x.png",
+      "kind": "service",
+      "service": "inspector",
+      "format": "png",
+      "sha256": "e3e7453acd68f93843cdaa7ace930af7f433f1bf9e2b083a9c539e779fddb5ba"
+    },
+    {
+      "label": "AWS Key Management Service",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Key-Management-Service_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Key-Management-Service_64@5x.png",
+      "kind": "service",
+      "service": "keymanagementservice",
+      "format": "png",
+      "sha256": "b2a4f0ecfcf0dadd0acfaa544742b82bedee56cc1c2e6594b3b2693c27b7d742"
+    },
+    {
+      "label": "Amazon Kinesis Data Streams",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-Kinesis-Data-Streams_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-Kinesis-Data-Streams_64@5x.png",
+      "kind": "service",
+      "service": "kinesisdatastreams",
+      "format": "png",
+      "sha256": "6a79eb90738d686ab950572eff8fdc060166d4db01186a70ca9d0c93f8439187"
+    },
+    {
+      "label": "AWS Lake Formation",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_AWS-Lake-Formation_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_AWS-Lake-Formation_64@5x.png",
+      "kind": "service",
+      "service": "lakeformation",
+      "format": "png",
+      "sha256": "02c42f4592a5e74764170c9775282933f3c15f9b32e49e2870a0681da77e95a6"
+    },
+    {
+      "label": "AWS Lambda",
+      "path": "icons/aws/lambda.png",
+      "source": "existing/lambda.png",
+      "kind": "service",
+      "format": "png",
+      "service": "lambda",
+      "sha256": "66f650b0310058d2ebc156243a835cbf9166eb9be839c8b8eba32c3954345848"
+    },
+    {
+      "label": "Amazon Managed Streaming for Apache Kafka",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-Managed-Streaming-for-Apache-Kafka_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-Managed-Streaming-for-Apache-Kafka_64@5x.png",
+      "kind": "service",
+      "service": "managedstreamingforapachekafka",
+      "format": "png",
+      "sha256": "41bb269acce813cc4c91d3d7ed5371459381ee28668374a1fd1ea7816d4be5b0"
+    },
+    {
+      "label": "AWS Network Firewall",
+      "path": "icons/aws/network_firewall.png",
+      "source": "existing/network_firewall.png",
+      "kind": "service",
+      "format": "png",
+      "service": "networkfirewall",
+      "sha256": "13d55252fe2d4ace8c652b65982b7152bdf4ec97ee2e33463a2fc29158f4dfdf"
+    },
+    {
+      "label": "Amazon OpenSearch Service",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-OpenSearch-Service_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-OpenSearch-Service_64@5x.png",
+      "kind": "service",
+      "service": "opensearchservice",
+      "format": "png",
+      "sha256": "f42a3429dedb07d92dd4d3c792bcccd1efbd7fd6da73539a9d3a861f2a5f1dd2"
+    },
+    {
+      "label": "AWS Organizations",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-Organizations_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-Organizations_64@5x.png",
+      "kind": "service",
+      "service": "organizations",
+      "format": "png",
+      "sha256": "a5d4af842e64fc91a5ad30da359b807b6c87f77edd3c96dab3c5df4b13be5e58"
+    },
+    {
+      "label": "AWS PrivateLink",
+      "path": "icons/aws/privatelink.png",
+      "source": "existing/privatelink.png",
+      "kind": "service",
+      "format": "png",
+      "service": "privatelink",
+      "sha256": "234e1ae08dc6dddd8d8247af777e69ca9602b2de4ce12efc8e9ce04001c0f1aa"
+    },
+    {
+      "label": "Amazon RDS",
+      "path": "icons/aws/rds.png",
+      "source": "existing/rds.png",
+      "kind": "service",
+      "format": "png",
+      "service": "rds",
+      "sha256": "89c050ca954faaabef66a8ce2ee688b1a45f60e0b10d8cd22a30521e07886082"
+    },
+    {
+      "label": "Amazon Redshift",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-Redshift_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Analytics/64/Arch_Amazon-Redshift_64@5x.png",
+      "kind": "service",
+      "service": "redshift",
+      "format": "png",
+      "sha256": "08baafb52a5e2e61d46793eef10ad6f95c3446b41175c7d99a426b26a9e9e635"
+    },
+    {
+      "label": "Amazon Route 53",
+      "path": "icons/aws/route53.png",
+      "source": "existing/route53.png",
+      "kind": "service",
+      "format": "png",
+      "service": "route53",
+      "sha256": "ad3926d8b4e8830d1aa09d4348a4ebd0f645dd6eb771a2d835a77739bab2f944"
+    },
+    {
+      "label": "Amazon SageMaker AI",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Artificial-Intelligence/64/Arch_Amazon-SageMaker-AI_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Artificial-Intelligence/64/Arch_Amazon-SageMaker-AI_64@5x.png",
+      "kind": "service",
+      "service": "sagemakerai",
+      "format": "png",
+      "sha256": "c62e61b89036fdb666768e417bc5da922e9567f36517d179981f75be0710b819"
+    },
+    {
+      "label": "AWS Secrets Manager",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Secrets-Manager_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Secrets-Manager_64@5x.png",
+      "kind": "service",
+      "service": "secretsmanager",
+      "format": "png",
+      "sha256": "af176dc377dbb3c8020517108e5517c0ada16ebcefef2f4ae376b34095f54509"
+    },
+    {
+      "label": "AWS Security Hub",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Security-Hub_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Security-Hub_64@5x.png",
+      "kind": "service",
+      "service": "securityhub",
+      "format": "png",
+      "sha256": "1c5281927793c7d6738d8e4441c75c1c22948ca9c4a4558d2a5abafe01896f90"
+    },
+    {
+      "label": "AWS Shield",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Shield_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-Shield_64@5x.png",
+      "kind": "service",
+      "service": "shield",
+      "format": "png",
+      "sha256": "41c52efdf5399294d567cd342a6cb12eccbe394cad94896e4740f4988e3ba7d4"
+    },
+    {
+      "label": "Amazon Simple Email Service",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Business-Applications/64/Arch_Amazon-Simple-Email-Service_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Business-Applications/64/Arch_Amazon-Simple-Email-Service_64@5x.png",
+      "kind": "service",
+      "service": "simpleemailservice",
+      "format": "png",
+      "sha256": "6ea0753dc9f7bc5e3a398ebfc2152bf5223dcd129e80220eaaf1eae21f0bfd4b"
+    },
+    {
+      "label": "Amazon Simple Notification Service",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Application-Integration/64/Arch_Amazon-Simple-Notification-Service_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Application-Integration/64/Arch_Amazon-Simple-Notification-Service_64@5x.png",
+      "kind": "service",
+      "service": "simplenotificationservice",
+      "format": "png",
+      "sha256": "c4107fa5af4b2f16de9225d7471c36e3f0a3686bb02f68e5f3b983e0fe899859"
+    },
+    {
+      "label": "Amazon Simple Queue Service",
+      "path": "icons/aws/sqs.png",
+      "source": "existing/sqs.png",
+      "kind": "service",
+      "format": "png",
+      "service": "simplequeueservice",
+      "sha256": "4f63e2142e0272e5c82aacf54316e901687d8712b42edde63c41ac9f98b10fba"
+    },
+    {
+      "label": "Amazon Simple Storage Service",
+      "path": "icons/aws/s3.png",
+      "source": "existing/s3.png",
+      "kind": "service",
+      "format": "png",
+      "service": "simplestorageservice",
+      "sha256": "a9bd40a58cf7cf87ffd6417455bcc3f7301d618152631cde4fa8c328c8f15060"
+    },
+    {
+      "label": "AWS Site to Site VPN",
+      "path": "icons/aws/site_to_site_vpn.png",
+      "source": "existing/site_to_site_vpn.png",
+      "kind": "service",
+      "format": "png",
+      "service": "sitetositevpn",
+      "sha256": "c9614341d216c9b0aa2b4db1a20dc24a33460ca7aa8690645d3bdc99a47539fa"
+    },
+    {
+      "label": "AWS Step Functions",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Application-Integration/64/Arch_AWS-Step-Functions_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Application-Integration/64/Arch_AWS-Step-Functions_64@5x.png",
+      "kind": "service",
+      "service": "stepfunctions",
+      "format": "png",
+      "sha256": "954b61bce44986ea346f020d31b5432f7225a3b259fb32046195583127634e95"
+    },
+    {
+      "label": "AWS Systems Manager",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-Systems-Manager_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Management-Tools/64/Arch_AWS-Systems-Manager_64@5x.png",
+      "kind": "service",
+      "service": "systemsmanager",
+      "format": "png",
+      "sha256": "6303faa17dc75720a0203060d1e5a2dd9f81a0242f6436330c19fab57605b24b"
+    },
+    {
+      "label": "AWS Transfer Family",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Migration-Modernization/64/Arch_AWS-Transfer-Family_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Migration-Modernization/64/Arch_AWS-Transfer-Family_64@5x.png",
+      "kind": "service",
+      "service": "transferfamily",
+      "format": "png",
+      "sha256": "0b015946deb4dc65261c2c99d9e45d1f4e1960e53012fec7daff0d3b2ed6f199"
+    },
+    {
+      "label": "AWS Transit Gateway",
+      "path": "icons/aws/transit_gateway.png",
+      "source": "existing/transit_gateway.png",
+      "kind": "service",
+      "format": "png",
+      "service": "transitgateway",
+      "sha256": "3a26f2daf0257d4ed9b364e407cd199454b068ca22d5d8aea6e05a1727f2d186"
+    },
+    {
+      "label": "AWS Verified Access",
+      "path": "icons/aws/verified_access.png",
+      "source": "existing/verified_access.png",
+      "kind": "service",
+      "format": "png",
+      "service": "verifiedaccess",
+      "sha256": "2bedb680ca4fe9a04dd92c7fe6b7975853233c12cc94d72cb151df6bd3e06766"
+    },
+    {
+      "label": "Amazon Virtual Private Cloud",
+      "path": "icons/aws/vpc.png",
+      "source": "existing/vpc.png",
+      "kind": "service",
+      "format": "png",
+      "service": "virtualprivatecloud",
+      "sha256": "5f4b733bf9386491190bcdf0c85ab2f4b853e4052b0f6dc712a9b66b99318b24"
+    },
+    {
+      "label": "Amazon VPC Lattice",
+      "path": "icons/aws/vpc_lattice.png",
+      "source": "existing/vpc_lattice.png",
+      "kind": "service",
+      "format": "png",
+      "service": "vpclattice",
+      "sha256": "aa0fd5d8ac4db7a20ea1a7f845e21c0b60237642c36953c0cf0b602807dceb7b"
+    },
+    {
+      "label": "AWS WAF",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-WAF_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-WAF_64@5x.png",
+      "kind": "service",
+      "service": "waf",
+      "format": "png",
+      "sha256": "d86db36c67bd87881eafa1b666d9de24d5a1a7d7da847e984698fe76fd0ffcbe"
+    },
+    {
+      "label": "AWS X Ray",
+      "path": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Developer-Tools/64/Arch_AWS-X-Ray_64@5x.png",
+      "source": "Architecture-Service-Icons_07312026/Arch_Developer-Tools/64/Arch_AWS-X-Ray_64@5x.png",
+      "kind": "service",
+      "service": "xray",
+      "format": "png",
+      "sha256": "73c2c108bf66475c6284ae09ffff769f411826c6533acb6c193f01400d21e8f6"
+    },
+    {
+      "label": "alb",
+      "path": "icons/aws/alb.png",
+      "source": "existing/alb.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "e7c13bacda1dee697fd2c248e4bf68e12a7ae9adc3b14941687f302644437898"
+    },
+    {
+      "label": "cloud wan core edge",
+      "path": "icons/aws/cloud_wan_core_edge.png",
+      "source": "existing/cloud_wan_core_edge.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "d9b22727c53177e8879182babd7da9a15e1264162d2d781fea50d0eefd01b282"
+    },
+    {
+      "label": "cloud wan segment",
+      "path": "icons/aws/cloud_wan_segment.png",
+      "source": "existing/cloud_wan_segment.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "db55e938d461e6aafc2b6e8ddb8d684413f22cbae5830031279b744567574425"
+    },
+    {
+      "label": "dx gateway",
+      "path": "icons/aws/dx_gateway.png",
+      "source": "existing/dx_gateway.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "f59b59e91045f7e55826da1f0fbe2a926b627446413fe0ade411748470f9e095"
+    },
+    {
+      "label": "ecs task",
+      "path": "icons/aws/ecs_task.png",
+      "source": "existing/ecs_task.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "4e820bade61943293a586b18bf1992ac83dd496ad60809ece37fb5708e8d6cb5"
+    },
+    {
+      "label": "eni",
+      "path": "icons/aws/eni.png",
+      "source": "existing/eni.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "b5c68644257684b7c81fb31658ebe6acfefd099598edfc1b564a328bd949e98f"
+    },
+    {
+      "label": "flow logs",
+      "path": "icons/aws/flow_logs.png",
+      "source": "existing/flow_logs.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "31937cd631320eddd4147989b692a1eb821fa708860c4e751c3496a6b49736fe"
+    },
+    {
+      "label": "internet gateway",
+      "path": "icons/aws/internet_gateway.png",
+      "source": "existing/internet_gateway.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "51b860036aceabc265f6eb8e245777737a43fa325dbbbdea346043dc9c9324db"
+    },
+    {
+      "label": "lambda function",
+      "path": "icons/aws/lambda_function.png",
+      "source": "existing/lambda_function.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "7ea7f71d87a9f0fc0d775686f2a7e4e1aff147148fe087641c7f85d859d3ed49"
+    },
+    {
+      "label": "nat gateway",
+      "path": "icons/aws/nat_gateway.png",
+      "source": "existing/nat_gateway.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "7d302c0c37dab9592c6f6f64a089dcfb8daae41cb1f44fe6f877cd1e1d223141"
+    },
+    {
+      "label": "network acl",
+      "path": "icons/aws/network_acl.png",
+      "source": "existing/network_acl.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "4d4ce92ce7e3c64f55390b8961afe795ffca7a66299da763a73baf3b5dd22270"
+    },
+    {
+      "label": "network firewall endpoint",
+      "path": "icons/aws/network_firewall_endpoint.png",
+      "source": "existing/network_firewall_endpoint.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "8790c14a17b222f39b55d50806f1f17c3657a43dd512864f26cd3c233e0f0228"
+    },
+    {
+      "label": "reachability analyzer",
+      "path": "icons/aws/reachability_analyzer.png",
+      "source": "existing/reachability_analyzer.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "549bd88afc3b8a04bf63bc5b6fda2f875ee82b36a4a06e96f487b021f2fe7459"
+    },
+    {
+      "label": "route53 dns firewall",
+      "path": "icons/aws/route53_dns_firewall.png",
+      "source": "existing/route53_dns_firewall.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "69324d3ee21b179f088d81afb64b709d73ddce062262f67df2fd266d1bd63b88"
+    },
+    {
+      "label": "route53 resolver",
+      "path": "icons/aws/route53_resolver.png",
+      "source": "existing/route53_resolver.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "978707fc9b7c1da13d31dccb0a5371e91919caef209cfb791a8abedd91a3a478"
+    },
+    {
+      "label": "subnet private",
+      "path": "icons/aws/subnet_private.png",
+      "source": "existing/subnet_private.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "123c35305641f2b1ff7ad2143b65c9daf17fe7b81e84e2f50a527385f15bebac"
+    },
+    {
+      "label": "subnet public",
+      "path": "icons/aws/subnet_public.png",
+      "source": "existing/subnet_public.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "3875820ce2402ec925db83fb5caa36d0686b7568a021716a40cb95e741b2c853"
+    },
+    {
+      "label": "tgw attachment",
+      "path": "icons/aws/tgw_attachment.png",
+      "source": "existing/tgw_attachment.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "63b3b4d50563ea4b12005a8bf98ab224fb8dabe104a4f1828234b1732b813c7e"
+    },
+    {
+      "label": "traffic mirroring",
+      "path": "icons/aws/traffic_mirroring.png",
+      "source": "existing/traffic_mirroring.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "b5bc20280b6a493ef5af499e577acffe750f6754966641cae4523837213f26ca"
+    },
+    {
+      "label": "user",
+      "path": "icons/aws/user.png",
+      "source": "existing/user.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "7d81ea7f6bcc771d7f8d3cfa90027d655ed5420f7271fea3ffe1e58532123503"
+    },
+    {
+      "label": "users",
+      "path": "icons/aws/users.png",
+      "source": "existing/users.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "150a2b6f3d4875ab6f2d094ea9df05d5957ef29f4c503f2ee84728fad1e8cd49"
+    },
+    {
+      "label": "vpc endpoint",
+      "path": "icons/aws/vpc_endpoint.png",
+      "source": "existing/vpc_endpoint.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "a1ffe064703acda1caa88fb08063df1e9a7d1105b678370b75be9eb45e8cb2f3"
+    },
+    {
+      "label": "vpc peering",
+      "path": "icons/aws/vpc_peering.png",
+      "source": "existing/vpc_peering.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "665f8f2fa5cd444ef62d0739d5e562e9b2c6df1a4a12a9889d206e5c734479f4"
+    },
+    {
+      "label": "vpn gateway",
+      "path": "icons/aws/vpn_gateway.png",
+      "source": "existing/vpn_gateway.png",
+      "kind": "resource",
+      "format": "png",
+      "sha256": "d919f1d62ec9821d777ac30e19312fafdaf4a1da9f0ea263b358a6d833c77a0d"
+    }
+  ]
+}

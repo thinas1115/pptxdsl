@@ -1,6 +1,6 @@
 # 追加スライドパターン候補
 
-6種類のrenderer候補を同じテーマで比較するための目視確認資料。
+5種類のrenderer候補と既存のcardsを同じテーマで比較するための目視確認資料。
 採否はPPTXとPowerPointレンダー画像を確認して判断する。
 
 標準例だけで評価を終えず、各typeを次の4条件で確認する。
@@ -40,16 +40,6 @@
 | 疎 | 標準 | 上限 | 長文 |
 |---|---|---|---|
 | ![scope 疎](candidate-patterns/review/scope-sparse.png) | ![scope 標準](candidate-patterns/review/scope-standard.png) | ![scope 上限](candidate-patterns/review/scope-dense.png) | ![scope 長文](candidate-patterns/review/scope-long.png) |
-
-## decision_summary
-
-2〜4個の論点を1枚に要約する。最終判断が必要な場合は`lead`へ記載する。
-
-![summary](candidate-patterns/summary.png)
-
-| 疎 | 標準 | 上限 | 長文 |
-|---|---|---|---|
-| ![summary 疎](candidate-patterns/review/summary-sparse.png) | ![summary 標準](candidate-patterns/review/summary-standard.png) | ![summary 上限](candidate-patterns/review/summary-dense.png) | ![summary 長文](candidate-patterns/review/summary-long.png) |
 
 ## paired_comparison
 

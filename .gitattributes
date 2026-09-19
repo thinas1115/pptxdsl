@@ -1,0 +1,2 @@
+# AWS公式素材は改行変換も含めて無改変で配布する。
+slidegen/assets/icons/aws/official/** -text -diff

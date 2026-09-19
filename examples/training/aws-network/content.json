@@ -131,7 +131,7 @@
           "text": "VPCだけでは通信は成立しない。Subnet、Route Table、許可ルールへ順に降りていく。"
         }
       ],
-      "misconception": "VPCを作っただけでは、インターネットや他VPCへ自動的につながりません。"
+      "footnote": {"label": "誤解しやすい点", "text": "VPCを作っただけでは、インターネットや他VPCへ自動的につながりません。"}
     },
     {
       "type": "concept",
@@ -155,7 +155,7 @@
           "text": "可用性を高めるには、同じ役割のSubnetを複数AZに作る。"
         }
       ],
-      "misconception": "サブネット名にpublicと付けても、ルートがなければpublic subnetにはなりません。"
+      "footnote": {"label": "誤解しやすい点", "text": "サブネット名にpublicと付けても、ルートがなければpublic subnetにはなりません。"}
     },
     {
       "type": "aws_vpc_layout",
@@ -230,7 +230,7 @@
           "text": "Peeringや拠点接続の前に、相手とCIDRが重ならないかを確認する。"
         }
       ],
-      "misconception": "/24を細かく切れば安全、ではない。大切なのは運用時に意味が分かる範囲で余裕を残すこと。"
+      "footnote": {"label": "誤解しやすい点", "text": "/24を細かく切れば安全、ではない。大切なのは運用時に意味が分かる範囲で余裕を残すこと。"}
     },
     {
       "type": "table",
@@ -286,7 +286,7 @@
           "text": "ECSやEKSでは、ENI数やIP数の上限が配置密度に影響します。"
         }
       ],
-      "misconception": "EC2インスタンスだけがENIを使うわけではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "EC2インスタンスだけがENIを使うわけではありません。"}
     },
     {
       "type": "concept",
@@ -310,7 +310,7 @@
           "text": "1つのサブネットは同時に1つのサブネットルートテーブルだけに関連付けられます。"
         }
       ],
-      "misconception": "Internet GatewayをVPCへ付けても、サブネットのルートを変えなければ外へ出られません。"
+      "footnote": {"label": "誤解しやすい点", "text": "Internet GatewayをVPCへ付けても、サブネットのルートを変えなければ外へ出られません。"}
     },
     {
       "type": "paired_comparison",
@@ -364,7 +364,7 @@
           "text": "IPv4ではPublic IPとPrivate IPの変換にも関わります。"
         }
       ],
-      "misconception": "Internet Gatewayを追加しても、EC2が自動的に公開されることはありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "Internet Gatewayを追加しても、EC2が自動的に公開されることはありません。"}
     },
     {
       "type": "concept",
@@ -388,7 +388,7 @@
           "text": "可用性を重視する本番では、利用するAZごとにNAT Gatewayを置く設計を検討します。"
         }
       ],
-      "misconception": "NAT Gatewayは主に外へ出る通信の中継点であり、入口用途の部品ではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "NAT Gatewayは主に外へ出る通信の中継点であり、入口用途の部品ではありません。"}
     },
     {
       "type": "concept",
@@ -412,7 +412,7 @@
           "text": "サブネットのルートテーブルに::/0のターゲットとして設定します。"
         }
       ],
-      "misconception": "IPv6はグローバルに一意なので、private IPv4と同じ感覚で扱うと公開範囲を読み違えます。"
+      "footnote": {"label": "誤解しやすい点", "text": "IPv6はグローバルに一意なので、private IPv4と同じ感覚で扱うと公開範囲を読み違えます。"}
     },
     {
       "type": "table",
@@ -469,7 +469,7 @@
           "text": "IPアドレスだけでなく、別のSecurity Groupを送信元や宛先として指定します。"
         }
       ],
-      "misconception": "Security Groupには明示的な拒否ルールを書けません。拒否したい通信は許可しないことで止めます。"
+      "footnote": {"label": "誤解しやすい点", "text": "Security Groupには明示的な拒否ルールを書けません。拒否したい通信は許可しないことで止めます。"}
     },
     {
       "type": "concept",
@@ -493,7 +493,7 @@
           "text": "ステートレスなので、戻り通信にも別途ルールが必要です。"
         }
       ],
-      "misconception": "Security Groupと違い、許可した入口通信の戻りが自動的に許可されるわけではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "Security Groupと違い、許可した入口通信の戻りが自動的に許可されるわけではありません。"}
     },
     {
       "type": "paired_comparison",
@@ -841,7 +841,7 @@
           "text": "外向き通信も全許可で放置せず、Endpoint、Proxy、Firewall、DNS制御を検討します。"
         }
       ],
-      "misconception": "private subnetに置いただけでは、内部からの横移動や不要な外向き通信を防げません。"
+      "footnote": {"label": "誤解しやすい点", "text": "private subnetに置いただけでは、内部からの横移動や不要な外向き通信を防げません。"}
     },
     {
       "type": "aws_vpc_layout",
@@ -1133,7 +1133,7 @@
           "text": "Gateway Endpoint自体に追加料金はありません。"
         }
       ],
-      "misconception": "Gateway EndpointはPrivateLinkを使うInterface Endpointとは仕組みが違います。"
+      "footnote": {"label": "誤解しやすい点", "text": "Gateway EndpointはPrivateLinkを使うInterface Endpointとは仕組みが違います。"}
     },
     {
       "type": "diagram",
@@ -1280,7 +1280,7 @@
           "text": "Security GroupとEndpoint Policyで、到達元と操作範囲を絞れます。"
         }
       ],
-      "misconception": "Interface EndpointはサブネットごとにENIを作るため、IP数と費用の設計が必要です。"
+      "footnote": {"label": "誤解しやすい点", "text": "Interface EndpointはサブネットごとにENIを作るため、IP数と費用の設計が必要です。"}
     },
     {
       "type": "diagram",
@@ -1601,7 +1601,7 @@
           "text": "接続対象は公開するサービス単位です。ネットワーク全体を相互接続しません。"
         }
       ],
-      "misconception": "PrivateLinkはVPC全体を相互接続する技術ではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "PrivateLinkはVPC全体を相互接続する技術ではありません。"}
     },
     {
       "type": "diagram",
@@ -1725,7 +1725,7 @@
           "text": "重複するIPv4またはIPv6 CIDRを持つVPC同士ではPeeringを作れません。"
         }
       ],
-      "misconception": "Peering先のInternet GatewayやNAT Gatewayを、別VPCから出口として使うことはできません。"
+      "footnote": {"label": "誤解しやすい点", "text": "Peering先のInternet GatewayやNAT Gatewayを、別VPCから出口として使うことはできません。"}
     },
     {
       "type": "diagram",
@@ -1850,7 +1850,7 @@
           "text": "オンプレミス、別Region、共有サービスVPC、検査VPCを組み合わせる設計に向きます。"
         }
       ],
-      "misconception": "VPCをTransit Gatewayへアタッチしても、VPC側のSubnet Route Tableを設定しなければ通信は流れません。"
+      "footnote": {"label": "誤解しやすい点", "text": "VPCをTransit Gatewayへアタッチしても、VPC側のSubnet Route Tableを設定しなければ通信は流れません。"}
     },
     {
       "type": "diagram",
@@ -2138,7 +2138,7 @@
           "text": "導入の速さ、バックアップ回線、小規模なハイブリッド接続に向きます。"
         }
       ],
-      "misconception": "VPNは便利ですが、帯域や遅延の安定性を専用線と同じ前提で扱うべきではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "VPNは便利ですが、帯域や遅延の安定性を専用線と同じ前提で扱うべきではありません。"}
     },
     {
       "type": "diagram",
@@ -2316,7 +2316,7 @@
           "text": "Client VPN EndpointのRoute Tableに、利用者へ見せる宛先ネットワークを設定します。"
         }
       ],
-      "misconception": "VPN接続に成功しても、認可ルールや経路がなければ目的のサブネットへ到達できません。"
+      "footnote": {"label": "誤解しやすい点", "text": "VPN接続に成功しても、認可ルールや経路がなければ目的のサブネットへ到達できません。"}
     },
     {
       "type": "diagram",
@@ -2432,7 +2432,7 @@
           "text": "本番では接続、ロケーション、ルーター、BGP経路の冗長性を設計します。"
         }
       ],
-      "misconception": "Direct Connectは専用接続ですが、要件によっては上位で暗号化を足す設計が必要です。"
+      "footnote": {"label": "誤解しやすい点", "text": "Direct Connectは専用接続ですが、要件によっては上位で暗号化を足す設計が必要です。"}
     },
     {
       "type": "diagram",
@@ -2983,7 +2983,7 @@
           "text": "広告するプレフィックス、AS番号、優先経路を誤ると意図しない通信が流れます。"
         }
       ],
-      "misconception": "BGPが上がっていることと、アプリ通信が許可されていることは別問題です。"
+      "footnote": {"label": "誤解しやすい点", "text": "BGPが上がっていることと、アプリ通信が許可されていることは別問題です。"}
     },
     {
       "type": "diagram",
@@ -3165,7 +3165,7 @@
           "text": "Inbound EndpointとOutbound Endpointで、オンプレミスDNSと相互に連携します。"
         }
       ],
-      "misconception": "名前が解決できることと、ネットワーク経路やSecurity Groupが通ることは別です。"
+      "footnote": {"label": "誤解しやすい点", "text": "名前が解決できることと、ネットワーク経路やSecurity Groupが通ることは別です。"}
     },
     {
       "type": "diagram",
@@ -3413,7 +3413,7 @@
           "text": "IP直打ちの通信や独自DNS経路は別の制御で補います。"
         }
       ],
-      "misconception": "DNS Firewallだけで、すべての外向き通信を制御できるわけではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "DNS Firewallだけで、すべての外向き通信を制御できるわけではありません。"}
     },
     {
       "type": "diagram",
@@ -3716,7 +3716,7 @@
             "col": "security",
             "row": "main",
             "title": "AWS WAF",
-            "icon": "icons/fluent/shield.png"
+            "icon": "icons/aws/official/Architecture-Service-Icons_07312026/Arch_Security-Identity/64/Arch_AWS-WAF_64@5x.png"
           },
           "alb": {
             "col": "vpc",
@@ -3778,7 +3778,7 @@
           "text": "グローバル公開、DR、低遅延化、DNS切替時間を嫌うシステムで検討します。"
         }
       ],
-      "misconception": "CloudFrontのキャッシュ用途と同じものではありません。動的なTCP/UDP入口として使う場面があります。"
+      "footnote": {"label": "誤解しやすい点", "text": "CloudFrontのキャッシュ用途と同じものではありません。動的なTCP/UDP入口として使う場面があります。"}
     },
     {
       "type": "diagram",
@@ -3929,7 +3929,7 @@
           "text": "南北通信だけでなく、VPC間やオンプレミス間の東西通信検査にも使えます。"
         }
       ],
-      "misconception": "Firewallを作るだけでは通信は通りません。対称なルーティング設計が必要です。"
+      "footnote": {"label": "誤解しやすい点", "text": "Firewallを作るだけでは通信は通りません。対称なルーティング設計が必要です。"}
     },
     {
       "type": "diagram",
@@ -4294,7 +4294,7 @@
           "text": "利用中のIP範囲と割り当て履歴を追跡し、重複や枯渇を見つけやすくします。"
         }
       ],
-      "misconception": "IPAMは実際のAWSリソースと結びつけてIPアドレスを統制する仕組みです。図面管理だけではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "IPAMは実際のAWSリソースと結びつけてIPアドレスを統制する仕組みです。図面管理だけではありません。"}
     },
     {
       "type": "diagram",
@@ -4434,7 +4434,7 @@
           "text": "JSON形式のPolicyで、Region、Segment、アタッチメント割当、共有ルールを宣言します。"
         }
       ],
-      "misconception": "Cloud WANは広域ネットワーク全体を運用するためのサービスです。単一VPCの接続機能として扱うと役割を見誤ります。"
+      "footnote": {"label": "誤解しやすい点", "text": "Cloud WANは広域ネットワーク全体を運用するためのサービスです。単一VPCの接続機能として扱うと役割を見誤ります。"}
     },
     {
       "type": "diagram",
@@ -4580,7 +4580,7 @@
           "text": "責任分界はIAM、Security Group、タグ、運用手順で明確にする必要があります。"
         }
       ],
-      "misconception": "VPCを共有しても、すべてのリソース管理権限が共有されるわけではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "VPCを共有しても、すべてのリソース管理権限が共有されるわけではありません。"}
     },
     {
       "type": "diagram",
@@ -4703,7 +4703,7 @@
           "text": "サービス単位ならPrivateLink、全体接続なら再採番やNATを検討します。"
         }
       ],
-      "misconception": "AWSへ移せば重複CIDRの問題が自然に消える、ということはありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "AWSへ移せば重複CIDRの問題が自然に消える、ということはありません。"}
     },
     {
       "type": "diagram",
@@ -4986,7 +4986,7 @@
           "text": "CIDRやVPC間経路より、アプリケーションサービス単位の接続を前面に出します。"
         }
       ],
-      "misconception": "VPC Latticeを使っても、すべてのVPCがネットワーク的に相互接続されるわけではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "VPC Latticeを使っても、すべてのVPCがネットワーク的に相互接続されるわけではありません。"}
     },
     {
       "type": "diagram",
@@ -5121,7 +5121,7 @@
           "text": "グループやEndpointごとに、アクセス条件をポリシーとして定義します。"
         }
       ],
-      "misconception": "Verified Accessは拠点ネットワーク同士をつなぐVPNの置き換えではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "Verified Accessは拠点ネットワーク同士をつなぐVPNの置き換えではありません。"}
     },
     {
       "type": "diagram",
@@ -5243,7 +5243,7 @@
           "text": "タスクごとにIPを使うため、サブネットの空きIP数がスケール上限に影響します。"
         }
       ],
-      "misconception": "コンテナ数だけを見ても、VPC内のIP枯渇リスクは判断できません。"
+      "footnote": {"label": "誤解しやすい点", "text": "コンテナ数だけを見ても、VPC内のIP枯渇リスクは判断できません。"}
     },
     {
       "type": "diagram",
@@ -5359,7 +5359,7 @@
           "text": "Prefix delegation、Security Groups for Pods、Custom Networkingなどで密度や分離を調整します。"
         }
       ],
-      "misconception": "KubernetesのService設計だけでは、VPC側のIP設計やルート設計を省略できません。"
+      "footnote": {"label": "誤解しやすい点", "text": "KubernetesのService設計だけでは、VPC側のIP設計やルート設計を省略できません。"}
     },
     {
       "type": "diagram",
@@ -5475,7 +5475,7 @@
           "text": "関数に関連付けたSecurity Groupが、VPC内通信の許可境界です。"
         }
       ],
-      "misconception": "LambdaをVPCに接続すると、自動的にインターネットアクセスが増えるわけではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "LambdaをVPCに接続すると、自動的にインターネットアクセスが増えるわけではありません。"}
     },
     {
       "type": "diagram",
@@ -5816,7 +5816,7 @@
           "text": "拒否通信、想定外の外向き通信、トラフィック量、到達先の調査に使います。"
         }
       ],
-      "misconception": "Flow Logsはリアルタイムのパケットキャプチャではありません。"
+      "footnote": {"label": "誤解しやすい点", "text": "Flow Logsはリアルタイムのパケットキャプチャではありません。"}
     },
     {
       "type": "concept",
@@ -5840,7 +5840,7 @@
           "text": "ENI、Internet Gateway、Transit Gateway、VPC Endpoint、VPN Gatewayなどを分析対象に含めます。"
         }
       ],
-      "misconception": "Reachability Analyzerで到達可能でも、アプリケーションの認証やHTTP応答までは保証しません。"
+      "footnote": {"label": "誤解しやすい点", "text": "Reachability Analyzerで到達可能でも、アプリケーションの認証やHTTP応答までは保証しません。"}
     },
     {
       "type": "concept",
@@ -5864,7 +5864,7 @@
           "text": "Filterで対象通信を絞り、必要な範囲だけをミラーします。"
         }
       ],
-      "misconception": "Flow Logsで足りる調査にTraffic Mirroringを使うと、運用負荷とデータ量が増えます。"
+      "footnote": {"label": "誤解しやすい点", "text": "Flow Logsで足りる調査にTraffic Mirroringを使うと、運用負荷とデータ量が増えます。"}
     },
     {
       "type": "diagram",
@@ -6385,29 +6385,25 @@
       "lead": "入口と観測の設問は、どの層で判断し、どの事実を見ているかへ戻る。"
     },
     {
-      "type": "decision_summary",
+      "type": "cards",
       "kicker": "設計原則",
       "title": "AWSネットワーク設計の軸",
       "lead": "最後に、全章で使った4つの観点へ戻る。新しいサービスを見ても、まずIP、経路、境界、観測に分ければ読み始められる。",
-      "sections": [
+      "cards": [
         {
           "heading": "IPは先に決める",
-          "icon": "search",
           "body": "CIDRの重複や枯渇は後から直しにくい。IPAMや命名規則を使い、環境とRegionの余白を残す。"
         },
         {
           "heading": "経路は明示する",
-          "icon": "router",
           "body": "public、private、endpoint、hybridの出口をRoute Tableで読み切れる状態にする。"
         },
         {
           "heading": "境界は重ねる",
-          "icon": "shield",
           "body": "Security Group、NACL、Firewall、DNS制御を役割ごとに置き、同じ目的の重複を増やしすぎない。"
         },
         {
           "heading": "観測点を置く",
-          "icon": "monitor",
           "body": "Flow Logs、Reachability Analyzer、Network Managerで、障害時に推測だけで追わない設計にする。"
         }
       ]

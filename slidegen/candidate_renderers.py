@@ -222,61 +222,7 @@ def s_scope(slide, spec, page):
            spec.get("out_label", "対象外"), right_items, False)
 
 
-def s_summary(slide, spec, page):
-    """少数の論点を、視線順が明確な要約面へまとめる。"""
-    area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    sections = spec["sections"]
-    top = area.top + 0.26
-    available = area.bottom - top - 0.22
-    count = len(sections)
-    if count <= 3:
-        cols, rows = count, 1
-    else:
-        cols, rows = 2, 2
-    gap_x, gap_y = 0.0, 0.0
-    cell_w = (BODY_W - gap_x * (cols - 1)) / cols
-    # 短い要約を本文下端まで引き延ばさず、内容の自然なまとまりを保つ。
-    natural_h = (2.70 if count == 2 else 2.46) if rows == 1 else 1.78
-    cell_h = min(natural_h, (available - gap_y * (rows - 1)) / rows)
-    if cell_h < 1.22:
-        raise FitError("summary: 本文領域へ論点を配置できません。論点を減らしてください。")
 
-    block_h = rows * cell_h + (rows - 1) * gap_y
-    extra = max(0.0, area.bottom - top - block_h)
-    top += extra * 0.34
-
-    heading_pt = 18.5 if count == 2 else (16.5 if count == 3 else 15.5)
-    body_pt = 15.0 if count == 2 else (13.0 if count == 3 else 12.0)
-    if rows == 2:
-        _flat_rect(slide, MARGIN, top, BODY_W, rows * cell_h, SURFACE)
-        plain_line(slide, MARGIN + BODY_W / 2, top + 0.18,
-                   MARGIN + BODY_W / 2, top + rows * cell_h - 0.18,
-                   color=RULE, width=0.65)
-        plain_line(slide, MARGIN + 0.18, top + cell_h,
-                   MARGIN + BODY_W - 0.18, top + cell_h,
-                   color=RULE, width=0.65)
-    for index, section in enumerate(sections):
-        row, col = divmod(index, cols)
-        x = MARGIN + col * (cell_w + gap_x)
-        y = top + row * (cell_h + gap_y)
-        if rows == 1 and index > 0:
-            plain_line(slide, x, y + 0.18, x, y + cell_h - 0.18,
-                       color=RULE, width=0.65)
-        if section.get("icon"):
-            _icon_medallion(slide, x + 0.24, y + 0.20,
-                            section["icon"], size=0.50)
-        else:
-            _number_medallion(slide, x + 0.24, y + 0.22,
-                              index + 1, size=0.46)
-        _text_in_box(slide, "decision_summary", f"sections[{index}].heading",
-                     x + 0.92, y + 0.24, cell_w - 1.16, 0.32,
-                     section["heading"], heading_pt, 12.0,
-                     bold=True, color=NAVY)
-        plain_line(slide, x + 0.24, y + 0.84, x + cell_w - 0.24, y + 0.84,
-                   color=ACCENT if section.get("icon") else RULE, width=0.8)
-        _text_in_box(slide, "decision_summary", f"sections[{index}].body",
-                     x + 0.26, y + 1.00, cell_w - 0.52, cell_h - 1.18,
-                     section["body"], body_pt, 10.0, color=TEXT, spacing=1.22)
 def s_paired_comparison(slide, spec, page):
     """同一観点で左右を比較し、対応関係を行単位で固定する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))

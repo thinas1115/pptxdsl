@@ -21,6 +21,7 @@ if not src.is_file():
 
 # 出力名: (完全一致優先の候補ラベル)
 TARGETS = {
+    "appsync": ["AWS AppSync"],
     "bedrock": ["Amazon Bedrock"],
     "s3": ["Amazon Simple Storage Service (Amazon S3)", "Amazon Simple Storage Service"],
     "fargate": ["AWS Fargate", "Amazon Elastic Container Service"],
