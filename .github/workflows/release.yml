@@ -55,6 +55,8 @@ jobs:
 
       - name: Releaseアセットを生成
         shell: pwsh
+        env:
+          PYTHONIOENCODING: utf-8
         run: python -m tools.distribution.build --tag $env:GITHUB_REF_NAME --output-dir out/release
 
       - name: Releaseノートを確認
