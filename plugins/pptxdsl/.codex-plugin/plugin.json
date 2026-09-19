@@ -1,6 +1,6 @@
 {
   "name": "pptxdsl",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "資料要件からPPTX生成・機械検証・PNG目視QAまで行うpptxdsl Plugin",
   "author": {
     "name": "pptxdsl"
