@@ -92,7 +92,8 @@ python slidegen/validate_content.py content.json
   指定時だけ本文下端を上げ、補足欄をページ番号などの資料共通フッターの上へ描画する。
   収容は標準13pt、余白圧縮、11.5ptまでの文字縮小の順。最小値でも収まらない入力は停止する。
   `note`は図・表などの局所注記、`footnote`はそのページ全体の補足として使い分ける。
-  例: `"footnote": {"label": "誤解しやすい点", "text": "補足本文"}`。
+  例: `"footnote": {"label": "補足", "text": "このページ全体への補足本文"}`。
+  typeを理由に自動追加しない。本文の理解に必要な内容は各typeの本文フィールドへ書く。
 - JSONなので、Pythonのタプルではなく配列を使う。
 - `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `program_roadmap` / `matrix` / `org` / `diagram` / `aws_vpc_layout` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
 - 一般的なシステム構成・クラウド構成・データフローは`diagram`で書く。物理機器と論理セグメント、
@@ -853,7 +854,6 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 任意:
 
 - `icon`: `slidegen/assets/`からの相対パス。用語の意味を補助できる場合だけ指定する
-- 混同しやすい点は全type共通の`footnote`へ書く。concept専用の補足欄は設けない
 - `lead`: 定義を読む前に必要な前提
 
 制約:
@@ -871,9 +871,9 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
   "definition": "障害が起きてから、業務を再開するまでに許容する目標時間です。",
   "points": [
     {"label": "起点", "text": "業務へ影響する障害が発生した時点。"},
-    {"label": "終点", "text": "利用者が必要な業務を再開できる状態へ戻った時点。"}
-  ],
-  "footnote": {"label": "誤解しやすい点", "text": "実際に要した復旧時間の実績値ではなく、事前に合意する目標値です。"}
+    {"label": "終点", "text": "利用者が必要な業務を再開できる状態へ戻った時点。"},
+    {"label": "実績との違い", "text": "実際の復旧時間ではなく、事前に合意する目標値です。"}
+  ]
 }
 ```
 
