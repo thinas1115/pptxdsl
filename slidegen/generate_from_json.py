@@ -24,6 +24,7 @@ from slidegen.org_layout import s_org
 from slidegen.diagrams2 import s_matrix, s_process, s_program_roadmap
 from slidegen.diagram_layout import render_diagram
 from slidegen.image_slide import s_image, s_image_compare
+from slidegen.reference_renderer import s_references
 from slidegen.candidate_renderers import (
     s_mapping, s_paired_comparison, s_scope, s_sequence, s_swimlane,
 )
@@ -58,6 +59,7 @@ RENDER = dict(generate.RENDER,
               nw_protocol_flow=s_protocol_state_flow,
               nw_frame_anatomy=s_protocol_anatomy,
               config_lab=s_code_lab, knowledge_check=s_knowledge_check)
+RENDER["references"] = s_references
 
 
 def main(json_path, out_path, cover_footer_config=None):

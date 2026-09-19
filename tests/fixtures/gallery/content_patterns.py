@@ -857,5 +857,31 @@ PATTERN_DECK = {
                 {"label": "復旧フェーズ", "from": "recover", "to": "report"},
             ],
         },
+        {
+            "type": "references",
+            "kicker": "参考資料",
+            "title": "確認に使用した情報源",
+            "lead": "参照先をタイトルと実URLで示し、原典へ移動できるようにする。",
+            "references": [
+                {
+                    "id": "[1]",
+                    "title": "製品ドキュメント",
+                    "url": "https://example.com/docs/product-overview",
+                    "scope": "概要・仕様",
+                },
+                {
+                    "id": "[2]",
+                    "title": "運用ガイド",
+                    "url": "https://example.com/docs/operations-guide",
+                    "scope": "監視・障害対応",
+                },
+                {
+                    "id": "[3]",
+                    "title": "料金ページ",
+                    "url": "https://example.com/pricing",
+                    "scope": "費用",
+                },
+            ],
+        },
     ],
 }

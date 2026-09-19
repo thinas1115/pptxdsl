@@ -21,7 +21,7 @@ schema例ではない。通常のvalidatorは、そこにある正規化後14文
 
 | category | type |
 |---|---|
-| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
+| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check`, `references` |
 | NW | `aws_vpc_layout`, `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
 
 ## 機械検証
@@ -847,13 +847,13 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 - `type`: `"concept"`
 - `term`: 定義する用語または判断基準
 - `definition`: 用語の意味を単独で理解できる定義文
+- `icon`: `slidegen/assets/`からの相対パス。用語または判断基準を識別できる素材
 - `points`: 2〜4件
   - `label`: 観点名
   - `text`: その観点で理解すべき説明
 
 任意:
 
-- `icon`: `slidegen/assets/`からの相対パス。用語の意味を補助できる場合だけ指定する
 - `lead`: 定義を読む前に必要な前提
 
 制約:
@@ -869,10 +869,51 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
   "title": "RTOとは",
   "term": "RTO",
   "definition": "障害が起きてから、業務を再開するまでに許容する目標時間です。",
+  "icon": "icons/fluent/clock.png",
   "points": [
     {"label": "起点", "text": "業務へ影響する障害が発生した時点。"},
     {"label": "終点", "text": "利用者が必要な業務を再開できる状態へ戻った時点。"},
     {"label": "実績との違い", "text": "実際の復旧時間ではなく、事前に合意する目標値です。"}
+  ]
+}
+```
+
+### references
+
+用途: 巻末の参考資料・出典一覧。参照タイトルと実URLを表示し、原典へ移動できるようにする。
+
+必須:
+
+- `type`: `"references"`
+- `references`: 1〜5件
+  - `id`: 本文で使用した参照番号
+  - `title`: 情報源の名称
+  - `url`: `http`または`https`で始まる完全なURL。スライド上へ全文表示し、クリック可能にする
+
+任意:
+
+- `lead`: 確認日や参照方針
+- `references[*].scope`: その情報源を確認した対象
+
+制約:
+
+- URLを省略した参考資料一覧は作れない。ファイル名、文書名、`sources.mdに記載`などの代替表記も不可。
+- 同じスライド内で`id`または`url`を重複させない。
+- 5件を超える場合はページを分ける。
+
+```json
+{
+  "type": "references",
+  "kicker": "参考資料",
+  "title": "公式情報源",
+  "lead": "確認日：2026年9月18日",
+  "references": [
+    {
+      "id": "[1]",
+      "title": "製品概要",
+      "url": "https://example.com/docs/product",
+      "scope": "基本仕様"
+    }
   ]
 }
 ```

@@ -14,6 +14,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -86,6 +87,7 @@ _TYPE_KEYS = {
     "concept": _BASE_SLIDE_KEYS | {
         "term", "definition", "points", "icon",
     },
+    "references": _BASE_SLIDE_KEYS | {"references"},
     "nw_topology": _BASE_SLIDE_KEYS | {
         "lanes", "columns", "nodes", "links",
     },
@@ -1339,17 +1341,44 @@ def _v_concept(s):
         s.allow_keys(point, {"label", "text"}, path)
         if not _is_str(point.get("label")) or not _is_str(point.get("text")):
             s.err(f"{path} にはlabel / text (文字列) が必要です")
-    if "icon" in s.spec:
-        if not _is_str(s.spec["icon"]):
-            s.err("icon は空でない文字列にしてください")
+    if not _is_str(s.spec.get("icon")):
+        s.err("icon は必須の空でない文字列です")
+    else:
+        try:
+            icon_path = resolve_icon_path(s.spec["icon"])
+        except ValueError:
+            s.err("icon は slidegen/assets/ 内の相対パスにしてください")
         else:
-            try:
-                icon_path = resolve_icon_path(s.spec["icon"])
-            except ValueError:
-                s.err("icon は slidegen/assets/ 内の相対パスにしてください")
-            else:
-                if not icon_path.is_file():
-                    s.err(f"icon={s.spec['icon']!r} がassets/にありません")
+            if not icon_path.is_file():
+                s.err(f"icon={s.spec['icon']!r} がassets/にありません")
+
+
+def _v_references(s):
+    entries = s.req_list("references", 1, 5, "参考資料") or []
+    seen_ids = set()
+    seen_urls = set()
+    for index, entry in enumerate(entries):
+        path = f"references[{index}]"
+        if not isinstance(entry, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(entry, {"id", "title", "url", "scope"}, path)
+        for key in ("id", "title", "url"):
+            if not _is_str(entry.get(key)):
+                s.err(f"{path}.{key} は必須の空でない文字列です")
+        if "scope" in entry and not _is_str(entry["scope"]):
+            s.err(f"{path}.scope は指定する場合、空でない文字列にしてください")
+        if _is_str(entry.get("id")):
+            if entry["id"] in seen_ids:
+                s.err(f"{path}.id={entry['id']!r} が重複しています")
+            seen_ids.add(entry["id"])
+        if _is_str(entry.get("url")):
+            parsed = urlsplit(entry["url"])
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                s.err(f"{path}.url はhttpまたはhttpsの完全なURLにしてください")
+            if entry["url"] in seen_urls:
+                s.err(f"{path}.url が同じスライド内で重複しています")
+            seen_urls.add(entry["url"])
 
 
 def _v_protocol_state_flow(s):
@@ -1548,7 +1577,8 @@ VALIDATORS = {
     "scope_boundary": _v_scope,
     "paired_comparison": _v_paired_comparison, "relationship_map": _v_mapping,
     "swimlane_flow": _v_swimlane, "message_sequence": _v_sequence,
-    "concept": _v_concept, "nw_topology": _v_network,
+    "concept": _v_concept, "references": _v_references,
+    "nw_topology": _v_network,
     "nw_protocol_flow": _v_protocol_state_flow,
     "nw_frame_anatomy": _v_protocol_anatomy,
     "config_lab": _v_code_lab, "knowledge_check": _v_knowledge_check,

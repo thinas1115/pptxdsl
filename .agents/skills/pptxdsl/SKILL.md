@@ -25,6 +25,8 @@ description: pptxdslで資料要件と情報源からcontent.jsonを設計し、
   任意ラベルは`label`へ書く。typeを理由に自動追加せず、ページ全体への補足が本文と独立して必要な場合だけ使う。
   conceptの理解に必要な境界や注意点は`points`へ書く。旧`concept.misconception`は使用しない。
 - 独立した操作・選択肢・事例・判断材料の整理は`cards`。旧`decision_summary`は廃止した。
+- 巻末の参考資料一覧は`references`を使い、各項目の`url`へ実際に確認した完全な`http`または`https` URLを必ず書く。URLを発表者ノートや別ファイルだけへ置かない。
+- `concept.icon`は必須。用語・判断基準を識別できる同梱アイコンを指定する。
 - 統合、委譲、接続経路、境界、処理連鎖を理解させるページは、名称と説明だけを`cards`や`bullets`へ並べない。
   構成要素をノード、関係をラベル付きエッジとして`diagram`、`message_sequence`、`swimlane_flow`のいずれかで示す。
   Merged APIやPipeline resolverのように内部構造が判断材料になる機能は、独立した図解ページを設ける。
