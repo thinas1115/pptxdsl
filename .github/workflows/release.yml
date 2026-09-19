@@ -1,0 +1,88 @@
+name: Release配布
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Skill・Plugin配布
+    runs-on: windows-latest
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: mainに含まれるタグか確認
+        shell: pwsh
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor $env:GITHUB_SHA origin/main
+          if ($LASTEXITCODE -ne 0) {
+            throw "Releaseタグはmainに含まれるコミットへ付けてください"
+          }
+
+      - name: Pythonを準備
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: 依存ライブラリを導入
+        run: python -m pip install -r requirements.txt
+
+      - name: 游ゴシックを確認
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$env:WINDIR\Fonts\YuGothR.ttc")) {
+            throw "游ゴシックが見つかりません"
+          }
+
+      - name: 全テストを実行
+        shell: pwsh
+        run: |
+          $env:PYTHONIOENCODING = "utf-8"
+          python -m compileall -q slidegen tests tools
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Releaseアセットを生成
+        shell: pwsh
+        run: python -m tools.distribution.build --tag $env:GITHUB_REF_NAME --output-dir out/release
+
+      - name: Releaseノートを確認
+        shell: pwsh
+        run: |
+          $notes = "docs/releases/$env:GITHUB_REF_NAME.md"
+          if (-not (Test-Path -LiteralPath $notes)) {
+            throw "Releaseノートがありません: $notes"
+          }
+
+      - name: Draft Releaseを作成
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          gh release create $tag `
+            "out/release/pptxdsl-skill-$tag.zip#Skill版（自己完結型）" `
+            "out/release/pptxdsl-plugin-$tag.zip#Plugin版（自己完結型）" `
+            "out/release/pattern_gallery.pptx#PowerPoint出力例" `
+            "out/release/SHA256SUMS.txt#SHA-256チェックサム" `
+            --verify-tag `
+            --draft `
+            --title "pptxdsl $tag" `
+            --notes-file "docs/releases/$tag.md"
+
+      - name: Releaseを公開
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit $env:GITHUB_REF_NAME --draft=false --latest
