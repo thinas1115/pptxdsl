@@ -36,13 +36,87 @@ python -m pip install -r requirements.txt
 
 ## 使い方
 
-CodexまたはGitHub CopilotでPPTX作成を一括して依頼する場合は、
-[pptxdsl Skill](.agents/skills/pptxdsl/SKILL.md)を使います。資料要件と情報源の確認から
-`content.json`の成形、PPTX生成、実行環境に応じたPNGレンダリング、目視QA、修正までを
-1つの作業として扱います。
+| 利用形態 | 向いている用途 | 実行に使うもの |
+|---|---|---|
+| Skill | このリポジトリ内で資料を作る、rendererや素材も編集する | `.agents/skills/pptxdsl/`とcloneした本処理 |
+| Plugin | 任意の作業領域で資料を作る、他の利用者へ配布する | インストール済みPluginに同梱されたSkill・本処理・素材 |
 
-ChatGPT Work・CodexへPluginとして配布する場合は、[Pluginガイド](docs/plugin.md)を参照してください。
-`python -m tools.plugin.build`で、Skill・本処理・素材を同梱したclone不要の配布ZIPを作れます。
+どちらも、資料要件と情報源の確認、`content.json`の設計、PPTX生成、機械検証、PNG化、
+全ページの目視QA、修正後の再確認までを1つの作業として実行します。
+
+### Skillとして使う
+
+1. [セットアップ](#セットアップ)を完了し、Codexでこのリポジトリのルートを開く。
+2. 新しいタスクで`$pptxdsl`を明示して依頼する。Codexは作業ディレクトリからリポジトリルートまでの
+   `.agents/skills/`を探索するため、別の場所へSkillをコピーする必要はない。
+
+```text
+$pptxdsl
+次の要件と情報源から、目視確認済みのPPTXを作成してください。
+
+- テーマ: AWS AppSyncの設計と運用
+- 想定読者: 導入を検討するアプリケーション開発者
+- 目的: 採用判断に必要な構成、制約、費用を説明する
+- 必須内容: Pipeline resolver、Merged API、認証、監視、料金
+- 情報源: ここにURLまたは入力ファイルを書く
+- 枚数目安: 30〜40枚
+```
+
+Skillは[pptxdsl Skill](.agents/skills/pptxdsl/SKILL.md)を入口に、必要なスキーマ、type選定、
+renderer、検証手順を読み込みます。通常は利用者が生成コマンドを個別に指示する必要はありません。
+CodexでSkillが候補に出ない場合は、`/skills`で一覧を確認するか、`$`に続けて`pptxdsl`を検索します。
+
+### Pluginとして使う
+
+Plugin版はSkill・本処理・素材を同梱するため、利用時にこのリポジトリをcloneする必要がありません。
+Python 3.10以上、日本語フォント、PowerPointまたはLibreOfficeなどのレンダリング手段は実行環境側に必要です。
+
+#### 1. 配布物を作る
+
+リポジトリを持つ作成者が、未使用の出力先を指定してビルドします。
+
+```powershell
+python -m tools.plugin.build --output-dir out\plugins
+```
+
+インストール対象は`out/plugins/pptxdsl/`です。`out/plugins/pptxdsl-0.1.0.zip`を渡す場合は、
+展開後に`plugin.json`が直下にあるフォルダをPluginルートとして使います。
+
+#### 2. Codexへ登録・インストールする
+
+Codexの新しいタスクで、ビルド済みPluginフォルダを指定して依頼します。
+
+```text
+$plugin-creator
+このビルド済みpptxdsl Pluginを個人marketplaceへ登録してください。
+Pluginフォルダ: out/plugins/pptxdsl
+```
+
+登録後、Plugins Directoryの個人marketplaceから`pptxdsl`をインストールします。
+CLIを使う場合は、実際のmarketplace名を指定します。標準の個人marketplace名は`personal`です。
+
+```text
+codex plugin add pptxdsl@personal
+```
+
+標準の個人marketplaceは暗黙に検出されるため、`codex plugin marketplace add`は不要です。
+インストール後は新しいタスクを開始し、Pluginに含まれるSkillを明示して依頼します。
+
+```text
+$pptxdsl
+添付資料と以下の要件から、目視確認済みのPPTXを作成してください。
+```
+
+ChatGPTでは`@pptxdsl`、Codexでは`$pptxdsl`で明示選択できます。目的に合う依頼であれば、
+名前を付けずに依頼して自動選択させることもできます。登録、更新、ChatGPT Workでの導入、
+隔離実行の確認方法は[Pluginガイド](docs/plugin.md)を参照してください。
+
+OpenAI公式の基本仕様は[Skills](https://developers.openai.com/docs/build-skills)と
+[Pluginパッケージ](https://developers.openai.com/plugins/build/plugins)を参照してください。
+
+## CLIで直接使う
+
+AIエージェントを使わず、自分で`content.json`を作成して生成・検証する場合の手順です。
 
 ### 1. content.jsonを作る
 
