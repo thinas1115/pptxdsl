@@ -251,6 +251,8 @@ def _v_cards(s):
             s.err(f"cards[{i}].value は空でない文字列にしてください")
         if "emphasis" in c and not isinstance(c["emphasis"], bool):
             s.err(f"cards[{i}].emphasis は真偽値にしてください")
+        elif "emphasis" in c and style != "metrics":
+            s.err(f"cards[{i}].emphasis はstyle=metricsの場合だけ指定できます")
         if style == "metrics" and not _is_str(c.get("value")):
             s.err(f"cards[{i}].value はmetricsで必須です")
 

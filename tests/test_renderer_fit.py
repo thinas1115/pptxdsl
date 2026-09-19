@@ -105,9 +105,42 @@ def main():
     )
     _must_fail(generate.s_bullets, checklist, "不足")
 
-    spec = _base("cards")
-    spec.update(style="editorial", cards=[[f"項目{i}", LONG] for i in range(7)])
-    _must_fail(generate.s_cards, spec, "カード本文")
+    card_body = "判断に必要な事実と示唆を簡潔に整理する。"
+    normal_cards = dict(
+        _base("cards"), style="editorial",
+        cards=[{"heading": f"項目{i + 1}", "body": card_body} for i in range(6)],
+    )
+    generate.s_cards(_slide(), normal_cards, 1)
+
+    gap_cards = dict(
+        normal_cards,
+        cards=[{"heading": f"項目{i + 1}", "body": card_body * 3}
+               for i in range(6)],
+    )
+    gap_slide = _slide()
+    generate.s_cards(gap_slide, gap_cards, 1)
+    gap_body = next(shape for shape in gap_slide.shapes
+                    if getattr(shape, "has_text_frame", False)
+                    and shape.text == card_body * 3)
+    assert gap_body.text_frame.paragraphs[0].runs[0].font.size.pt == 14
+
+    shrink_cards = dict(
+        normal_cards,
+        cards=[{"heading": f"項目{i + 1}", "body": card_body * 4}
+               for i in range(6)],
+    )
+    shrink_slide = _slide()
+    generate.s_cards(shrink_slide, shrink_cards, 1)
+    shrink_body = next(shape for shape in shrink_slide.shapes
+                       if getattr(shape, "has_text_frame", False)
+                       and shape.text == card_body * 4)
+    assert shrink_body.text_frame.paragraphs[0].runs[0].font.size.pt < 14
+
+    overfull_cards = dict(
+        normal_cards,
+        cards=[{"heading": f"項目{i + 1}", "body": LONG} for i in range(6)],
+    )
+    _must_fail(generate.s_cards, overfull_cards, "カード本文")
 
     spec = _base("table")
     spec.update(columns=["項目", "説明"],

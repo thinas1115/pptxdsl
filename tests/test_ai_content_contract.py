@@ -125,6 +125,15 @@ def main():
     })
     _assert_error(legacy_cards, "heading / bodyを持つオブジェクト")
 
+    emphasized_editorial = _deck({
+        "type": "cards", "kicker": "比較", "title": "選択肢",
+        "cards": [
+            {"heading": "選択肢A", "body": "説明A", "emphasis": True},
+            {"heading": "選択肢B", "body": "説明B"},
+        ],
+    })
+    _assert_error(emphasized_editorial, "emphasis はstyle=metrics")
+
     no_cover = _deck(_bullets())
     no_cover["slides"].pop(0)
     assert not validate(no_cover)

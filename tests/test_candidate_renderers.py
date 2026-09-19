@@ -83,7 +83,7 @@ def _dense_specs():
         lead="複数の論点を踏まえて次の判断へ進む。",
         cards=[
             {"heading": f"論点{i + 1}", "body": "判断に必要な事実と示唆を簡潔に整理する。"}
-            for i in range(4)
+            for i in range(6)
         ],
     )
     paired = dict(
