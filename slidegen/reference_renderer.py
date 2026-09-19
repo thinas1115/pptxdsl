@@ -16,9 +16,9 @@ def _fit_references(area, entries):
     def measure(values):
         heights = []
         for entry in entries:
-            title_lines = wrap_text(entry["title"], 8.30, values["title"], "bold")
-            display_url = f"↗  {entry['url']}"
-            url_lines = wrap_text(display_url, 10.55, values["url"], "regular")
+            title_w = 8.30 if entry.get("scope") else 10.55
+            title_lines = wrap_text(entry["title"], title_w, values["title"], "bold")
+            url_lines = wrap_text(entry["url"], 10.55, values["url"], "regular")
             content_h = (
                 len(title_lines) * line_height_in(values["title"], 1.04)
                 + values["inside"]
@@ -77,9 +77,8 @@ def s_references(slide, spec, page):
     for index, (entry, row_h) in enumerate(zip(entries, row_heights)):
         # 全面塗りの表にはせず、番号・資料名・URLの順で読ませる編集リストにする。
         add_rect(slide, content_x, y, BODY_W - (content_x - MARGIN), 0.010, RULE)
-        add_rect(slide, content_x, y, 0.88, 0.035, ACCENT)
 
-        badge_y = y + 0.12
+        badge_y = y + (row_h - 0.32) / 2
         badge = add_rect(slide, badge_x, badge_y, badge_w, 0.32, ACCENT, round_=True)
         badge.name = f"references:index[{index}]"
         add_text(
@@ -90,13 +89,14 @@ def s_references(slide, spec, page):
 
         title_y = y + 0.10
         title_h = min(0.36, row_h * 0.40)
+        title_w = content_w if entry.get("scope") else url_w
         title_size, title_lines = fit_text_or_raise(
             "references", f"references[{index}].title", entry["title"],
-            content_w, title_h, values["title"], min_pt=11.0,
+            title_w, title_h, values["title"], min_pt=11.0,
             weight="bold", spacing=1.04,
         )
         add_text(
-            slide, content_x, title_y, content_w, title_h,
+            slide, content_x, title_y, title_w, title_h,
             "\n".join(title_lines), title_size, bold=True, color=NAVY,
             spacing=1.04,
         )
@@ -119,9 +119,8 @@ def s_references(slide, spec, page):
 
         url_y = title_y + title_h + values["inside"]
         url_h = row_h - (url_y - y) - 0.10
-        display_url = f"↗  {entry['url']}"
         url_size, url_lines = fit_text_or_raise(
-            "references", f"references[{index}].url", display_url,
+            "references", f"references[{index}].url", entry["url"],
             url_w, url_h, values["url"], min_pt=8.5, spacing=1.00,
         )
         url_box = add_text(

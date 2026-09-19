@@ -892,8 +892,8 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 
 任意:
 
-- `lead`: 確認日や参照方針
-- `references[*].scope`: その情報源を確認した対象
+- `lead`: 全項目に共通する参照方針。情報源ごとに異なり得る確認日を一括表示しない
+- `references[*].scope`: その情報源が裏付ける章・論点を示す任意タグ。省略した項目にはタグを表示しない
 
 制約:
 
@@ -906,7 +906,6 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
   "type": "references",
   "kicker": "参考資料",
   "title": "公式情報源",
-  "lead": "確認日：2026年9月18日",
   "references": [
     {
       "id": "[1]",

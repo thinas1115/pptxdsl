@@ -879,7 +879,6 @@ PATTERN_DECK = {
                     "id": "[3]",
                     "title": "料金ページ",
                     "url": "https://example.com/pricing",
-                    "scope": "費用",
                 },
             ],
         },

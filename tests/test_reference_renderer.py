@@ -43,7 +43,9 @@ def test_references_requires_full_http_url():
 
 
 def test_references_renders_visible_clickable_urls():
-    spec = _slide([_entry(1), _entry(2)])
+    without_scope = _entry(2)
+    without_scope.pop("scope")
+    spec = _slide([_entry(1), without_scope])
     assert validate(_deck(spec), allow_sample_content=True) == []
     generate.DECK = _deck(spec)
     prs = Presentation()
@@ -53,6 +55,8 @@ def test_references_renders_visible_clickable_urls():
     generate.render_slide(s_references, slide, spec, 1)
     text = "\n".join(shape.text for shape in slide.shapes if hasattr(shape, "text"))
     assert "https://example.com/docs/1" in text
+    assert text.count("仕様確認") == 1
+    assert sum(shape.name.startswith("references:link[") for shape in slide.shapes) == 2
     stream = io.BytesIO()
     prs.save(stream)
     stream.seek(0)

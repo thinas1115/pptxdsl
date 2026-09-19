@@ -63,7 +63,7 @@
 | `nw_frame_anatomy` | フレームやパケットのフィールド構成、ビット長、注目箇所を示す | 通信順序や機器間の流れを示す | `message_sequence`、`table` |
 | `config_lab` | 設定例やコードと、その確認観点・検証コマンドを同じページで示す | 概念説明や工程だけを示す | `process`、`image` |
 | `knowledge_check` | 選択式の設問と、対応する正答・解説を研修資料へ組み込む | 通常の要点整理や結論を示す | `bullets`、`cards` |
-| `references` | 巻末に情報源名と実URLを表示し、原典へ移動できるようにする | 本文の比較表、URLのない参考文献一覧 | `table` |
+| `references` | 巻末に情報源名と実URLを表示し、必要な項目だけ参照範囲タグを付ける | 本文の比較表、URLのない参考文献一覧 | `table` |
 
 ### `nw_protocol_flow`の選択境界
 
