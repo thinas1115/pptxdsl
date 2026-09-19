@@ -81,6 +81,10 @@
    VLANやセキュリティゾーンのように、物理機器と論理セグメント、Access・Trunk・L3接続の意味を
    同時に示す場合は`diagram`へ押し込まず`nw_topology`を使う。AWSのVPC、AZ、Subnetの境界を
    学習対象として見せる場合は、`diagram`ではなく`aws_vpc_layout`を使う。
+   統合、委譲、接続経路、境界、処理連鎖が主題なら、製品名と説明だけを`cards`や`bullets`へ並べない。
+   構成要素をノード、関係をラベル付きエッジで示す。Merged APIでは統合APIとSource API、
+   Pipeline resolverではBefore／Function／データソース／Afterの関係が追える図を作る。
+   異なる構造の機能を1枚へ収めると関係が消える場合は、機能ごとに図解ページを分ける。
 6. 研修・解説資料で専門用語や判断基準を初めて示す場合は、図解より先に`concept`で定義する。
    `term`と`definition`で意味を固定し、理解に必要な要点を`points`、誤解しやすい境界は全type共通の`footnote.text`へ書く。ラベルは`footnote.label`で任意指定する。
    用語を未定義のまま構成図や詳細手順から始めない。

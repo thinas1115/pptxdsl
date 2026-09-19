@@ -24,6 +24,10 @@ description: pptxdslで資料要件と情報源からcontent.jsonを設計し、
 - ページ下部の補足は全type共通の`footnote: {"text": "補足本文"}`で指定する。
   任意ラベルは`label`へ書く。旧`concept.misconception`は使用しない。
 - 独立した操作・選択肢・事例・判断材料の整理は`cards`。旧`decision_summary`は廃止した。
+- 統合、委譲、接続経路、境界、処理連鎖を理解させるページは、名称と説明だけを`cards`や`bullets`へ並べない。
+  構成要素をノード、関係をラベル付きエッジとして`diagram`、`message_sequence`、`swimlane_flow`のいずれかで示す。
+  Merged APIやPipeline resolverのように内部構造が判断材料になる機能は、独立した図解ページを設ける。
+  性質の異なる複数機能を1枚のカードへまとめて接続関係を失う場合は、機能ごとにページを分ける。
 
 
 ## 完成までの流れ
