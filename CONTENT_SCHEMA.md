@@ -21,8 +21,8 @@ schema例ではない。通常のvalidatorは、そこにある正規化後14文
 
 | category | type |
 |---|---|
-| Common | `title`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
-| NW | `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
+| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `decision_summary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check` |
+| NW | `aws_vpc_layout`, `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
 
 ## 機械検証
 
@@ -77,7 +77,8 @@ python slidegen/validate_content.py content.json
 
 - `slides[*].type` は必須。
 - この文書に記載のないフィールドは、トップレベル・meta・slide・入れ子objectのどこに書いてもvalidatorが拒否する。rendererが黙って無視するフィールドは作らない。
-- `type: "title"` は任意。表紙なし、任意位置、複数枚のいずれも使用できる。
+- `type: "title"` は表紙専用。表紙なし、任意位置、複数枚のいずれも使用できる。
+- 章扉・中扉には `type: "section_divider"` を使う。`kicker` は入力値をそのまま章ラベルとして表示し、rendererが章番号や`SECTION`を自動生成しない。
 - `type: "title"` 以外は `kicker` と `title` が必須。
 - すべての`slides[*].title`は、`研修の目的`、`前提知識`、`VLANとは`、`同一VLAN内の通信`のような
   **名詞句または短い疑問形の見出し**にする。結論・因果・行動を言い切る文章、読点・句点・改行、
@@ -87,9 +88,9 @@ python slidegen/validate_content.py content.json
 - `type: "title"` 以外は `lead` (string) を任意指定できる。タイトル直下に要旨を置き、指定時だけ本文開始位置が下がる。未指定時の本文位置は変わらない。
 - `lead` は本文を読む前に伝える結論・前提・読み方を1〜2行で書く。単なるタイトルの言い換えや本文項目の列挙には使わない。文字数の固定上限はないが、最小フォントでも領域へ収まらない場合は生成を停止する。
 - JSONなので、Pythonのタプルではなく配列を使う。
-- `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `program_roadmap` / `matrix` / `org` / `diagram` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
+- `note` (右下の注記) が描画されるのは `table` / `chart` / `process` / `program_roadmap` / `matrix` / `org` / `diagram` / `aws_vpc_layout` のみ。それ以外のtypeに書いても無視される(validatorがエラーにする)。
 - 一般的なシステム構成・クラウド構成・データフローは`diagram`で書く。物理機器と論理セグメント、
-  Access・Trunk・L3接続を同時に示すネットワーク図は`nw_topology`で書く。どちらにも座標の数値は書かない。
+  Access・Trunk・L3接続を同時に示すネットワーク図は`nw_topology`で書く。AWSのVPC、AZ、Subnetの入れ子構造を主役にする図は`aws_vpc_layout`で書く。いずれにも座標の数値は書かない。
 
 ```json
 {
@@ -108,7 +109,7 @@ python slidegen/validate_content.py content.json
 
 ### title
 
-用途: 表紙・章扉。
+用途: 表紙。
 
 必須:
 
@@ -128,6 +129,37 @@ python slidegen/validate_content.py content.json
   "type": "title",
   "title": "資料タイトル",
   "subtitle": "サブタイトル"
+}
+```
+
+### section_divider
+
+用途: 章扉・中扉。本文を持たず、章ラベル・章タイトル・必要な場合だけleadを表示する。
+
+必須:
+
+- `type`: `"section_divider"`
+- `kicker`: string
+- `title`: string
+
+任意:
+
+- `lead`: string
+
+制約:
+
+- `kicker` は利用者が指定した章ラベルを表示する。`SECTION`や章番号を自動で補わない。
+- `kicker` は長い場合も自然に改行して配置するが、最小設定で収まらなければ生成を停止する。章ラベルは短く保つ。
+- `title` は章の主題を示す名詞句または短い疑問形にする。
+- `lead` は章の対象範囲・読み方など、本文開始前に必要な要旨だけを書く。
+- 座標・余白・フォントサイズは指定しない。rendererが游ゴシックの実測と段階的収容で決める。
+
+```json
+{
+  "type": "section_divider",
+  "kicker": "第2章",
+  "title": "導入計画",
+  "lead": "試験導入から展開判断まで"
 }
 ```
 
@@ -1252,3 +1284,77 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 - 行間に収まるか・配線がコンテナを貫通しないか等は、生成時にエンジン自身が対処方法つきのエラーで検出する(収まらない場合は行数・sub・ラベルを減らす)。
 - ノードは10個程度・4行程度までが安全(それ以上は縦に収まらずエラーになる)。
 - 名前付きテンプレート参照はない。仕様は必ず `diagram` にインラインで書く。
+
+### aws_vpc_layout
+
+用途: AWSのVPC、Availability Zone、Subnetの入れ子構造と、その中に置く代表的なリソース・通信経路を示す構成図。
+
+一般的なクラウド構成図は`diagram`を使う。AZとSubnetの境界が読み取り対象になる場合、`diagram`へ複雑な入れ子コンテナを押し込まず`aws_vpc_layout`を使う。
+
+必須:
+
+- `type`: `"aws_vpc_layout"`
+- `kicker`: string
+- `title`: string
+- `vpc`: object
+  - `label`: string
+  - `cidr`: string (任意)
+- `azs`: 1〜3件の配列
+  - `id`: string
+  - `label`: string
+  - `subnets`: 1〜3件の配列。標準本文領域では4件を最小アイコンまで縮めても収容できないため、分割する。
+    - `id`: string
+    - `label`: string
+    - `cidr`: string (任意)
+    - `resources`: objectの配列。最大2件
+      - `id`: string
+      - `label`: string
+      - `sub`: string (任意)
+      - `icon`: `slidegen/assets/` からの相対PNGパス
+
+任意:
+
+- `external`: VPC外の利用者・外部サービス。最大2件。各要素は `id` / `label` / `icon` と任意の `sub`
+- `flows`: resourceまたはexternal間の通信線。最大10件
+  - `from` / `to`: 定義済みのresourceまたはexternalのid
+  - `label`: 線上ラベル(任意)
+  - `dash`: `"dash"` で点線
+  - `both`: trueで双方向
+- `lead`: string
+- `note`: string
+
+```json
+{
+  "type": "aws_vpc_layout",
+  "kicker": "構成図",
+  "title": "2AZ構成",
+  "lead": "同じ役割のsubnetを複数AZへ分け、単一AZ障害の影響を小さくします。",
+  "vpc": {"label": "VPC", "cidr": "10.0.0.0/16"},
+  "external": [
+    {"id": "user", "label": "利用者", "icon": "icons/aws/users.png"}
+  ],
+  "azs": [
+    {
+      "id": "az_a",
+      "label": "AZ-a",
+      "subnets": [
+        {"id": "public_a", "label": "public subnet", "cidr": "10.0.0.0/24",
+         "resources": [{"id": "alb_a", "label": "ALB node", "icon": "icons/aws/alb.png"}]},
+        {"id": "app_a", "label": "private app subnet", "cidr": "10.0.10.0/24",
+         "resources": [{"id": "app_a_node", "label": "App A", "icon": "icons/fluent/server.png"}]}
+      ]
+    }
+  ],
+  "flows": [
+    {"from": "user", "to": "alb_a", "label": "HTTPS"},
+    {"from": "alb_a", "to": "app_a_node", "label": "HTTP"}
+  ]
+}
+```
+
+制約:
+
+- `id`は、VPC図内のAZ、Subnet、resource、externalを通して重複できない。
+- `flows`は定義済みのresourceまたはexternalだけを参照できる。
+- 座標、サイズ、余白、AZ間隔、Subnet間隔はrendererが決める。contentには書かない。
+- AZは3件まで、Subnetは各AZ4件まで、各Subnetのresourceは2件まで。これを超える場合はスライドを分ける。

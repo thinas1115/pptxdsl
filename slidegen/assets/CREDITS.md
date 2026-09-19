@@ -6,7 +6,7 @@
 ## AWS Architecture Icons (`icons/aws/*.png`)
 
 - 出典: [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/)
-  (AWS公式アイコンデッキから `extract_aws_icons.py` で無改変抽出)
+  (AWS公式アイコンデッキまたは公式Icon packageから無改変抽出)
 - ライセンス: [Creative Commons Attribution-NoDerivs 2.0](https://creativecommons.org/licenses/by-nd/2.0/legalcode)
 - AWSによる同ライセンスでの公開配布例:
   [awslabs/aws-icons-for-plantuml](https://github.com/awslabs/aws-icons-for-plantuml)
@@ -18,7 +18,8 @@
   組み込み用途で使用する。**改変(比率・色・要素の追加削除)禁止**
 - 準拠: [AWS商標ガイドラインおよびライセンス条項](https://d1.awsstatic.com/onedam/marketing-channels/website/public/legal/trademark-guidelines/AWS_Trademark_Guidelines_and_License_Terms_(2024-07-18)_JA-JP.pdf)
 - 本リポジトリは AWS による後援・承認・提携を受けたものではありません
-- 最新版・追加アイコンが必要な場合は公式デッキを入手して `extract_aws_icons.py` を実行する
+- 最新版・追加アイコンが必要な場合は公式デッキまたは公式Icon packageを入手し、
+  必要なPNGを無改変で追加する
 - 同梱時の帰属表示と条件: [`icons/aws/NOTICE.md`](icons/aws/NOTICE.md)
 
 ## Fluent UI System Icons (`icons/fluent/*.png`)

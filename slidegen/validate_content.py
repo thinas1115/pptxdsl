@@ -26,7 +26,7 @@ from slidegen.timeline_layout import resolve_marker, resolve_program_span
 
 # noteを実際に描画するtype。それ以外への指定はエラーにする。
 NOTE_TYPES = {"table", "chart", "process", "program_roadmap",
-              "matrix", "org", "diagram"}
+              "matrix", "org", "diagram", "aws_vpc_layout"}
 _PLACEHOLDER = re.compile(r"^<[^<>]+>$")
 _UNRESOLVED = re.compile(r"^(?:TBD|TODO|要確認|未定|仮入力|仮文言)$", re.IGNORECASE)
 _TITLE_SENTENCE_MARKS = re.compile(r"[、。！？!?；;]|\r|\n")
@@ -48,6 +48,7 @@ _META_KEYS = {"title", "footer", "date", "organization", "author"}
 _BASE_SLIDE_KEYS = {"type", "kicker", "title", "lead"}
 _TYPE_KEYS = {
     "title": {"type", "title", "subtitle"},
+    "section_divider": _BASE_SLIDE_KEYS,
     "bullets": _BASE_SLIDE_KEYS | {"style", "bullets"},
     "cards": _BASE_SLIDE_KEYS | {"style", "cards"},
     "table": _BASE_SLIDE_KEYS | {"columns", "rows", "note", "note_link"},
@@ -62,6 +63,9 @@ _TYPE_KEYS = {
     },
     "org": _BASE_SLIDE_KEYS | {"org", "note"},
     "diagram": _BASE_SLIDE_KEYS | {"diagram", "note"},
+    "aws_vpc_layout": _BASE_SLIDE_KEYS | {
+        "vpc", "azs", "external", "flows", "note",
+    },
     "scope_boundary": _BASE_SLIDE_KEYS | {
         "in_label", "out_label", "in_scope", "out_of_scope", "assumptions",
     },
@@ -204,6 +208,11 @@ class _Slide:
 def _v_title(s):
     s.req_str("title")
     s.req_str("subtitle")
+
+
+def _v_section_divider(s):
+    # 章番号やSECTIONの自動生成はrendererの責務にしない。kickerは指定値を表示する。
+    return None
 
 
 def _v_bullets(s):
@@ -872,6 +881,137 @@ def _v_diagram(s):
             s.err(f"edges[{i}].from_row はfromが@コンテナ名の場合だけ指定できます")
 
 
+def _check_icon(s, icon, path):
+    if not _is_str(icon):
+        s.err(f"{path}.icon は必須です")
+        return
+    try:
+        icon_path = resolve_icon_path(icon)
+    except ValueError:
+        s.err(f"{path}.icon は slidegen/assets/ 内の相対パスにしてください")
+    else:
+        if not icon_path.is_file():
+            s.err(f"{path}.icon={icon!r} がassets/にありません")
+
+
+def _v_aws_vpc_layout(s):
+    vpc = s.spec.get("vpc")
+    if not isinstance(vpc, dict):
+        s.err('vpc は label と任意の cidr を持つオブジェクトにしてください')
+    else:
+        s.allow_keys(vpc, {"label", "cidr"}, "vpc")
+        if not _is_str(vpc.get("label")):
+            s.err("vpc.label は空でない文字列にしてください")
+        if "cidr" in vpc and not _is_str(vpc["cidr"]):
+            s.err("vpc.cidr は空でない文字列にしてください")
+
+    ids = set()
+    resource_ids = set()
+
+    def add_id(value, path):
+        if not _is_str(value):
+            s.err(f"{path}.id は空でない文字列にしてください")
+            return False
+        if value in ids:
+            s.err(f"{path}.id={value!r} が重複しています")
+            return False
+        ids.add(value)
+        return True
+
+    azs = s.req_list("azs", 1, 3, "AZ") or []
+    for az_index, az in enumerate(azs):
+        az_path = f"azs[{az_index}]"
+        if not isinstance(az, dict):
+            s.err(f"{az_path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(az, {"id", "label", "subnets"}, az_path)
+        add_id(az.get("id"), az_path)
+        if not _is_str(az.get("label")):
+            s.err(f"{az_path}.label は空でない文字列にしてください")
+        subnets = az.get("subnets")
+        if not (isinstance(subnets, list) and 1 <= len(subnets) <= 3):
+            s.err(f"{az_path}.subnets は1〜3件の配列にしてください")
+            continue
+        for subnet_index, subnet in enumerate(subnets):
+            subnet_path = f"{az_path}.subnets[{subnet_index}]"
+            if not isinstance(subnet, dict):
+                s.err(f"{subnet_path} はオブジェクトにしてください")
+                continue
+            s.allow_keys(subnet, {"id", "label", "cidr", "resources"},
+                         subnet_path)
+            add_id(subnet.get("id"), subnet_path)
+            if not _is_str(subnet.get("label")):
+                s.err(f"{subnet_path}.label は空でない文字列にしてください")
+            if "cidr" in subnet and not _is_str(subnet["cidr"]):
+                s.err(f"{subnet_path}.cidr は空でない文字列にしてください")
+            resources = subnet.get("resources", [])
+            if not isinstance(resources, list) or len(resources) > 2:
+                s.err(f"{subnet_path}.resources は最大2件の配列にしてください")
+                continue
+            for resource_index, resource in enumerate(resources):
+                resource_path = f"{subnet_path}.resources[{resource_index}]"
+                if not isinstance(resource, dict):
+                    s.err(f"{resource_path} はオブジェクトにしてください")
+                    continue
+                s.allow_keys(resource, {"id", "label", "sub", "icon"},
+                             resource_path)
+                if add_id(resource.get("id"), resource_path):
+                    resource_ids.add(resource["id"])
+                if not _is_str(resource.get("label")):
+                    s.err(f"{resource_path}.label は空でない文字列にしてください")
+                if "sub" in resource and not _is_str(resource["sub"]):
+                    s.err(f"{resource_path}.sub は空でない文字列にしてください")
+                _check_icon(s, resource.get("icon"), resource_path)
+
+    external = s.spec.get("external", [])
+    if not isinstance(external, list) or len(external) > 2:
+        s.err("external は最大2件の配列にしてください")
+        external = []
+    for index, item in enumerate(external):
+        path = f"external[{index}]"
+        if not isinstance(item, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(item, {"id", "label", "sub", "icon"}, path)
+        if add_id(item.get("id"), path):
+            resource_ids.add(item["id"])
+        if not _is_str(item.get("label")):
+            s.err(f"{path}.label は空でない文字列にしてください")
+        if "sub" in item and not _is_str(item["sub"]):
+            s.err(f"{path}.sub は空でない文字列にしてください")
+        _check_icon(s, item.get("icon"), path)
+
+    flows = s.spec.get("flows", [])
+    if not isinstance(flows, list) or len(flows) > 10:
+        s.err("flows は最大10件の配列にしてください")
+        return
+    seen = set()
+    for index, flow in enumerate(flows):
+        path = f"flows[{index}]"
+        if not isinstance(flow, dict):
+            s.err(f"{path} はオブジェクトにしてください")
+            continue
+        s.allow_keys(flow, {"from", "to", "label", "dash", "both"}, path)
+        source, target = flow.get("from"), flow.get("to")
+        if not _is_str(source) or not _is_str(target):
+            s.err(f"{path}.from / to は空でない参照文字列にしてください")
+            continue
+        if source not in resource_ids or target not in resource_ids:
+            s.err(f"{path} が未定義resourceまたはexternalを参照しています")
+        if source == target:
+            s.err(f"{path} は同じ要素へ接続できません")
+        pair = (source, target)
+        if pair in seen:
+            s.err(f"{path} の接続が重複しています")
+        seen.add(pair)
+        if "label" in flow and not _is_str(flow["label"]):
+            s.err(f"{path}.label は空でない文字列にしてください")
+        if "dash" in flow and flow["dash"] != "dash":
+            s.err(f'{path}.dash は "dash" にしてください')
+        if "both" in flow and not isinstance(flow["both"], bool):
+            s.err(f"{path}.both は真偽値にしてください")
+
+
 def _string_list(s, key, min_n, max_n):
     values = s.req_list(key, min_n, max_n, "空でない文字列")
     if values is not None and not all(_is_str(value) for value in values):
@@ -1409,12 +1549,14 @@ def _v_knowledge_check(s):
 
 
 VALIDATORS = {
-    "title": _v_title, "bullets": _v_bullets, "cards": _v_cards,
+    "title": _v_title, "section_divider": _v_section_divider,
+    "bullets": _v_bullets, "cards": _v_cards,
     "table": _v_table, "two_column": _v_twocol, "chart": _v_chart,
     "image": _v_image, "image_compare": _v_image_compare,
     "process": _v_process, "program_roadmap": _v_program_roadmap,
     "matrix": _v_matrix,
     "org": _v_org, "diagram": _v_diagram,
+    "aws_vpc_layout": _v_aws_vpc_layout,
     "scope_boundary": _v_scope, "decision_summary": _v_summary,
     "paired_comparison": _v_paired_comparison, "relationship_map": _v_mapping,
     "swimlane_flow": _v_swimlane, "message_sequence": _v_sequence,

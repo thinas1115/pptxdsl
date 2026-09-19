@@ -9,13 +9,14 @@
 
 ## 出力例
 
-対応する23種類のtypeを、33枚の出力例で確認できます。
+対応する27種類のtypeを、37枚の出力例で確認できます。
 
 ![TYPE別パターンギャラリー](docs/pattern-gallery-by-type.png)
 
 PowerPointで確認・編集できる実物は
 [パターンギャラリー](examples/gallery/pattern_gallery.pptx)に収録しています。
 研修資料の構成例は[VLAN基礎研修](examples/training/vlan/README.md)で確認できます。
+[AWSネットワーク資料の入力例](examples/training/aws-network/README.md)も収録しています。
 
 ## セットアップ
 
@@ -39,6 +40,9 @@ CodexまたはGitHub CopilotでPPTX作成を一括して依頼する場合は、
 [pptxdsl Skill](.agents/skills/pptxdsl/SKILL.md)を使います。資料要件と情報源の確認から
 `content.json`の成形、PPTX生成、実行環境に応じたPNGレンダリング、目視QA、修正までを
 1つの作業として扱います。
+
+ChatGPT Work・CodexへPluginとして配布する場合は、[Pluginガイド](docs/plugin.md)を参照してください。
+`python -m tools.plugin.build`で、Skill・本処理・素材を同梱したclone不要の配布ZIPを作れます。
 
 ### 1. content.jsonを作る
 
@@ -104,6 +108,8 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 | `tests/fixtures/gallery/` | 回帰専用の内容データ・構成図仕様 |
 | `tools/gallery/` | 回帰ギャラリーの生成・検証・掲載画像作成 |
 | `tools/assets/` | 素材の取得・点検。通常生成には不要 |
+| `tools/plugin/` | Skillと本処理を同梱するPlugin配布用ビルド |
+| `plugins/pptxdsl/` | Pluginの表示情報・配布metadataの正本 |
 | `slidegen/assets/icons/` | 同梱済みのAWS・Fluentアイコン |
 | `slidegen/assets/images/` | 本文で使用する画像 |
 | `slidegen/assets/cover/` | 利用者が差し替える表紙背景画像 |

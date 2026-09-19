@@ -1,0 +1,6441 @@
+{
+  "meta": {
+    "title": "AWSネットワーク領域 勉強資料",
+    "footer": "AWSネットワーク領域 勉強資料"
+  },
+  "slides": [
+    {
+      "type": "title",
+      "title": "AWSネットワーク領域",
+      "subtitle": "通信をIP、経路、境界、観測で読むための勉強資料"
+    },
+    {
+      "type": "scope_boundary",
+      "kicker": "学習範囲",
+      "title": "この資料で扱う範囲",
+      "lead": "AWSネットワークを、通信の読み方として学ぶ。サービス名の暗記に寄せすぎない。どの章でも同じ4つの観点に戻る。",
+      "in_label": "扱うこと",
+      "out_label": "扱わないこと",
+      "in_scope": [
+        "VPC、Subnet、Route Table、Security Group、Network ACL",
+        "Internet Gateway、NAT Gateway、VPC Endpoint、PrivateLink",
+        "Peering、Transit Gateway、VPC Sharing、Cloud WAN、IPAM",
+        "VPN、Direct Connect、DNS、ELB、Global Accelerator、Network Firewall",
+        "Flow Logs、Reachability Analyzer、Traffic Mirroring、障害調査の読み順"
+      ],
+      "out_of_scope": [
+        "CloudFormationやTerraformの文法説明",
+        "OS内の詳細なTCPチューニング",
+        "全AWSサービスの網羅的な仕様一覧",
+        "特定企業の閉域網や専用線契約条件"
+      ]
+    },
+    {
+      "type": "cards",
+      "style": "editorial",
+      "kicker": "到達レベル",
+      "title": "JuniorからSeniorまでの学習到達点",
+      "lead": "この資料のゴールは、ネットワーク構成図を見て「どの通信が、なぜ通るか」を説明できる状態に近づくこと。",
+      "cards": [
+        {
+          "heading": "Junior",
+          "body": "1つのVPC内で、IP範囲、サブネット、経路、許可ルールを順に読める。"
+        },
+        {
+          "heading": "Middle",
+          "body": "到達先と公開面を見て、Endpoint、PrivateLink、Peering、Transit Gatewayを選び分けられる。"
+        },
+        {
+          "heading": "Senior",
+          "body": "複数VPC、複数アカウント、拠点接続、監査、運用まで含めて壊れにくい設計を説明できる。"
+        }
+      ]
+    },
+    {
+      "type": "process",
+      "kicker": "学習ロードマップ",
+      "title": "通信を読む4つの観点",
+      "lead": "細かいサービス名に迷ったら、この4点に戻る。AWSネットワーク設計のほとんどは、この組み合わせで整理できる。",
+      "steps": [
+        {
+          "name": "IP",
+          "desc": "どのCIDRに属し、どのアドレス範囲と重なる可能性があるか。"
+        },
+        {
+          "name": "経路",
+          "desc": "Route Tableが次の宛先をどこへ向けているか。"
+        },
+        {
+          "name": "境界",
+          "desc": "Security Group、Network ACL、Firewall、認証で何を止めているか。"
+        },
+        {
+          "name": "観測",
+          "desc": "Flow LogsやReachability Analyzerで、推測を事実で確かめられるか。"
+        }
+      ],
+      "emph": [
+        1,
+        3
+      ]
+    },
+    {
+      "type": "title",
+      "title": "Junior: VPC基礎と通信判定",
+      "subtitle": "まず1本の通信を、IP、経路、境界、観測の順に読む"
+    },
+    {
+      "type": "cards",
+      "kicker": "Juniorの合格ライン",
+      "title": "1本の通信を説明できる状態",
+      "lead": "Junior章では、複雑な構成図を一気に覚えない。利用者からサーバーまでの通信を、途中で止まる場所ごとに分けて読む。",
+      "style": "editorial",
+      "cards": [
+        {
+          "heading": "IPを読む",
+          "body": "VPCとSubnetのCIDRを見て、通信元と通信先がどの範囲にいるかを言える。"
+        },
+        {
+          "heading": "経路を読む",
+          "body": "Route Tableの宛先とターゲットを見て、次に向かう場所を説明できる。"
+        },
+        {
+          "heading": "境界を読む",
+          "body": "Security GroupとNetwork ACLのどちらで許可・拒否されるかを切り分けられる。"
+        },
+        {
+          "heading": "観測する",
+          "body": "最後は設定値とログで確認し、思い込みだけで原因を決めない。"
+        }
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "基礎",
+      "title": "VPCとは",
+      "term": "VPC",
+      "lead": "VPCはAWS上に作るネットワークの外枠。最初に見るのは、どのCIDRを持ち、どの範囲とつながる予定があるか。",
+      "definition": "AWSアカウント内に作る論理的な専用ネットワークです。IPアドレス範囲、Subnet、Route Table、セキュリティ境界を自分で設計します。",
+      "icon": "icons/aws/vpc.png",
+      "points": [
+        {
+          "label": "役割",
+          "text": "AWSアカウントとリージョンの中に、用途ごとのネットワーク境界を作る。"
+        },
+        {
+          "label": "最初の判断",
+          "text": "VPC CIDRは後から広げにくい。将来の拠点接続や別VPC接続も見て決める。"
+        },
+        {
+          "label": "読む順番",
+          "text": "VPCだけでは通信は成立しない。Subnet、Route Table、許可ルールへ順に降りていく。"
+        }
+      ],
+      "misconception": "VPCを作っただけでは、インターネットや他VPCへ自動的につながりません。"
+    },
+    {
+      "type": "concept",
+      "kicker": "基礎",
+      "title": "Subnetとは",
+      "term": "Subnet",
+      "lead": "SubnetはVPCのCIDRをAZごとに切り分けた実行場所。役割ごとに分けると、経路と境界を読みやすくなる。",
+      "definition": "VPCのCIDRから切り出したIPアドレス範囲です。EC2、RDS、Load Balancerなどのリソースは、特定のサブネットへ配置されます。",
+      "icon": "icons/aws/subnet_private.png",
+      "points": [
+        {
+          "label": "AZに属する",
+          "text": "Subnetは必ず1つのAZに属する。複数AZにまたがるSubnetは作れない。"
+        },
+        {
+          "label": "役割で分ける",
+          "text": "public、private app、private dbのように、置くものと通信経路で分ける。"
+        },
+        {
+          "label": "同じ形を並べる",
+          "text": "可用性を高めるには、同じ役割のSubnetを複数AZに作る。"
+        }
+      ],
+      "misconception": "サブネット名にpublicと付けても、ルートがなければpublic subnetにはなりません。"
+    },
+    {
+      "type": "aws_vpc_layout",
+      "kicker": "構成図",
+      "title": "VPCとAZとSubnetの親子関係",
+      "lead": "この段階で見てほしいのは、SubnetがAZの中にあり、同じ役割のSubnetをAZごとに用意する、という配置の基本だけ。",
+      "vpc": {
+        "label": "VPC 10.0.0.0/16"
+      },
+      "azs": [
+        {
+          "id": "az_a",
+          "label": "AZ-a",
+          "subnets": [
+            {
+              "id": "public_a",
+              "label": "public subnet 10.0.0.0/24"
+            },
+            {
+              "id": "app_a",
+              "label": "private app subnet 10.0.10.0/24"
+            },
+            {
+              "id": "db_a",
+              "label": "private db subnet 10.0.20.0/24"
+            }
+          ]
+        },
+        {
+          "id": "az_c",
+          "label": "AZ-c",
+          "subnets": [
+            {
+              "id": "public_c",
+              "label": "public subnet 10.0.1.0/24"
+            },
+            {
+              "id": "app_c",
+              "label": "private app subnet 10.0.11.0/24"
+            },
+            {
+              "id": "db_c",
+              "label": "private db subnet 10.0.21.0/24"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "IP設計",
+      "title": "CIDR設計",
+      "term": "CIDR設計",
+      "lead": "CIDRは暗算の速さより、重複しない範囲を設計できることが大切。まず大きな範囲を決め、役割とAZで小さく切る。",
+      "definition": "AWSとオンプレミス、将来のVPC、別Regionを含めて、重複しないIPアドレス範囲を割り当てる設計です。",
+      "icon": "icons/fluent/search.png",
+      "points": [
+        {
+          "label": "VPC範囲",
+          "text": "例として10.0.0.0/16をVPC全体に割り当てる。"
+        },
+        {
+          "label": "役割別",
+          "text": "public、app、dbのように、通信経路が違う単位でSubnetを分ける。"
+        },
+        {
+          "label": "AZ別",
+          "text": "同じ役割でもAZ-aとAZ-cで別CIDRにする。障害時に片側へ寄せやすい。"
+        },
+        {
+          "label": "将来接続",
+          "text": "Peeringや拠点接続の前に、相手とCIDRが重ならないかを確認する。"
+        }
+      ],
+      "misconception": "/24を細かく切れば安全、ではない。大切なのは運用時に意味が分かる範囲で余裕を残すこと。"
+    },
+    {
+      "type": "table",
+      "kicker": "IP設計",
+      "title": "CIDR分割の例",
+      "lead": "2AZの最小構成では、役割とAZの組み合わせでSubnetを作る。数字の美しさより、後から見て意味が読めることを優先する。",
+      "columns": [
+        "役割",
+        "AZ-a",
+        "AZ-c",
+        "読み方"
+      ],
+      "rows": [
+        [
+          "public",
+          "10.0.0.0/24",
+          "10.0.1.0/24",
+          "ALBやNAT Gatewayを置く入口・出口"
+        ],
+        [
+          "private app",
+          "10.0.10.0/24",
+          "10.0.11.0/24",
+          "アプリケーションを置く内部領域"
+        ],
+        [
+          "private db",
+          "10.0.20.0/24",
+          "10.0.21.0/24",
+          "DBを置く閉じた領域"
+        ]
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "基礎",
+      "title": "ENIとは",
+      "term": "Elastic Network Interface",
+      "lead": "AWS上の通信点は、多くの場合ENIとして現れる。",
+      "definition": "VPC内の仮想ネットワークカードです。Private IP、Security Group、MACアドレスなどの属性を持ち、EC2や各種AWSサービスの通信点として働きます。",
+      "icon": "icons/aws/eni.png",
+      "points": [
+        {
+          "label": "通信の単位",
+          "text": "VPC Flow LogsやSecurity Groupの多くは、ENIを通信の観測点として扱います。"
+        },
+        {
+          "label": "サービス利用",
+          "text": "ALB、RDS、NAT Gateway、Interface EndpointなどもENIを作り、VPC内のIPを使います。"
+        },
+        {
+          "label": "上限",
+          "text": "ECSやEKSでは、ENI数やIP数の上限が配置密度に影響します。"
+        }
+      ],
+      "misconception": "EC2インスタンスだけがENIを使うわけではありません。"
+    },
+    {
+      "type": "concept",
+      "kicker": "ルーティング",
+      "title": "Route Tableとは",
+      "term": "Route Table",
+      "lead": "Route Tableは「宛先CIDRに対して、次にどこへ送るか」を決める表。通信可否を見るときは、まずこの表で向きを確認する。",
+      "definition": "宛先CIDRと次ホップを対応づける表です。サブネットに関連付けることで、そのサブネットから出る通信の経路を決めます。",
+      "icon": "icons/fluent/router.png",
+      "points": [
+        {
+          "label": "local route",
+          "text": "VPC CIDR内の通信にはlocal routeがあり、VPC内通信の基本経路として使われます。"
+        },
+        {
+          "label": "default route",
+          "text": "0.0.0.0/0や::/0は、より具体的な経路に当たらない通信の行き先です。"
+        },
+        {
+          "label": "関連付け",
+          "text": "1つのサブネットは同時に1つのサブネットルートテーブルだけに関連付けられます。"
+        }
+      ],
+      "misconception": "Internet GatewayをVPCへ付けても、サブネットのルートを変えなければ外へ出られません。"
+    },
+    {
+      "type": "paired_comparison",
+      "kicker": "基礎比較",
+      "title": "public subnetとprivate subnet",
+      "lead": "PublicとPrivateは、Route Tableの0.0.0.0/0がどこを向いているかで決まる。",
+      "left_label": "Public subnet",
+      "right_label": "Private subnet",
+      "rows": [
+        {
+          "criterion": "default route",
+          "left": "Internet Gatewayへ向く",
+          "right": "NAT Gateway、Transit Gateway、Endpointなどへ向く"
+        },
+        {
+          "criterion": "外部からの到達",
+          "left": "Public IPと許可ルールがあれば到達可能",
+          "right": "通常は外部から直接到達させない"
+        },
+        {
+          "criterion": "配置例",
+          "left": "ALB、NAT Gateway、踏み台など",
+          "right": "アプリ、DB、内部APIなど"
+        },
+        {
+          "criterion": "設計の注意",
+          "left": "入口を最小化し、公開リソースを限定する",
+          "right": "外向き通信の出口と監査ログを設計する"
+        }
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "インターネット接続",
+      "title": "Internet Gateway",
+      "term": "Internet Gateway",
+      "lead": "Internet Gatewayは、VPCがインターネットと直接通信するための出口。Public SubnetのRoute Tableで使われる。",
+      "definition": "VPCをインターネットへ接続するためのVPCコンポーネントです。IPv4とIPv6のインターネット到達経路で、Route Tableのターゲットとして指定します。",
+      "icon": "icons/aws/internet_gateway.png",
+      "points": [
+        {
+          "label": "必要条件",
+          "text": "VPCへのアタッチ、サブネットルート、Public IPまたはIPv6、通信許可ルールがそろう必要があります。"
+        },
+        {
+          "label": "入口",
+          "text": "ALBやEC2へ外部から到達させる入口として使います。"
+        },
+        {
+          "label": "IPv4 NAT",
+          "text": "IPv4ではPublic IPとPrivate IPの変換にも関わります。"
+        }
+      ],
+      "misconception": "Internet Gatewayを追加しても、EC2が自動的に公開されることはありません。"
+    },
+    {
+      "type": "concept",
+      "kicker": "インターネット接続",
+      "title": "NAT Gateway",
+      "term": "NAT Gateway",
+      "lead": "NAT Gatewayは、Private Subnetから外へ出るための片方向寄りの出口。外から直接入るための部品ではない。",
+      "definition": "private subnet内のリソースが外部へ接続するためのマネージドNATです。外部から新しく始まる接続は、private subnet側へ通しません。",
+      "icon": "icons/aws/nat_gateway.png",
+      "points": [
+        {
+          "label": "public NAT",
+          "text": "public subnetに置き、Elastic IPとInternet Gatewayを使ってインターネットへ出ます。"
+        },
+        {
+          "label": "private NAT",
+          "text": "他VPCやオンプレミス向けに送信元を変換する用途で使います。"
+        },
+        {
+          "label": "AZ設計",
+          "text": "可用性を重視する本番では、利用するAZごとにNAT Gatewayを置く設計を検討します。"
+        }
+      ],
+      "misconception": "NAT Gatewayは主に外へ出る通信の中継点であり、入口用途の部品ではありません。"
+    },
+    {
+      "type": "concept",
+      "kicker": "IPv6",
+      "title": "Egress Only Internet Gateway",
+      "term": "Egress-only Internet Gateway",
+      "lead": "IPv6はグローバル到達性を持つため、外向きだけを許す出口としてEgress-only Internet Gatewayを使う。",
+      "definition": "IPv6の外向き通信だけを許可するVPCコンポーネントです。IPv6アドレスを持つインスタンスからインターネットへ出し、外部から開始される接続を防ぎます。",
+      "icon": "icons/fluent/upload.png",
+      "points": [
+        {
+          "label": "対象",
+          "text": "IPv6専用です。IPv4の外向き通信にはNAT Gatewayを使います。"
+        },
+        {
+          "label": "状態管理",
+          "text": "外へ出た通信の戻りは通し、外部から新しく始まる通信は通しません。"
+        },
+        {
+          "label": "ルート",
+          "text": "サブネットのルートテーブルに::/0のターゲットとして設定します。"
+        }
+      ],
+      "misconception": "IPv6はグローバルに一意なので、private IPv4と同じ感覚で扱うと公開範囲を読み違えます。"
+    },
+    {
+      "type": "table",
+      "kicker": "出口設計",
+      "title": "外向き通信方式の選択",
+      "lead": "出口は通信先と公開面で選ぶ。インターネットへ出るのか、AWSサービスへ閉じて向かうのかを先に決める。",
+      "columns": [
+        "方式",
+        "主な用途",
+        "注意点"
+      ],
+      "rows": [
+        [
+          "Internet Gateway",
+          "public subnetからインターネットへ直接通信",
+          "Public IPと許可ルールが公開面になる"
+        ],
+        [
+          "NAT Gateway",
+          "private subnetからIPv4で外部へ接続",
+          "AZ配置とデータ処理費用を設計に入れる"
+        ],
+        [
+          "Egress-only IGW",
+          "IPv6の外向き通信だけを許可",
+          "Security GroupやNACLとは役割が違う"
+        ],
+        [
+          "VPC Endpoint",
+          "AWSサービスへprivateに接続",
+          "サービス対応状況とDNS設定を確認する"
+        ]
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "セキュリティ",
+      "title": "Security Group",
+      "term": "Security Group",
+      "lead": "Security GroupはENIに付くステートフルな許可リスト。戻り通信を明示しなくても、許可した通信の応答は通る。",
+      "definition": "ENIや対応リソースに関連付けるステートフルな仮想ファイアウォールです。許可ルールだけを定義し、許可されない通信は通しません。",
+      "icon": "icons/fluent/shield_check.png",
+      "points": [
+        {
+          "label": "適用単位",
+          "text": "EC2、ALB、RDS、Interface Endpointなど、リソースの通信点に適用します。"
+        },
+        {
+          "label": "戻り通信",
+          "text": "許可した通信の応答は、逆方向の明示ルールがなくても戻れます。"
+        },
+        {
+          "label": "参照",
+          "text": "IPアドレスだけでなく、別のSecurity Groupを送信元や宛先として指定します。"
+        }
+      ],
+      "misconception": "Security Groupには明示的な拒否ルールを書けません。拒否したい通信は許可しないことで止めます。"
+    },
+    {
+      "type": "concept",
+      "kicker": "セキュリティ",
+      "title": "Network ACL",
+      "term": "Network ACL",
+      "lead": "Network ACLはSubnet境界で評価されるステートレスなルール。戻り通信も別ルールとして考える。",
+      "definition": "サブネットへ出入りする通信を制御するステートレスなルールセットです。許可と拒否を番号順に評価します。",
+      "icon": "icons/aws/network_acl.png",
+      "points": [
+        {
+          "label": "適用単位",
+          "text": "サブネット単位で関連付けます。1つのサブネットは1つのNetwork ACLだけに関連付けられます。"
+        },
+        {
+          "label": "番号順",
+          "text": "小さい番号から評価し、最初に一致したルールで許可または拒否が決まります。"
+        },
+        {
+          "label": "戻り通信",
+          "text": "ステートレスなので、戻り通信にも別途ルールが必要です。"
+        }
+      ],
+      "misconception": "Security Groupと違い、許可した入口通信の戻りが自動的に許可されるわけではありません。"
+    },
+    {
+      "type": "paired_comparison",
+      "kicker": "セキュリティ比較",
+      "title": "Security GroupとNetwork ACL",
+      "lead": "まずSecurity Groupで必要な通信だけを許可し、Network ACLはSubnet単位の補助的な境界として使うのが基本。",
+      "left_label": "Security Group",
+      "right_label": "Network ACL",
+      "rows": [
+        {
+          "criterion": "適用単位",
+          "left": "ENIまたは対応リソース",
+          "right": "サブネット"
+        },
+        {
+          "criterion": "状態",
+          "left": "ステートフル",
+          "right": "ステートレス"
+        },
+        {
+          "criterion": "ルール種別",
+          "left": "許可のみ",
+          "right": "許可と拒否"
+        },
+        {
+          "criterion": "評価順",
+          "left": "全ルールを評価",
+          "right": "番号の小さい順に評価"
+        },
+        {
+          "criterion": "実務の使い方",
+          "left": "通常の最小許可の中心",
+          "right": "サブネット境界の追加防御や明示拒否"
+        }
+      ]
+    },
+    {
+      "type": "diagram",
+      "kicker": "比較",
+      "title": "ステートフルとステートレスの違い",
+      "lead": "Security GroupはENI単位のステートフル許可。Network ACLはSubnet境界のステートレスルール。戻り通信の扱い方が違う。",
+      "diagram": {
+        "cols": [
+          "type_label",
+          "app",
+          "boundary",
+          "target",
+          "return_note"
+        ],
+        "rows": [
+          "sg_row",
+          "nacl_row"
+        ],
+        "nodes": {
+          "sg_label": {
+            "col": "type_label",
+            "row": "sg_row",
+            "title": "Security Group",
+            "icon": "icons/fluent/shield.png"
+          },
+          "sg_app": {
+            "col": "app",
+            "row": "sg_row",
+            "title": "App ENI",
+            "icon": "icons/aws/eni.png"
+          },
+          "sg_boundary": {
+            "col": "boundary",
+            "row": "sg_row",
+            "title": "SG許可ルール",
+            "icon": "icons/fluent/check.png"
+          },
+          "sg_target": {
+            "col": "target",
+            "row": "sg_row",
+            "title": "DB ENI",
+            "icon": "icons/aws/eni.png"
+          },
+          "sg_return": {
+            "col": "return_note",
+            "row": "sg_row",
+            "title": "戻り自動許可",
+            "icon": "icons/fluent/check.png"
+          },
+          "nacl_label": {
+            "col": "type_label",
+            "row": "nacl_row",
+            "title": "Network ACL",
+            "icon": "icons/fluent/document.png"
+          },
+          "nacl_app": {
+            "col": "app",
+            "row": "nacl_row",
+            "title": "Subnet A",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "nacl_boundary": {
+            "col": "boundary",
+            "row": "nacl_row",
+            "title": "IN/OUTルール",
+            "icon": "icons/fluent/warning.png"
+          },
+          "nacl_target": {
+            "col": "target",
+            "row": "nacl_row",
+            "title": "Subnet B",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "nacl_return": {
+            "col": "return_note",
+            "row": "nacl_row",
+            "title": "戻りルール必要",
+            "icon": "icons/fluent/warning.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "sg_app",
+            "to": "sg_boundary",
+            "label": "送信"
+          },
+          {
+            "from": "sg_boundary",
+            "to": "sg_target",
+            "label": "許可"
+          },
+          {
+            "from": "sg_target",
+            "to": "sg_return",
+            "label": "自動戻り"
+          },
+          {
+            "from": "nacl_app",
+            "to": "nacl_boundary",
+            "label": "送信"
+          },
+          {
+            "from": "nacl_boundary",
+            "to": "nacl_target",
+            "label": "通過"
+          },
+          {
+            "from": "nacl_target",
+            "to": "nacl_return",
+            "label": "明示ルール"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "ステートフル（ENI境界）",
+            "members": [
+              "sg_app",
+              "sg_boundary",
+              "sg_target",
+              "sg_return"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "ステートレス（Subnet境界）",
+            "members": [
+              "nacl_app",
+              "nacl_boundary",
+              "nacl_target",
+              "nacl_return"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "kicker": "基礎",
+      "title": "VPC標準リソースの意味",
+      "lead": "VPCを作ると周辺リソースも用意される。自動作成されたものをそのまま信じず、役割を確認してから使う。",
+      "columns": [
+        "分類",
+        "代表リソース",
+        "主な役割"
+      ],
+      "rows": [
+        [
+          "既定",
+          "Main Route Table",
+          "明示的な関連付けがないサブネットのルートを決める"
+        ],
+        [
+          "既定",
+          "Default Security Group",
+          "同じグループ内の通信を初期状態で許可する"
+        ],
+        [
+          "既定",
+          "Default Network ACL",
+          "初期状態ではサブネット出入りの通信を広く許可する"
+        ],
+        [
+          "追加",
+          "Internet Gateway",
+          "VPCとインターネットの経路を作る"
+        ],
+        [
+          "追加",
+          "NAT Gateway",
+          "private subnetから外部へ出るIPv4通信を中継する"
+        ]
+      ],
+      "note": "VPCの基本構成はAWS公式ドキュメントのVPC basicsを基に整理。"
+    },
+    {
+      "type": "process",
+      "kicker": "通信判定",
+      "title": "通信判定の読み順",
+      "lead": "通信が通らないときは、サービス名から疑うより、この順番で機械的に絞る。Junior章の中心になる読み方。",
+      "steps": [
+        {
+          "name": "IP",
+          "desc": "通信元と通信先がどのVPC、Subnet、CIDRにいるかを確認する。"
+        },
+        {
+          "name": "経路",
+          "desc": "送信元Subnetと戻り先SubnetのRoute Tableを確認する。"
+        },
+        {
+          "name": "境界",
+          "desc": "Security Group、Network ACL、Firewallで止まっていないかを見る。"
+        },
+        {
+          "name": "名前解決",
+          "desc": "DNS名を使う通信では、期待したIPへ解決されているかを確認する。"
+        },
+        {
+          "name": "観測",
+          "desc": "Flow LogsやReachability Analyzerで、推測を検証する。"
+        }
+      ],
+      "emph": [
+        1,
+        3
+      ]
+    },
+    {
+      "type": "config_lab",
+      "kicker": "設定例",
+      "title": "基本ルートの読み方",
+      "lead": "読み順の練習として見る。IGWを付けても、Route TableとSecurity Groupがそろわなければ通信は成立しない。",
+      "sections": [
+        {
+          "label": "public subnet",
+          "code": "Destination     Target\n10.0.0.0/16     local\n0.0.0.0/0       igw-xxxx"
+        },
+        {
+          "label": "private subnet",
+          "code": "Destination     Target\n10.0.0.0/16     local\n0.0.0.0/0       nat-xxxx"
+        }
+      ],
+      "check_label": "確認する状態",
+      "checks": [
+        "public subnetのdefault routeがInternet Gatewayを向いている",
+        "private subnetのdefault routeがNAT Gatewayを向いている",
+        "戻り通信を受けるSecurity GroupとNACLに矛盾がない"
+      ]
+    },
+    {
+      "type": "nw_protocol_flow",
+      "kicker": "通信状態",
+      "title": "NAT前後の送信元IP",
+      "lead": "NAT Gatewayを使う通信では、行きはPrivate SubnetからNATへ、戻りは同じ経路で返ることを確認する。",
+      "stages": [
+        {
+          "id": "instance",
+          "label": "EC2",
+          "icon": "icons/fluent/server.png",
+          "role": "endpoint"
+        },
+        {
+          "id": "nat",
+          "label": "NAT Gateway",
+          "icon": "icons/fluent/gateway.png",
+          "role": "processor"
+        },
+        {
+          "id": "internet",
+          "label": "Internet",
+          "icon": "icons/fluent/globe.png",
+          "role": "link"
+        },
+        {
+          "id": "service",
+          "label": "外部サービス",
+          "icon": "icons/fluent/cloud.png",
+          "role": "endpoint"
+        }
+      ],
+      "flows": [
+        {
+          "label": "送信元IP",
+          "states": [
+            {
+              "stage": "instance",
+              "label": "10.0.2.15",
+              "appearance": "plain"
+            },
+            {
+              "stage": "nat",
+              "label": "203.0.113.10",
+              "detail": "送信元を書き換え",
+              "appearance": "internal"
+            },
+            {
+              "stage": "internet",
+              "label": "203.0.113.10",
+              "appearance": "plain"
+            },
+            {
+              "stage": "service",
+              "label": "203.0.113.10",
+              "appearance": "plain"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "セキュリティ設計",
+      "title": "最小許可",
+      "term": "最小許可の通信設計",
+      "lead": "ネットワークの許可は広く始めるほど後で戻しにくい。通信元、宛先、ポート、理由をセットで残す。",
+      "definition": "最初から必要な送信元、宛先、ポート、方向だけを許可し、広く開けた通信を残さない考え方です。",
+      "icon": "icons/fluent/lock.png",
+      "points": [
+        {
+          "label": "送信元",
+          "text": "可能ならSecurity Group参照を使い、CIDR指定よりも通信主体を狭く表します。"
+        },
+        {
+          "label": "宛先",
+          "text": "DBや内部APIは、利用するアプリ層からの通信だけを許可します。"
+        },
+        {
+          "label": "出口",
+          "text": "外向き通信も全許可で放置せず、Endpoint、Proxy、Firewall、DNS制御を検討します。"
+        }
+      ],
+      "misconception": "private subnetに置いただけでは、内部からの横移動や不要な外向き通信を防げません。"
+    },
+    {
+      "type": "aws_vpc_layout",
+      "kicker": "構成図",
+      "title": "Web三層構成の読み直し",
+      "lead": "ここまでのIP、経路、境界を、Web三層の完成形で読み直す。細部を丸暗記せず、通信がどのSubnetを通るかに注目する。",
+      "vpc": {
+        "label": "VPC",
+        "cidr": "10.0.0.0/16"
+      },
+      "external": [
+        {
+          "id": "user",
+          "label": "利用者",
+          "icon": "icons/aws/users.png"
+        }
+      ],
+      "azs": [
+        {
+          "id": "az_a",
+          "label": "AZ-a",
+          "subnets": [
+            {
+              "id": "public_a",
+              "label": "public subnet",
+              "cidr": "10.0.0.0/24",
+              "resources": [
+                {
+                  "id": "alb_a",
+                  "label": "ALB node",
+                  "icon": "icons/aws/alb.png"
+                }
+              ]
+            },
+            {
+              "id": "app_a",
+              "label": "private app subnet",
+              "cidr": "10.0.10.0/24",
+              "resources": [
+                {
+                  "id": "app1",
+                  "label": "App A",
+                  "icon": "icons/fluent/server.png"
+                }
+              ]
+            },
+            {
+              "id": "db_a",
+              "label": "private db subnet",
+              "cidr": "10.0.20.0/24",
+              "resources": [
+                {
+                  "id": "rds_a",
+                  "label": "RDS Primary",
+                  "icon": "icons/aws/rds.png"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "az_c",
+          "label": "AZ-c",
+          "subnets": [
+            {
+              "id": "public_c",
+              "label": "public subnet",
+              "cidr": "10.0.1.0/24",
+              "resources": [
+                {
+                  "id": "alb_c",
+                  "label": "ALB node",
+                  "icon": "icons/aws/alb.png"
+                }
+              ]
+            },
+            {
+              "id": "app_c",
+              "label": "private app subnet",
+              "cidr": "10.0.11.0/24",
+              "resources": [
+                {
+                  "id": "app2",
+                  "label": "App B",
+                  "icon": "icons/fluent/server.png"
+                }
+              ]
+            },
+            {
+              "id": "db_c",
+              "label": "private db subnet",
+              "cidr": "10.0.21.0/24",
+              "resources": [
+                {
+                  "id": "rds_c",
+                  "label": "RDS Standby",
+                  "icon": "icons/aws/rds.png"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "flows": [
+        {
+          "from": "user",
+          "to": "alb_a",
+          "label": "HTTPS"
+        },
+        {
+          "from": "alb_a",
+          "to": "app1",
+          "label": "HTTP"
+        },
+        {
+          "from": "alb_c",
+          "to": "app2",
+          "label": "HTTP"
+        },
+        {
+          "from": "app1",
+          "to": "rds_a",
+          "label": "SQL"
+        },
+        {
+          "from": "app2",
+          "to": "rds_c",
+          "label": "SQL"
+        },
+        {
+          "from": "rds_a",
+          "to": "rds_c",
+          "label": "同期",
+          "dash": "dash"
+        }
+      ]
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "questions",
+      "kicker": "Junior章末チェック",
+      "title": "VPC基礎の確認",
+      "questions": [
+        {
+          "question": "Web三層構成でAppからRDSへSQL接続できない。まず固定したい情報はどれか。",
+          "options": [
+            "送信元、宛先、ポート",
+            "RDSの画面テーマ",
+            "PowerPointのページ番号"
+          ],
+          "answer": 0,
+          "explanation": "通信元、通信先、ポートが決まらないと、CIDR、Route Table、Security Groupのどこを見るかがぶれる。"
+        },
+        {
+          "question": "Private AppからOS更新でインターネットへ出たい。Route Tableの0.0.0.0/0はどこを向くか。",
+          "options": [
+            "NAT Gateway",
+            "RDS Primary",
+            "Default Network ACLだけ"
+          ],
+          "answer": 0,
+          "explanation": "Private Subnetから外向き通信を出す場合、0.0.0.0/0をPublic Subnet側のNAT Gatewayへ向ける構成が基本になる。"
+        },
+        {
+          "question": "設定上の到達可否と実際の拒否ログを確認したい。組み合わせとして近いものはどれか。",
+          "options": [
+            "Reachability AnalyzerとVPC Flow Logs",
+            "Route 53の価格表とIAMユーザー名",
+            "EC2のAMI IDだけ"
+          ],
+          "answer": 0,
+          "explanation": "Reachability Analyzerは設定上の経路を確認し、Flow Logsは実際の通信記録を確認する。役割を分けて使う。"
+        }
+      ],
+      "lead": "1本の通信を読む力を確認する。答えを覚えるより、判断理由を説明できることが大切。"
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "answers",
+      "kicker": "Junior章末チェック",
+      "title": "VPC基礎の解答",
+      "questions": [
+        {
+          "question": "Web三層構成でAppからRDSへSQL接続できない。まず固定したい情報はどれか。",
+          "options": [
+            "送信元、宛先、ポート",
+            "RDSの画面テーマ",
+            "PowerPointのページ番号"
+          ],
+          "answer": 0,
+          "explanation": "通信元、通信先、ポートが決まらないと、CIDR、Route Table、Security Groupのどこを見るかがぶれる。"
+        },
+        {
+          "question": "Private AppからOS更新でインターネットへ出たい。Route Tableの0.0.0.0/0はどこを向くか。",
+          "options": [
+            "NAT Gateway",
+            "RDS Primary",
+            "Default Network ACLだけ"
+          ],
+          "answer": 0,
+          "explanation": "Private Subnetから外向き通信を出す場合、0.0.0.0/0をPublic Subnet側のNAT Gatewayへ向ける構成が基本になる。"
+        },
+        {
+          "question": "設定上の到達可否と実際の拒否ログを確認したい。組み合わせとして近いものはどれか。",
+          "options": [
+            "Reachability AnalyzerとVPC Flow Logs",
+            "Route 53の価格表とIAMユーザー名",
+            "EC2のAMI IDだけ"
+          ],
+          "answer": 0,
+          "explanation": "Reachability Analyzerは設定上の経路を確認し、Flow Logsは実際の通信記録を確認する。役割を分けて使う。"
+        }
+      ],
+      "lead": "設問はすべて、IP、経路、境界のどこを見るかに戻る。構成図を見るときも同じ順番で確認する。"
+    },
+    {
+      "type": "title",
+      "title": "Middle: 接続方式の選定",
+      "subtitle": "サービス名ではなく、到達先と公開面から接続方式を選ぶ"
+    },
+    {
+      "type": "cards",
+      "kicker": "Middleの合格ライン",
+      "title": "接続方式を要件から選べる状態",
+      "lead": "Middle章では、似た名前のサービスを並べて覚えない。どこへ、どの公開面で、どれだけのVPCから到達するかで候補を絞る。",
+      "style": "editorial",
+      "cards": [
+        {
+          "heading": "AWSサービスへ閉じて行く",
+          "body": "S3やDynamoDBならGateway Endpoint、AWS APIならInterface Endpointを検討する。"
+        },
+        {
+          "heading": "自分のサービスを公開する",
+          "body": "相手VPCへPrivateLinkで公開し、相手側の経路表を広げすぎない。"
+        },
+        {
+          "heading": "VPC同士をつなぐ",
+          "body": "少数ならPeering、多数や集中制御ならTransit Gatewayを検討する。"
+        },
+        {
+          "heading": "運用単位を決める",
+          "body": "Route Table、DNS、料金、責任分界を接続方式ごとに確認する。"
+        }
+      ]
+    },
+    {
+      "type": "process",
+      "kicker": "判断フロー",
+      "title": "接続方式の選定フロー",
+      "lead": "Middle章では、先に通信の性質を決める。サービス名は、その後で候補を絞るために使う。",
+      "steps": [
+        {
+          "name": "到達先",
+          "desc": "S3、AWS API、相手VPC、自社サービス公開のどれかを分ける。"
+        },
+        {
+          "name": "公開面",
+          "desc": "インターネットへ出すのか、Private IPで閉じるのかを決める。"
+        },
+        {
+          "name": "規模",
+          "desc": "1対1か、多数VPCか、拠点まで含むかを確認する。"
+        },
+        {
+          "name": "運用",
+          "desc": "Route Table、DNS、料金、責任分界を接続方式ごとに比べる。"
+        }
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "AWSサービス接続",
+      "title": "Gateway Endpoint",
+      "term": "Gateway VPC Endpoint",
+      "lead": "Gateway EndpointはS3やDynamoDBへ、インターネット出口を使わずに到達するための経路。Route Tableへ明示される。",
+      "definition": "S3やDynamoDBへ、Internet GatewayやNAT Gatewayを使わずにVPCから到達するためのエンドポイントです。",
+      "icon": "icons/aws/vpc_endpoint.png",
+      "points": [
+        {
+          "label": "対象サービス",
+          "text": "代表的な対象はAmazon S3とDynamoDBです。"
+        },
+        {
+          "label": "経路",
+          "text": "サブネットのルートテーブルへ、AWS管理プレフィックスリスト向けの経路が追加されます。"
+        },
+        {
+          "label": "費用",
+          "text": "Gateway Endpoint自体に追加料金はありません。"
+        }
+      ],
+      "misconception": "Gateway EndpointはPrivateLinkを使うInterface Endpointとは仕組みが違います。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Gateway Endpointの経路表",
+      "lead": "Gateway EndpointはRoute Tableのターゲットとして読む。S3やDynamoDB宛てだけがEndpointへ向かい、Internet出口へは出ない。",
+      "diagram": {
+        "cols": [
+          "app",
+          "route",
+          "endpoint",
+          "service"
+        ],
+        "rows": [
+          "s3",
+          "ddb"
+        ],
+        "nodes": {
+          "app_s3": {
+            "col": "app",
+            "row": "s3",
+            "title": "Private App",
+            "icon": "icons/fluent/server.png"
+          },
+          "route_s3": {
+            "col": "route",
+            "row": "s3",
+            "title": "Route Table",
+            "icon": "icons/fluent/document.png"
+          },
+          "ep_s3": {
+            "col": "endpoint",
+            "row": "s3",
+            "title": "Gw Endpoint",
+            "icon": "icons/aws/vpc_endpoint.png"
+          },
+          "s3": {
+            "col": "service",
+            "row": "s3",
+            "title": "S3",
+            "icon": "icons/aws/s3.png"
+          },
+          "app_ddb": {
+            "col": "app",
+            "row": "ddb",
+            "title": "Private App",
+            "icon": "icons/fluent/server.png"
+          },
+          "route_ddb": {
+            "col": "route",
+            "row": "ddb",
+            "title": "Route Table",
+            "icon": "icons/fluent/document.png"
+          },
+          "ep_ddb": {
+            "col": "endpoint",
+            "row": "ddb",
+            "title": "Gw Endpoint",
+            "icon": "icons/aws/vpc_endpoint.png"
+          },
+          "dynamodb": {
+            "col": "service",
+            "row": "ddb",
+            "title": "DynamoDB",
+            "icon": "icons/aws/dynamodb.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "app_s3",
+            "to": "route_s3",
+            "label": "S3宛先"
+          },
+          {
+            "from": "route_s3",
+            "to": "ep_s3",
+            "label": "prefix list"
+          },
+          {
+            "from": "ep_s3",
+            "to": "s3",
+            "label": "AWS network"
+          },
+          {
+            "from": "app_ddb",
+            "to": "route_ddb",
+            "label": "DDB宛先"
+          },
+          {
+            "from": "route_ddb",
+            "to": "ep_ddb",
+            "label": "prefix list"
+          },
+          {
+            "from": "ep_ddb",
+            "to": "dynamodb",
+            "label": "AWS network"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "VPC内",
+            "members": [
+              "app_s3",
+              "route_s3",
+              "ep_s3",
+              "app_ddb",
+              "route_ddb",
+              "ep_ddb"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "AWS service",
+            "members": [
+              "s3",
+              "dynamodb"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "AWSサービス接続",
+      "title": "Interface Endpoint",
+      "term": "Interface VPC Endpoint",
+      "lead": "Interface EndpointはAWS APIをVPC内のENIとして見せる仕組み。DNS名がPrivate IPへ解決されるかまで確認する。",
+      "definition": "AWS PrivateLinkを使い、VPC内のプライベートIPを持つENI経由でAWSサービスやエンドポイントサービスへ接続する仕組みです。",
+      "icon": "icons/aws/vpc_endpoint.png",
+      "points": [
+        {
+          "label": "ENI",
+          "text": "指定したサブネットにエンドポイントネットワークインターフェイスが作られます。"
+        },
+        {
+          "label": "DNS",
+          "text": "Private DNSを有効にすると、通常のサービス名がPrivate IPへ解決されます。"
+        },
+        {
+          "label": "制御",
+          "text": "Security GroupとEndpoint Policyで、到達元と操作範囲を絞れます。"
+        }
+      ],
+      "misconception": "Interface EndpointはサブネットごとにENIを作るため、IP数と費用の設計が必要です。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Interface Endpointの見え方",
+      "lead": "利用側VPCにはEndpoint ENIが置かれる。Private DNSが有効なら、AWS API名はそのENIのPrivate IPへ向かう。",
+      "diagram": {
+        "cols": [
+          "app",
+          "dns",
+          "endpoint",
+          "service"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "app": {
+            "col": "app",
+            "row": "main",
+            "title": "Private App",
+            "icon": "icons/fluent/server.png"
+          },
+          "dns": {
+            "col": "dns",
+            "row": "main",
+            "title": "Private DNS",
+            "icon": "icons/fluent/search.png"
+          },
+          "endpoint": {
+            "col": "endpoint",
+            "row": "main",
+            "title": "Endpoint ENI",
+            "icon": "icons/aws/eni.png"
+          },
+          "service": {
+            "col": "service",
+            "row": "main",
+            "title": "CloudWatch API",
+            "icon": "icons/aws/cloudwatch.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "app",
+            "to": "dns",
+            "label": "名前解決"
+          },
+          {
+            "from": "dns",
+            "to": "endpoint",
+            "label": "Private IP"
+          },
+          {
+            "from": "endpoint",
+            "to": "service",
+            "label": "AWS network"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "利用側VPC",
+            "members": [
+              "app",
+              "dns",
+              "endpoint"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "AWS service",
+            "members": [
+              "service"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "S3接続の出口比較",
+      "lead": "上段はVPC外のInternetを通る。下段はGateway EndpointからAWS networkを通り、IGW/NATを使わずS3へ向かう。",
+      "diagram": {
+        "cols": [
+          "pattern",
+          "app",
+          "route",
+          "vpc_exit",
+          "outside_gap",
+          "internet",
+          "service_gap",
+          "s3"
+        ],
+        "rows": [
+          "nat",
+          "endpoint"
+        ],
+        "nodes": {
+          "nat_label": {
+            "col": "pattern",
+            "row": "nat",
+            "title": "NAT経由",
+            "icon": "icons/fluent/info.png"
+          },
+          "app_nat": {
+            "col": "app",
+            "row": "nat",
+            "title": "Private App",
+            "icon": "icons/fluent/server.png"
+          },
+          "rt_nat": {
+            "col": "route",
+            "row": "nat",
+            "title": "Route Table",
+            "icon": "icons/fluent/document.png"
+          },
+          "natgw": {
+            "col": "vpc_exit",
+            "row": "nat",
+            "title": "NAT Gateway",
+            "icon": "icons/aws/nat_gateway.png"
+          },
+          "internet": {
+            "col": "internet",
+            "row": "nat",
+            "title": "Internet",
+            "icon": "icons/fluent/globe.png"
+          },
+          "s3_public": {
+            "col": "s3",
+            "row": "nat",
+            "title": "S3公開API",
+            "icon": "icons/aws/s3.png"
+          },
+          "ep_label": {
+            "col": "pattern",
+            "row": "endpoint",
+            "title": "Endpoint経由",
+            "icon": "icons/fluent/info.png"
+          },
+          "app_ep": {
+            "col": "app",
+            "row": "endpoint",
+            "title": "Private App",
+            "icon": "icons/fluent/server.png"
+          },
+          "rt_ep": {
+            "col": "route",
+            "row": "endpoint",
+            "title": "Route Table",
+            "icon": "icons/fluent/document.png"
+          },
+          "gwep": {
+            "col": "vpc_exit",
+            "row": "endpoint",
+            "title": "Gateway Endpoint",
+            "icon": "icons/aws/vpc_endpoint.png"
+          },
+          "aws_network": {
+            "col": "internet",
+            "row": "endpoint",
+            "title": "AWS network",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "s3_private": {
+            "col": "s3",
+            "row": "endpoint",
+            "title": "S3 API",
+            "icon": "icons/aws/s3.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "nat_label",
+            "to": "app_nat",
+            "label": "比較"
+          },
+          {
+            "from": "app_nat",
+            "to": "rt_nat",
+            "label": "default route"
+          },
+          {
+            "from": "rt_nat",
+            "to": "natgw",
+            "label": "0.0.0.0/0"
+          },
+          {
+            "from": "natgw",
+            "to": "internet",
+            "label": "IGWへ"
+          },
+          {
+            "from": "internet",
+            "to": "s3_public",
+            "label": "public"
+          },
+          {
+            "from": "ep_label",
+            "to": "app_ep",
+            "label": "比較"
+          },
+          {
+            "from": "app_ep",
+            "to": "rt_ep",
+            "label": "S3宛先"
+          },
+          {
+            "from": "rt_ep",
+            "to": "gwep",
+            "label": "prefix list"
+          },
+          {
+            "from": "gwep",
+            "to": "aws_network",
+            "label": "IGW/NATなし"
+          },
+          {
+            "from": "aws_network",
+            "to": "s3_private",
+            "label": "S3 API"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "VPC内",
+            "members": [
+              "app_nat",
+              "rt_nat",
+              "natgw",
+              "app_ep",
+              "rt_ep",
+              "gwep"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "VPC外 Internet",
+            "members": [
+              "internet"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "VPC外 AWS network",
+            "members": [
+              "aws_network"
+            ]
+          },
+          {
+            "name": "container_3",
+            "label": "AWS service",
+            "members": [
+              "s3_public",
+              "s3_private"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "kicker": "方式選択",
+      "title": "VPC Endpointの使い分け",
+      "lead": "Endpointは対象サービスで決まる部分が大きい。S3か、AWS APIか、自分のサービス公開かを先に分ける。",
+      "columns": [
+        "種類",
+        "向いている用途",
+        "設計で見る点"
+      ],
+      "rows": [
+        [
+          "Gateway",
+          "S3、DynamoDBへの接続",
+          "ルートテーブルとEndpoint Policy"
+        ],
+        [
+          "Interface",
+          "多くのAWSサービスやPrivateLinkサービス",
+          "Subnet、ENI、Security Group、Private DNS"
+        ],
+        [
+          "Gateway Load Balancer",
+          "仮想アプライアンス群への透過的な挿入",
+          "ルート制御と検査対象の対称性"
+        ],
+        [
+          "Service Network",
+          "VPC Latticeのサービスネットワーク利用",
+          "関連付けと認可ポリシー"
+        ]
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "PrivateLink",
+      "title": "AWS PrivateLink",
+      "term": "AWS PrivateLink",
+      "lead": "PrivateLinkは、提供者VPCのサービスを利用者VPCへPrivate IPで公開する仕組み。双方向の自由な到達性は作らない。",
+      "definition": "VPC間やAWSサービスへの接続を、プライベートIPベースで提供する仕組みです。利用側はInterface Endpointを作り、提供側のサービスへ到達します。",
+      "icon": "icons/aws/privatelink.png",
+      "points": [
+        {
+          "label": "片方向性",
+          "text": "利用者側からサービス側へ接続する形になり、相互にCIDR経路を広げる必要がありません。"
+        },
+        {
+          "label": "重複CIDR",
+          "text": "VPC同士のCIDRが重複していても、サービス公開の形なら接続しやすいです。"
+        },
+        {
+          "label": "境界",
+          "text": "接続対象は公開するサービス単位です。ネットワーク全体を相互接続しません。"
+        }
+      ],
+      "misconception": "PrivateLinkはVPC全体を相互接続する技術ではありません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "PrivateLinkの接続境界",
+      "lead": "利用者VPCに見えるのはEndpoint ENI。提供者側はNLB配下のサービスだけを公開し、VPC全体の経路は渡さない。",
+      "diagram": {
+        "cols": [
+          "consumer_app",
+          "consumer_ep",
+          "gap_a",
+          "privatelink",
+          "gap_b",
+          "nlb",
+          "service"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "consumer_app": {
+            "col": "consumer_app",
+            "row": "main",
+            "title": "利用App",
+            "icon": "icons/fluent/server.png"
+          },
+          "consumer_ep": {
+            "col": "consumer_ep",
+            "row": "main",
+            "title": "Endpoint ENI",
+            "icon": "icons/aws/eni.png"
+          },
+          "privatelink": {
+            "col": "privatelink",
+            "row": "main",
+            "title": "PrivateLink",
+            "icon": "icons/aws/privatelink.png"
+          },
+          "nlb": {
+            "col": "nlb",
+            "row": "main",
+            "title": "NLB",
+            "icon": "icons/fluent/gateway.png"
+          },
+          "provider_service": {
+            "col": "service",
+            "row": "main",
+            "title": "Fargate Service",
+            "icon": "icons/aws/fargate.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "consumer_app",
+            "to": "consumer_ep",
+            "label": "Private IP"
+          },
+          {
+            "from": "consumer_ep",
+            "to": "privatelink",
+            "label": "サービス名"
+          },
+          {
+            "from": "privatelink",
+            "to": "nlb",
+            "label": "公開先"
+          },
+          {
+            "from": "nlb",
+            "to": "provider_service",
+            "label": "転送"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "利用者VPC",
+            "members": [
+              "consumer_app",
+              "consumer_ep"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "AWS network",
+            "members": [
+              "privatelink"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "提供者VPC",
+            "members": [
+              "nlb",
+              "provider_service"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "VPC間接続",
+      "title": "VPC Peering",
+      "term": "VPC Peering",
+      "lead": "VPC Peeringは2つのVPCを直接つなぐ素朴な選択肢。数が増えるほど経路管理とCIDR重複が重くなる。",
+      "definition": "2つのVPCをprivate IPで直接つなぐ接続です。同一Regionまたは異なるRegionのVPC間で、ルートテーブルを更新して通信させます。",
+      "icon": "icons/aws/vpc_peering.png",
+      "points": [
+        {
+          "label": "一対一",
+          "text": "Peeringは2つのVPCの直接関係です。多くのVPCをつなぐと接続数と経路管理が増えます。"
+        },
+        {
+          "label": "非推移",
+          "text": "AとB、BとCをPeeringしても、AからCへB経由では通信できません。"
+        },
+        {
+          "label": "CIDR",
+          "text": "重複するIPv4またはIPv6 CIDRを持つVPC同士ではPeeringを作れません。"
+        }
+      ],
+      "misconception": "Peering先のInternet GatewayやNAT Gatewayを、別VPCから出口として使うことはできません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Peeringの1対1と非推移",
+      "lead": "Peeringは直接結んだ2つのVPCだけをつなぐ。A-BとB-Cを作っても、AからCへB経由では通れない。",
+      "diagram": {
+        "cols": [
+          "left",
+          "mid_left",
+          "center",
+          "mid_right",
+          "right"
+        ],
+        "rows": [
+          "direct",
+          "blocked"
+        ],
+        "nodes": {
+          "vpc_a": {
+            "col": "left",
+            "row": "direct",
+            "title": "VPC A",
+            "icon": "icons/aws/vpc.png"
+          },
+          "peer_ab": {
+            "col": "mid_left",
+            "row": "direct",
+            "title": "Peering",
+            "icon": "icons/aws/vpc_peering.png"
+          },
+          "vpc_b": {
+            "col": "center",
+            "row": "direct",
+            "title": "VPC B",
+            "icon": "icons/aws/vpc.png"
+          },
+          "app_a": {
+            "col": "left",
+            "row": "blocked",
+            "title": "VPC A",
+            "icon": "icons/aws/vpc.png"
+          },
+          "no_transit": {
+            "col": "center",
+            "row": "blocked",
+            "title": "B経由不可",
+            "icon": "icons/fluent/warning.png"
+          },
+          "vpc_c": {
+            "col": "right",
+            "row": "blocked",
+            "title": "VPC C",
+            "icon": "icons/aws/vpc.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "vpc_a",
+            "to": "peer_ab",
+            "label": "直接"
+          },
+          {
+            "from": "peer_ab",
+            "to": "vpc_b",
+            "label": "到達"
+          },
+          {
+            "from": "app_a",
+            "to": "no_transit",
+            "label": "AからC"
+          },
+          {
+            "from": "no_transit",
+            "to": "vpc_c",
+            "label": "通らない",
+            "dash": "dash"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "成立する1対1",
+            "members": [
+              "vpc_a",
+              "peer_ab",
+              "vpc_b"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "推移しない通信",
+            "members": [
+              "app_a",
+              "no_transit",
+              "vpc_c"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "VPC間接続",
+      "title": "Transit Gateway",
+      "term": "AWS Transit Gateway",
+      "lead": "Transit Gatewayは、多くのVPCや拠点を集約するハブ。アタッチメントとTGW Route Tableを分けて読むと、到達範囲を追いやすい。",
+      "definition": "複数のVPC、VPN、Direct Connect Gatewayを接続する、リージョン単位の中継ハブです。アタッチメントとTransit Gateway Route Tableで到達範囲を制御します。",
+      "icon": "icons/aws/transit_gateway.png",
+      "points": [
+        {
+          "label": "Hub",
+          "text": "VPCごとの個別Peeringを減らし、中心のハブへ接続を集約します。"
+        },
+        {
+          "label": "Route Table",
+          "text": "アタッチメントごとの関連付けと経路伝播で、通信できる範囲を分けます。"
+        },
+        {
+          "label": "拡張",
+          "text": "オンプレミス、別Region、共有サービスVPC、検査VPCを組み合わせる設計に向きます。"
+        }
+      ],
+      "misconception": "VPCをTransit Gatewayへアタッチしても、VPC側のSubnet Route Tableを設定しなければ通信は流れません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Transit Gatewayの経路制御",
+      "lead": "TGWでは、どのアタッチメントをどのTGW Route Tableへ関連付けるかで到達範囲が決まる。",
+      "diagram": {
+        "cols": [
+          "vpc_a",
+          "att_a",
+          "tgw",
+          "rt",
+          "att_b",
+          "vpc_b"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "vpc_a": {
+            "col": "vpc_a",
+            "row": "main",
+            "title": "VPC A",
+            "icon": "icons/aws/vpc.png"
+          },
+          "att_a": {
+            "col": "att_a",
+            "row": "main",
+            "title": "VPC-A attachment",
+            "icon": "icons/aws/tgw_attachment.png"
+          },
+          "tgw": {
+            "col": "tgw",
+            "row": "main",
+            "title": "Transit Gateway",
+            "icon": "icons/aws/transit_gateway.png"
+          },
+          "rt": {
+            "col": "rt",
+            "row": "main",
+            "title": "TGW Route Table",
+            "icon": "icons/fluent/document.png"
+          },
+          "att_b": {
+            "col": "att_b",
+            "row": "main",
+            "title": "VPC-B attachment",
+            "icon": "icons/aws/tgw_attachment.png"
+          },
+          "vpc_b": {
+            "col": "vpc_b",
+            "row": "main",
+            "title": "VPC B",
+            "icon": "icons/aws/vpc.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "vpc_a",
+            "to": "att_a",
+            "label": "接続"
+          },
+          {
+            "from": "att_a",
+            "to": "tgw",
+            "label": "収容"
+          },
+          {
+            "from": "tgw",
+            "to": "rt",
+            "label": "関連付け"
+          },
+          {
+            "from": "rt",
+            "to": "att_b",
+            "label": "伝播経路"
+          },
+          {
+            "from": "att_b",
+            "to": "vpc_b",
+            "label": "到達"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Spoke",
+            "members": [
+              "vpc_a",
+              "att_a"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Spoke",
+            "members": [
+              "vpc_b"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "paired_comparison",
+      "kicker": "方式比較",
+      "title": "PeeringとTransit Gateway",
+      "lead": "Peeringは少数接続で軽く、Transit Gatewayは多数接続の制御に向く。将来の増え方まで含めて選ぶ。",
+      "left_label": "VPC Peering",
+      "right_label": "Transit Gateway",
+      "rows": [
+        {
+          "criterion": "接続形態",
+          "left": "VPC同士の一対一接続",
+          "right": "複数接続を集約するHub"
+        },
+        {
+          "criterion": "推移通信",
+          "left": "非対応",
+          "right": "Route Table設計で制御"
+        },
+        {
+          "criterion": "向く規模",
+          "left": "少数VPC、単純な接続",
+          "right": "多数VPC、オンプレ接続、共通検査"
+        },
+        {
+          "criterion": "注意点",
+          "left": "接続数と経路更新が増えやすい",
+          "right": "経路伝播と関連付けの設計が重要"
+        }
+      ]
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "questions",
+      "kicker": "Middle章末チェック",
+      "title": "接続方式の確認",
+      "questions": [
+        {
+          "question": "Private SubnetからS3へ、NAT Gatewayを通さず到達したい。まず検討するものはどれか。",
+          "options": [
+            "Gateway Endpoint",
+            "VPC Peering",
+            "Client VPN"
+          ],
+          "answer": 0,
+          "explanation": "S3やDynamoDBへ閉じて到達する代表的な選択肢はGateway Endpoint。Route Tableに経路として現れる。"
+        },
+        {
+          "question": "自分のVPCのサービスを、相手VPCへ片方向に近い形で公開したい。適した考え方はどれか。",
+          "options": [
+            "PrivateLink",
+            "CIDRを重ねる",
+            "Default Security Groupを共有する"
+          ],
+          "answer": 0,
+          "explanation": "PrivateLinkは提供者サービスを利用者VPCのEndpointとして見せる。VPC全体を相互接続する設計ではない。"
+        },
+        {
+          "question": "Peering、PrivateLink、Transit Gatewayを選ぶ前に、運用面で必ず比べたいものはどれか。",
+          "options": [
+            "Route Table、DNS、料金、責任分界",
+            "EC2のAMI名だけ",
+            "利用者のブラウザ設定だけ"
+          ],
+          "answer": 0,
+          "explanation": "接続方式は作れて終わりではない。経路、名前解決、費用、誰が管理するかまで比べると選定理由が明確になる。"
+        }
+      ],
+      "lead": "接続方式は、到達先、公開面、VPC数の3点で選ぶ。設問もこの順番で切り分ける。"
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "answers",
+      "kicker": "Middle章末チェック",
+      "title": "接続方式の解答",
+      "questions": [
+        {
+          "question": "Private SubnetからS3へ、NAT Gatewayを通さず到達したい。まず検討するものはどれか。",
+          "options": [
+            "Gateway Endpoint",
+            "VPC Peering",
+            "Client VPN"
+          ],
+          "answer": 0,
+          "explanation": "S3やDynamoDBへ閉じて到達する代表的な選択肢はGateway Endpoint。Route Tableに経路として現れる。"
+        },
+        {
+          "question": "自分のVPCのサービスを、相手VPCへ片方向に近い形で公開したい。適した考え方はどれか。",
+          "options": [
+            "PrivateLink",
+            "CIDRを重ねる",
+            "Default Security Groupを共有する"
+          ],
+          "answer": 0,
+          "explanation": "PrivateLinkは提供者サービスを利用者VPCのEndpointとして見せる。VPC全体を相互接続する設計ではない。"
+        },
+        {
+          "question": "Peering、PrivateLink、Transit Gatewayを選ぶ前に、運用面で必ず比べたいものはどれか。",
+          "options": [
+            "Route Table、DNS、料金、責任分界",
+            "EC2のAMI名だけ",
+            "利用者のブラウザ設定だけ"
+          ],
+          "answer": 0,
+          "explanation": "接続方式は作れて終わりではない。経路、名前解決、費用、誰が管理するかまで比べると選定理由が明確になる。"
+        }
+      ],
+      "lead": "迷ったら、AWSサービスへ行くのか、相手VPCへ行くのか、多数接続を集約したいのかに戻る。"
+    },
+    {
+      "type": "title",
+      "title": "Senior: Hybrid接続",
+      "subtitle": "拠点とAWSをつなぐ前に、可用性、経路交換、責任分界をそろえる"
+    },
+    {
+      "type": "cards",
+      "kicker": "Hybridの合格ライン",
+      "title": "拠点接続を運用品質で説明できる状態",
+      "lead": "Hybrid接続では、回線がつながることだけをゴールにしない。障害時の経路、BGP、監視、責任分界までセットで読む。",
+      "style": "editorial",
+      "cards": [
+        {
+          "heading": "可用性",
+          "body": "VPNやDirect Connectを単線で考えず、冗長化とフェイルオーバーを確認する。"
+        },
+        {
+          "heading": "経路交換",
+          "body": "BGPで何を広告し、何を受け取るかを制御する。"
+        },
+        {
+          "heading": "境界",
+          "body": "オンプレミス、回線、AWS側Gatewayの責任範囲を分ける。"
+        },
+        {
+          "heading": "観測",
+          "body": "疎通確認、メトリクス、ログで障害箇所を切り分けられる状態にする。"
+        }
+      ]
+    },
+    {
+      "type": "process",
+      "kicker": "判断フロー",
+      "title": "Hybrid接続の設計判断",
+      "lead": "拠点接続は、回線方式だけでは決まらない。可用性、経路交換、障害時の切り替えまで先に並べる。",
+      "steps": [
+        {
+          "name": "要件",
+          "desc": "帯域、遅延、暗号化、閉域要件を確認する。"
+        },
+        {
+          "name": "冗長",
+          "desc": "PrimaryとBackupの回線、トンネル、ロケーションを分ける。"
+        },
+        {
+          "name": "BGP",
+          "desc": "広報するCIDR、受け取る経路、優先経路を決める。"
+        },
+        {
+          "name": "運用",
+          "desc": "監視、切り替え試験、責任分界を運用手順に入れる。"
+        }
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "ハイブリッド",
+      "title": "Site to Site VPN",
+      "term": "AWS Site-to-Site VPN",
+      "lead": "Site-to-Site VPNはインターネット上に暗号化トンネルを張る接続。早く始めやすい一方で、帯域と安定性は要件確認が必要。",
+      "definition": "オンプレミスや拠点ネットワークとAWSをIPsec VPNで接続するマネージドサービスです。Virtual Private GatewayまたはTransit Gatewayへ接続します。",
+      "icon": "icons/aws/site_to_site_vpn.png",
+      "points": [
+        {
+          "label": "暗号化",
+          "text": "インターネットなどの経路上でIPsecにより通信を保護します。"
+        },
+        {
+          "label": "冗長性",
+          "text": "AWS側は通常2本のトンネルを提供し、動的ルーティングではBGPを使えます。"
+        },
+        {
+          "label": "用途",
+          "text": "導入の速さ、バックアップ回線、小規模なハイブリッド接続に向きます。"
+        }
+      ],
+      "misconception": "VPNは便利ですが、帯域や遅延の安定性を専用線と同じ前提で扱うべきではありません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Site-to-Site VPNの2本トンネル",
+      "lead": "VPN接続は冗長な2本のトンネルとして読む。拠点側ルーター、Internet、AWS側Gateway、VPCまでを分けて確認する。",
+      "diagram": {
+        "cols": [
+          "onprem",
+          "internet",
+          "tunnel",
+          "gateway",
+          "vpc"
+        ],
+        "rows": [
+          "tunnel_a",
+          "tunnel_b"
+        ],
+        "nodes": {
+          "onprem_a": {
+            "col": "onprem",
+            "row": "tunnel_a",
+            "title": "拠点Router",
+            "icon": "icons/fluent/router.png"
+          },
+          "internet_a": {
+            "col": "internet",
+            "row": "tunnel_a",
+            "title": "Internet",
+            "icon": "icons/fluent/globe.png"
+          },
+          "tunnel_a": {
+            "col": "tunnel",
+            "row": "tunnel_a",
+            "title": "Tunnel A",
+            "icon": "icons/fluent/link.png"
+          },
+          "gateway_a": {
+            "col": "gateway",
+            "row": "tunnel_a",
+            "title": "AWS Gateway",
+            "icon": "icons/aws/vpn_gateway.png"
+          },
+          "vpc_a": {
+            "col": "vpc",
+            "row": "tunnel_a",
+            "title": "VPC",
+            "icon": "icons/aws/vpc.png"
+          },
+          "onprem_b": {
+            "col": "onprem",
+            "row": "tunnel_b",
+            "title": "拠点Router",
+            "icon": "icons/fluent/router.png"
+          },
+          "internet_b": {
+            "col": "internet",
+            "row": "tunnel_b",
+            "title": "Internet",
+            "icon": "icons/fluent/globe.png"
+          },
+          "tunnel_b": {
+            "col": "tunnel",
+            "row": "tunnel_b",
+            "title": "Tunnel B",
+            "icon": "icons/fluent/link.png"
+          },
+          "gateway_b": {
+            "col": "gateway",
+            "row": "tunnel_b",
+            "title": "AWS Gateway",
+            "icon": "icons/aws/vpn_gateway.png"
+          },
+          "vpc_b": {
+            "col": "vpc",
+            "row": "tunnel_b",
+            "title": "VPC",
+            "icon": "icons/aws/vpc.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "onprem_a",
+            "to": "internet_a",
+            "label": "暗号化"
+          },
+          {
+            "from": "internet_a",
+            "to": "tunnel_a",
+            "label": "IPsec"
+          },
+          {
+            "from": "tunnel_a",
+            "to": "gateway_a",
+            "label": "BGP"
+          },
+          {
+            "from": "gateway_a",
+            "to": "vpc_a",
+            "label": "経路"
+          },
+          {
+            "from": "onprem_b",
+            "to": "internet_b",
+            "label": "暗号化"
+          },
+          {
+            "from": "internet_b",
+            "to": "tunnel_b",
+            "label": "IPsec"
+          },
+          {
+            "from": "tunnel_b",
+            "to": "gateway_b",
+            "label": "BGP"
+          },
+          {
+            "from": "gateway_b",
+            "to": "vpc_b",
+            "label": "経路"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "On-premises",
+            "members": [
+              "onprem_a",
+              "onprem_b"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Internet",
+            "members": [
+              "internet_a",
+              "internet_b",
+              "tunnel_a",
+              "tunnel_b"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "AWS",
+            "members": [
+              "gateway_a",
+              "gateway_b",
+              "vpc_a",
+              "vpc_b"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "リモートアクセス",
+      "title": "Client VPN",
+      "term": "AWS Client VPN",
+      "lead": "Client VPNは利用者端末からVPCへ入るためのリモートアクセス。拠点間接続とは利用者、認証、運用が違う。",
+      "definition": "利用者端末からAWSやオンプレミス内のリソースへ安全に接続する、マネージドなクライアントVPNサービスです。",
+      "icon": "icons/aws/client_vpn.png",
+      "points": [
+        {
+          "label": "利用者単位",
+          "text": "個々の利用者端末からのアクセスを扱い、拠点間接続とは分けて考えます。"
+        },
+        {
+          "label": "認可",
+          "text": "認証後も、Authorization Ruleで到達できるネットワークを制御します。"
+        },
+        {
+          "label": "経路",
+          "text": "Client VPN EndpointのRoute Tableに、利用者へ見せる宛先ネットワークを設定します。"
+        }
+      ],
+      "misconception": "VPN接続に成功しても、認可ルールや経路がなければ目的のサブネットへ到達できません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Client VPNの接続構造",
+      "lead": "利用者端末がClient VPN Endpointへ接続し、Target Network Association経由でVPCのSubnetへ到達する。Authは利用者単位で評価される。",
+      "diagram": {
+        "cols": [
+          "client",
+          "internet",
+          "endpoint",
+          "assoc",
+          "vpc"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "client": {
+            "col": "client",
+            "row": "main",
+            "title": "利用者端末",
+            "icon": "icons/aws/user.png"
+          },
+          "internet": {
+            "col": "internet",
+            "row": "main",
+            "title": "Internet",
+            "icon": "icons/fluent/globe.png"
+          },
+          "endpoint": {
+            "col": "endpoint",
+            "row": "main",
+            "title": "Client VPN Endpoint",
+            "icon": "icons/aws/client_vpn.png"
+          },
+          "assoc": {
+            "col": "assoc",
+            "row": "main",
+            "title": "Target Network Assoc",
+            "icon": "icons/fluent/link.png"
+          },
+          "vpc": {
+            "col": "vpc",
+            "row": "main",
+            "title": "VPC Subnet",
+            "icon": "icons/aws/subnet_private.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "client",
+            "to": "internet",
+            "label": "OpenVPN/IKEv2"
+          },
+          {
+            "from": "internet",
+            "to": "endpoint",
+            "label": "TLSトンネル"
+          },
+          {
+            "from": "endpoint",
+            "to": "assoc",
+            "label": "認証後"
+          },
+          {
+            "from": "assoc",
+            "to": "vpc",
+            "label": "Private IP"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "クライアント側",
+            "members": [
+              "client",
+              "internet"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "AWS",
+            "members": [
+              "endpoint",
+              "assoc",
+              "vpc"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "専用線",
+      "title": "Direct Connect",
+      "term": "AWS Direct Connect",
+      "lead": "Direct Connectは専用線でAWSへ接続する選択肢。閉域らしさだけでなく、冗長化とBGP設計が品質を決める。",
+      "definition": "自社ネットワークとAWS Direct Connectロケーションを専用のネットワーク接続で結ぶサービスです。Virtual Interfaceを使って通信種別を分けます。",
+      "icon": "icons/aws/direct_connect.png",
+      "points": [
+        {
+          "label": "安定性",
+          "text": "インターネットVPNより一貫した帯域や遅延を求める接続に向きます。"
+        },
+        {
+          "label": "VIF",
+          "text": "Private、Public、TransitのVirtual Interfaceを用途で選びます。"
+        },
+        {
+          "label": "冗長性",
+          "text": "本番では接続、ロケーション、ルーター、BGP経路の冗長性を設計します。"
+        }
+      ],
+      "misconception": "Direct Connectは専用接続ですが、要件によっては上位で暗号化を足す設計が必要です。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Direct Connect接続経路",
+      "lead": "物理接続はDX LocationとAWSのネットワーク。VIFを通じてDX GatewayからTGWまたはVGWへ到達する。DX Gatewayでリージョンをまたぐ接続を束ねる。",
+      "diagram": {
+        "cols": [
+          "customer",
+          "location",
+          "dxgw",
+          "gateway",
+          "vpc"
+        ],
+        "rows": [
+          "primary",
+          "backup"
+        ],
+        "nodes": {
+          "router_p": {
+            "col": "customer",
+            "row": "primary",
+            "title": "Customer Router A",
+            "icon": "icons/fluent/router.png"
+          },
+          "loc_p": {
+            "col": "location",
+            "row": "primary",
+            "title": "DX Location A",
+            "icon": "icons/fluent/building.png"
+          },
+          "dxgw_p": {
+            "col": "dxgw",
+            "row": "primary",
+            "title": "DX Gateway",
+            "icon": "icons/aws/dx_gateway.png"
+          },
+          "tgw_dx": {
+            "col": "gateway",
+            "row": "primary",
+            "title": "TGW",
+            "icon": "icons/aws/transit_gateway.png"
+          },
+          "vpc_a": {
+            "col": "vpc",
+            "row": "primary",
+            "title": "VPC-A",
+            "icon": "icons/aws/vpc.png"
+          },
+          "router_b": {
+            "col": "customer",
+            "row": "backup",
+            "title": "Customer Router B",
+            "icon": "icons/fluent/router.png"
+          },
+          "loc_b": {
+            "col": "location",
+            "row": "backup",
+            "title": "DX Location B",
+            "icon": "icons/fluent/building.png"
+          },
+          "dxgw_b": {
+            "col": "dxgw",
+            "row": "backup",
+            "title": "DX Gateway",
+            "icon": "icons/aws/dx_gateway.png"
+          },
+          "vgw": {
+            "col": "gateway",
+            "row": "backup",
+            "title": "VGW",
+            "icon": "icons/aws/vpn_gateway.png"
+          },
+          "vpc_b": {
+            "col": "vpc",
+            "row": "backup",
+            "title": "VPC-B",
+            "icon": "icons/aws/vpc.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "router_p",
+            "to": "loc_p",
+            "label": "専用線"
+          },
+          {
+            "from": "loc_p",
+            "to": "dxgw_p",
+            "label": "Transit VIF"
+          },
+          {
+            "from": "dxgw_p",
+            "to": "tgw_dx",
+            "label": "関連付け"
+          },
+          {
+            "from": "tgw_dx",
+            "to": "vpc_a",
+            "label": "アタッチ"
+          },
+          {
+            "from": "router_b",
+            "to": "loc_b",
+            "label": "冗長回線"
+          },
+          {
+            "from": "loc_b",
+            "to": "dxgw_b",
+            "label": "Private VIF"
+          },
+          {
+            "from": "dxgw_b",
+            "to": "vgw",
+            "label": "関連付け"
+          },
+          {
+            "from": "vgw",
+            "to": "vpc_b",
+            "label": "アタッチ"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Customer",
+            "members": [
+              "router_p",
+              "router_b"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "DX Locations",
+            "members": [
+              "loc_p",
+              "loc_b"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "AWS",
+            "members": [
+              "dxgw_p",
+              "tgw_dx",
+              "vpc_a",
+              "dxgw_b",
+              "vgw",
+              "vpc_b"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "kicker": "Direct Connect",
+      "title": "Virtual Interfaceの種類",
+      "lead": "VIFはDirect Connect上で、どのAWSリソースへ到達するかを分ける論理的な入口。Private、Public、Transitを区別する。",
+      "columns": [
+        "VIF",
+        "到達先",
+        "代表的な使い方"
+      ],
+      "rows": [
+        [
+          "Private VIF",
+          "VPC内のprivate IP",
+          "VGWまたはDXGW経由でVPCへ接続"
+        ],
+        [
+          "Public VIF",
+          "AWS public service",
+          "S3などのpublic endpointへ専用接続から到達"
+        ],
+        [
+          "Transit VIF",
+          "Transit Gateway",
+          "DXGW経由で複数VPCや拠点接続を集約"
+        ]
+      ]
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "VIFごとの到達先",
+      "lead": "Direct Connectの物理接続は同じでも、VIFの種類で到達先が変わる。Private、Public、Transitを別の入口として読む。",
+      "diagram": {
+        "cols": [
+          "onprem",
+          "dx",
+          "vif",
+          "target"
+        ],
+        "rows": [
+          "private",
+          "public",
+          "transit"
+        ],
+        "nodes": {
+          "onprem_private": {
+            "col": "onprem",
+            "row": "private",
+            "title": "On-prem",
+            "icon": "icons/fluent/building.png"
+          },
+          "dx_private": {
+            "col": "dx",
+            "row": "private",
+            "title": "DX",
+            "icon": "icons/aws/direct_connect.png"
+          },
+          "private_vif": {
+            "col": "vif",
+            "row": "private",
+            "title": "Private VIF",
+            "icon": "icons/fluent/link.png"
+          },
+          "vpc_target": {
+            "col": "target",
+            "row": "private",
+            "title": "VPC",
+            "icon": "icons/aws/vpc.png"
+          },
+          "onprem_public": {
+            "col": "onprem",
+            "row": "public",
+            "title": "On-prem",
+            "icon": "icons/fluent/building.png"
+          },
+          "dx_public": {
+            "col": "dx",
+            "row": "public",
+            "title": "DX",
+            "icon": "icons/aws/direct_connect.png"
+          },
+          "public_vif": {
+            "col": "vif",
+            "row": "public",
+            "title": "Public VIF",
+            "icon": "icons/fluent/link.png"
+          },
+          "s3_target": {
+            "col": "target",
+            "row": "public",
+            "title": "S3 public API",
+            "icon": "icons/aws/s3.png"
+          },
+          "onprem_transit": {
+            "col": "onprem",
+            "row": "transit",
+            "title": "On-prem",
+            "icon": "icons/fluent/building.png"
+          },
+          "dx_transit": {
+            "col": "dx",
+            "row": "transit",
+            "title": "DX",
+            "icon": "icons/aws/direct_connect.png"
+          },
+          "transit_vif": {
+            "col": "vif",
+            "row": "transit",
+            "title": "Transit VIF",
+            "icon": "icons/fluent/link.png"
+          },
+          "tgw_target": {
+            "col": "target",
+            "row": "transit",
+            "title": "TGW",
+            "icon": "icons/aws/transit_gateway.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "onprem_private",
+            "to": "dx_private",
+            "label": "物理接続"
+          },
+          {
+            "from": "dx_private",
+            "to": "private_vif",
+            "label": "論理入口"
+          },
+          {
+            "from": "private_vif",
+            "to": "vpc_target",
+            "label": "Private IP"
+          },
+          {
+            "from": "onprem_public",
+            "to": "dx_public",
+            "label": "物理接続"
+          },
+          {
+            "from": "dx_public",
+            "to": "public_vif",
+            "label": "論理入口"
+          },
+          {
+            "from": "public_vif",
+            "to": "s3_target",
+            "label": "public API"
+          },
+          {
+            "from": "onprem_transit",
+            "to": "dx_transit",
+            "label": "物理接続"
+          },
+          {
+            "from": "dx_transit",
+            "to": "transit_vif",
+            "label": "論理入口"
+          },
+          {
+            "from": "transit_vif",
+            "to": "tgw_target",
+            "label": "多数VPC"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Customer",
+            "members": [
+              "onprem_private",
+              "onprem_public",
+              "onprem_transit"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Direct Connect",
+            "members": [
+              "dx_private",
+              "dx_public",
+              "dx_transit",
+              "private_vif",
+              "public_vif",
+              "transit_vif"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "AWS target",
+            "members": [
+              "vpc_target",
+              "s3_target",
+              "tgw_target"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "ハイブリッド接続の代表形",
+      "lead": "Hybrid構成図では、オンプレミス側、回線、AWS側Gateway、VPCの境界を分けて見る。冗長前提で考える。",
+      "diagram": {
+        "cols": [
+          "onprem",
+          "primary",
+          "backup",
+          "edge",
+          "dxgw",
+          "tgw",
+          "vpc"
+        ],
+        "rows": [
+          "primary",
+          "backup"
+        ],
+        "nodes": {
+          "onprem_p": {
+            "col": "onprem",
+            "row": "primary",
+            "title": "On-prem Router",
+            "icon": "icons/fluent/router.png"
+          },
+          "onprem_b": {
+            "col": "onprem",
+            "row": "backup",
+            "title": "On-prem Router",
+            "icon": "icons/fluent/router.png"
+          },
+          "primary": {
+            "col": "primary",
+            "row": "primary",
+            "title": "Primary Circuit",
+            "icon": "icons/fluent/link.png"
+          },
+          "backup": {
+            "col": "backup",
+            "row": "backup",
+            "title": "Backup Circuit",
+            "icon": "icons/fluent/link.png"
+          },
+          "edge_p": {
+            "col": "edge",
+            "row": "primary",
+            "title": "DX Location A",
+            "icon": "icons/fluent/building.png"
+          },
+          "edge_b": {
+            "col": "edge",
+            "row": "backup",
+            "title": "DX Location B",
+            "icon": "icons/fluent/building.png"
+          },
+          "dxgw_p": {
+            "col": "dxgw",
+            "row": "primary",
+            "title": "DX Gateway",
+            "icon": "icons/aws/dx_gateway.png"
+          },
+          "dxgw_b": {
+            "col": "dxgw",
+            "row": "backup",
+            "title": "DX Gateway",
+            "icon": "icons/aws/dx_gateway.png"
+          },
+          "tgw_p": {
+            "col": "tgw",
+            "row": "primary",
+            "title": "Transit Gateway",
+            "icon": "icons/aws/transit_gateway.png"
+          },
+          "tgw_b": {
+            "col": "tgw",
+            "row": "backup",
+            "title": "Transit Gateway",
+            "icon": "icons/aws/transit_gateway.png"
+          },
+          "vpc_p": {
+            "col": "vpc",
+            "row": "primary",
+            "title": "VPC",
+            "icon": "icons/aws/vpc.png"
+          },
+          "vpc_b": {
+            "col": "vpc",
+            "row": "backup",
+            "title": "VPC",
+            "icon": "icons/aws/vpc.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "onprem_p",
+            "to": "primary",
+            "label": "BGP"
+          },
+          {
+            "from": "primary",
+            "to": "edge_p",
+            "label": "Primary"
+          },
+          {
+            "from": "edge_p",
+            "to": "dxgw_p",
+            "label": "AWS edge"
+          },
+          {
+            "from": "dxgw_p",
+            "to": "tgw_p",
+            "label": "関連付け"
+          },
+          {
+            "from": "tgw_p",
+            "to": "vpc_p",
+            "label": "アタッチ"
+          },
+          {
+            "from": "onprem_b",
+            "to": "backup",
+            "label": "BGP"
+          },
+          {
+            "from": "backup",
+            "to": "edge_b",
+            "label": "Backup"
+          },
+          {
+            "from": "edge_b",
+            "to": "dxgw_b",
+            "label": "AWS edge"
+          },
+          {
+            "from": "dxgw_b",
+            "to": "tgw_b",
+            "label": "関連付け"
+          },
+          {
+            "from": "tgw_b",
+            "to": "vpc_b",
+            "label": "アタッチ"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "On-premises",
+            "members": [
+              "onprem_p",
+              "onprem_b"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "AWS",
+            "members": [
+              "edge_p",
+              "edge_b",
+              "dxgw_p",
+              "dxgw_b",
+              "tgw_p",
+              "tgw_b",
+              "vpc_p",
+              "vpc_b"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "ルーティング",
+      "title": "BGP",
+      "term": "BGP",
+      "lead": "BGPはつながった後の到達範囲を決める。何を広報し、何を受け入れ、どちらを優先するかを設計する。",
+      "definition": "ネットワーク間で到達可能なプレフィックスを交換し、経路を動的に選ぶためのルーティングプロトコルです。AWSではVPNやDirect Connectでよく使います。",
+      "icon": "icons/fluent/router.png",
+      "points": [
+        {
+          "label": "経路交換",
+          "text": "オンプレミス側とAWS側が、どのCIDRへ到達できるかを広告します。"
+        },
+        {
+          "label": "冗長化",
+          "text": "複数トンネルや複数回線が、障害時に経路を切り替える土台になります。"
+        },
+        {
+          "label": "制御",
+          "text": "広告するプレフィックス、AS番号、優先経路を誤ると意図しない通信が流れます。"
+        }
+      ],
+      "misconception": "BGPが上がっていることと、アプリ通信が許可されていることは別問題です。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "BGPによる経路制御",
+      "lead": "BGPは広告するCIDRと受け取る経路で到達範囲を制御する。AS-PATHを変えてPrimaryとBackupの優先度を設定する。",
+      "diagram": {
+        "cols": [
+          "onprem",
+          "path",
+          "aws_gw",
+          "vpc"
+        ],
+        "rows": [
+          "primary",
+          "backup"
+        ],
+        "nodes": {
+          "onprem_p": {
+            "col": "onprem",
+            "row": "primary",
+            "title": "On-prem 10.0.0.0/16",
+            "icon": "icons/fluent/building.png"
+          },
+          "primary_path": {
+            "col": "path",
+            "row": "primary",
+            "title": "Primary Path",
+            "icon": "icons/fluent/link.png"
+          },
+          "aws_p": {
+            "col": "aws_gw",
+            "row": "primary",
+            "title": "AWS Gateway",
+            "icon": "icons/aws/vpn_gateway.png"
+          },
+          "vpc_p": {
+            "col": "vpc",
+            "row": "primary",
+            "title": "VPC 172.16.0.0/16",
+            "icon": "icons/aws/vpc.png"
+          },
+          "onprem_b": {
+            "col": "onprem",
+            "row": "backup",
+            "title": "On-prem (backup)",
+            "icon": "icons/fluent/building.png"
+          },
+          "backup_path": {
+            "col": "path",
+            "row": "backup",
+            "title": "Backup Path",
+            "icon": "icons/fluent/link.png"
+          },
+          "aws_b": {
+            "col": "aws_gw",
+            "row": "backup",
+            "title": "AWS Gateway",
+            "icon": "icons/aws/vpn_gateway.png"
+          },
+          "vpc_b": {
+            "col": "vpc",
+            "row": "backup",
+            "title": "VPC",
+            "icon": "icons/aws/vpc.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "onprem_p",
+            "to": "primary_path",
+            "label": "広告 10.0.0.0/16"
+          },
+          {
+            "from": "primary_path",
+            "to": "aws_p",
+            "label": "AS-PATH短い"
+          },
+          {
+            "from": "aws_p",
+            "to": "vpc_p",
+            "label": "優先経路"
+          },
+          {
+            "from": "onprem_b",
+            "to": "backup_path",
+            "label": "広告 10.0.0.0/16"
+          },
+          {
+            "from": "backup_path",
+            "to": "aws_b",
+            "label": "AS-PATH長い"
+          },
+          {
+            "from": "aws_b",
+            "to": "vpc_b",
+            "label": "待機経路"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "オンプレミス",
+            "members": [
+              "onprem_p",
+              "onprem_b"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "経路制御",
+            "members": [
+              "primary_path",
+              "backup_path"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "AWS side",
+            "members": [
+              "aws_p",
+              "vpc_p",
+              "aws_b",
+              "vpc_b"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "title",
+      "title": "Senior: DNSと入口設計",
+      "subtitle": "名前解決、負荷分散、エッジ経路を、利用者からの入口として整理する"
+    },
+    {
+      "type": "process",
+      "kicker": "判断フロー",
+      "title": "入口設計の判断フロー",
+      "lead": "入口はDNS、エッジ、防御、負荷分散が重なる場所。どの層で何を判断するかを分ける。",
+      "steps": [
+        {
+          "name": "名前解決",
+          "desc": "利用者に返す名前とIP、Private DNSの向きを決める。"
+        },
+        {
+          "name": "エッジ",
+          "desc": "CloudFront、Global Accelerator、Route 53の役割を分ける。"
+        },
+        {
+          "name": "負荷分散",
+          "desc": "ALB、NLB、GWLBのどれが入口に合うかを選ぶ。"
+        },
+        {
+          "name": "防御",
+          "desc": "WAF、Shield、DNS Firewallを入口の前後へ配置する。"
+        }
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "DNS",
+      "title": "VPC内の名前解決",
+      "term": "Route 53 VPC Resolver",
+      "lead": "AWS内の通信はDNSにも依存する。IPだけ追うと見落とす。Private DNSがどのIPへ解決されるかを確認すると、経路の誤解が減る。",
+      "definition": "VPC内のAWSリソースからのDNS問い合わせに応答するResolverです。VPC固有の名前、Private Hosted Zone、public DNSの再帰問い合わせを扱います。",
+      "icon": "icons/aws/route53_resolver.png",
+      "points": [
+        {
+          "label": "VPC+2",
+          "text": "VPCのベースアドレスに2を足したIPでResolverへ到達します。"
+        },
+        {
+          "label": "PHZ",
+          "text": "Private Hosted Zoneを関連付けると、VPC内だけで使う名前を解決します。"
+        },
+        {
+          "label": "Hybrid",
+          "text": "Inbound EndpointとOutbound Endpointで、オンプレミスDNSと相互に連携します。"
+        }
+      ],
+      "misconception": "名前が解決できることと、ネットワーク経路やSecurity Groupが通ることは別です。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "VPC内DNSの解決先",
+      "lead": "名前解決は通信の入口になる。Route 53 Resolverが、Private Hosted ZoneやAWSサービス名をどのIPへ返すかを見る。",
+      "diagram": {
+        "cols": [
+          "app",
+          "resolver",
+          "phz",
+          "target"
+        ],
+        "rows": [
+          "private_name",
+          "aws_name"
+        ],
+        "nodes": {
+          "app_private": {
+            "col": "app",
+            "row": "private_name",
+            "title": "App",
+            "icon": "icons/fluent/server.png"
+          },
+          "resolver_private": {
+            "col": "resolver",
+            "row": "private_name",
+            "title": "Route 53 Resolver",
+            "icon": "icons/aws/route53_resolver.png"
+          },
+          "phz": {
+            "col": "phz",
+            "row": "private_name",
+            "title": "Private Hosted Zone",
+            "icon": "icons/aws/route53.png"
+          },
+          "rds": {
+            "col": "target",
+            "row": "private_name",
+            "title": "RDS",
+            "icon": "icons/aws/rds.png"
+          },
+          "app_aws": {
+            "col": "app",
+            "row": "aws_name",
+            "title": "App",
+            "icon": "icons/fluent/server.png"
+          },
+          "resolver_aws": {
+            "col": "resolver",
+            "row": "aws_name",
+            "title": "Route 53 Resolver",
+            "icon": "icons/aws/route53_resolver.png"
+          },
+          "aws_dns": {
+            "col": "phz",
+            "row": "aws_name",
+            "title": "AWS service name",
+            "icon": "icons/aws/route53.png"
+          },
+          "alb_target": {
+            "col": "target",
+            "row": "aws_name",
+            "title": "ALB",
+            "icon": "icons/aws/alb.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "app_private",
+            "to": "resolver_private",
+            "label": "名前解決"
+          },
+          {
+            "from": "resolver_private",
+            "to": "phz",
+            "label": "内部名"
+          },
+          {
+            "from": "phz",
+            "to": "rds",
+            "label": "Private IP"
+          },
+          {
+            "from": "app_aws",
+            "to": "resolver_aws",
+            "label": "名前解決"
+          },
+          {
+            "from": "resolver_aws",
+            "to": "aws_dns",
+            "label": "AWS名"
+          },
+          {
+            "from": "aws_dns",
+            "to": "alb_target",
+            "label": "応答"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "VPC",
+            "members": [
+              "app_private",
+              "resolver_private",
+              "phz",
+              "rds",
+              "app_aws",
+              "resolver_aws",
+              "aws_dns",
+              "alb_target"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "message_sequence",
+      "kicker": "DNS",
+      "title": "ハイブリッドDNSの問い合わせ",
+      "lead": "Hybrid DNSでは、オンプレミスとAWSのどちらが最終的に名前を解決するかを明確にする。転送方向を図で追う。",
+      "participants": [
+        {
+          "id": "ec2",
+          "label": "EC2"
+        },
+        {
+          "id": "resolver",
+          "label": "VPC Resolver"
+        },
+        {
+          "id": "outbound",
+          "label": "Outbound Endpoint"
+        },
+        {
+          "id": "onprem",
+          "label": "On-prem DNS"
+        }
+      ],
+      "messages": [
+        {
+          "id": "q1",
+          "from": "ec2",
+          "to": "resolver",
+          "label": "internal.example.comを問い合わせ"
+        },
+        {
+          "id": "q2",
+          "from": "resolver",
+          "to": "resolver",
+          "label": "Resolver Ruleを評価"
+        },
+        {
+          "id": "q3",
+          "from": "resolver",
+          "to": "outbound",
+          "label": "対象ドメインを転送"
+        },
+        {
+          "id": "q4",
+          "from": "outbound",
+          "to": "onprem",
+          "label": "専用線またはVPN経由で問い合わせ"
+        },
+        {
+          "id": "r1",
+          "from": "onprem",
+          "to": "ec2",
+          "label": "回答を返す",
+          "kind": "return"
+        }
+      ],
+      "phases": [
+        {
+          "label": "問い合わせ",
+          "from": "q1",
+          "to": "q4"
+        },
+        {
+          "label": "応答",
+          "from": "r1",
+          "to": "r1"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "kicker": "DNS",
+      "title": "Route 53の代表的なルーティングポリシー",
+      "lead": "Route 53のルーティングポリシーは、名前解決の応答を制御する仕組み。L4/L7の負荷分散とは役割が違う。",
+      "columns": [
+        "ポリシー",
+        "用途",
+        "注意点"
+      ],
+      "rows": [
+        [
+          "Simple",
+          "単一の回答を返す基本形",
+          "フェイルオーバー判断は別途設計する"
+        ],
+        [
+          "Weighted",
+          "複数先へ割合で振り分ける",
+          "切替時はDNSキャッシュの影響を受ける"
+        ],
+        [
+          "Latency",
+          "低遅延になりやすいRegionへ返す",
+          "アプリの状態監視と組み合わせる"
+        ],
+        [
+          "Failover",
+          "ヘルスチェックに応じて待機系へ切り替える",
+          "Private IP宛のヘルスチェックには制約がある"
+        ],
+        [
+          "Geolocation",
+          "利用者の地域に応じて回答を変える",
+          "規制や言語要件と一緒に設計する"
+        ]
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "DNS Security",
+      "title": "Route 53 Resolver DNS Firewall",
+      "term": "Route 53 Resolver DNS Firewall",
+      "lead": "DNS Firewallは名前解決の段階で不正なドメインを止める。通信先IPに到達する前の境界として考える。",
+      "definition": "VPCからのDNS問い合わせに対して、許可、拒否、監査のルールを適用する機能です。悪性ドメインや許可リスト運用に使います。",
+      "icon": "icons/aws/route53_dns_firewall.png",
+      "points": [
+        {
+          "label": "制御点",
+          "text": "アプリが外へ通信する前に、名前解決の段階で止められます。"
+        },
+        {
+          "label": "ログ",
+          "text": "ブロックやアラート対象の問い合わせをCloudWatch Logs、S3、Kinesisへ記録します。"
+        },
+        {
+          "label": "限界",
+          "text": "IP直打ちの通信や独自DNS経路は別の制御で補います。"
+        }
+      ],
+      "misconception": "DNS Firewallだけで、すべての外向き通信を制御できるわけではありません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "DNS Firewallのブロック/許可フロー",
+      "lead": "DNS Firewallはドメインリストでクエリを評価する。ブロック対象のドメインはIPへ到達させず、名前解決の段階で止める。",
+      "diagram": {
+        "cols": [
+          "app",
+          "resolver",
+          "firewall",
+          "result"
+        ],
+        "rows": [
+          "blocked",
+          "allowed"
+        ],
+        "nodes": {
+          "app_b": {
+            "col": "app",
+            "row": "blocked",
+            "title": "App",
+            "icon": "icons/fluent/server.png"
+          },
+          "resolver_b": {
+            "col": "resolver",
+            "row": "blocked",
+            "title": "Route 53 Resolver",
+            "icon": "icons/aws/route53_resolver.png"
+          },
+          "fw_b": {
+            "col": "firewall",
+            "row": "blocked",
+            "title": "DNS Firewall",
+            "icon": "icons/aws/route53_dns_firewall.png"
+          },
+          "block_result": {
+            "col": "result",
+            "row": "blocked",
+            "title": "BLOCK / NXDOMAIN",
+            "icon": "icons/fluent/warning.png"
+          },
+          "app_a": {
+            "col": "app",
+            "row": "allowed",
+            "title": "App",
+            "icon": "icons/fluent/server.png"
+          },
+          "resolver_a": {
+            "col": "resolver",
+            "row": "allowed",
+            "title": "Route 53 Resolver",
+            "icon": "icons/aws/route53_resolver.png"
+          },
+          "fw_a": {
+            "col": "firewall",
+            "row": "allowed",
+            "title": "DNS Firewall",
+            "icon": "icons/aws/route53_dns_firewall.png"
+          },
+          "allow_result": {
+            "col": "result",
+            "row": "allowed",
+            "title": "IP応答",
+            "icon": "icons/fluent/globe.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "app_b",
+            "to": "resolver_b",
+            "label": "malicious.example"
+          },
+          {
+            "from": "resolver_b",
+            "to": "fw_b",
+            "label": "ドメイン評価"
+          },
+          {
+            "from": "fw_b",
+            "to": "block_result",
+            "label": "ブロックリスト一致"
+          },
+          {
+            "from": "app_a",
+            "to": "resolver_a",
+            "label": "safe.example"
+          },
+          {
+            "from": "resolver_a",
+            "to": "fw_a",
+            "label": "ドメイン評価"
+          },
+          {
+            "from": "fw_a",
+            "to": "allow_result",
+            "label": "許可→解決"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "ブロック",
+            "members": [
+              "app_b",
+              "resolver_b",
+              "fw_b",
+              "block_result"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "許可",
+            "members": [
+              "app_a",
+              "resolver_a",
+              "fw_a",
+              "allow_result"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "kicker": "ロードバランサー",
+      "title": "ELBの種類",
+      "lead": "ELBは入口の特性で選ぶ。HTTPならALB、低レイテンシやL4ならNLB、古い構成はCLBからの移行を考える。",
+      "columns": [
+        "種類",
+        "主な層",
+        "向いている用途"
+      ],
+      "rows": [
+        [
+          "Application Load Balancer",
+          "L7",
+          "HTTP、HTTPS、パスやHostに基づくルーティング"
+        ],
+        [
+          "Network Load Balancer",
+          "L4",
+          "TCP、UDP、TLS、高スループットや固定IP要件"
+        ],
+        [
+          "Gateway Load Balancer",
+          "L3/L4",
+          "Firewallなど仮想アプライアンスの挿入とスケール"
+        ],
+        [
+          "Classic Load Balancer",
+          "旧世代",
+          "新規設計では原則として現行世代を選ぶ"
+        ]
+      ]
+    },
+    {
+      "type": "diagram",
+      "kicker": "比較",
+      "title": "ALB / NLB / GWLBの選択",
+      "lead": "HTTPルーティングはALB、低レイテンシL4はNLB、トラフィック検査はGWLB。入口の特性で選ぶ。",
+      "diagram": {
+        "cols": [
+          "type_label",
+          "alb_col",
+          "nlb_col",
+          "gwlb_col"
+        ],
+        "rows": [
+          "type_row",
+          "use_row"
+        ],
+        "nodes": {
+          "lbl_type": {
+            "col": "type_label",
+            "row": "type_row",
+            "title": "種類",
+            "icon": "icons/fluent/info.png"
+          },
+          "alb_type": {
+            "col": "alb_col",
+            "row": "type_row",
+            "title": "ALB",
+            "icon": "icons/aws/alb.png"
+          },
+          "nlb_type": {
+            "col": "nlb_col",
+            "row": "type_row",
+            "title": "NLB",
+            "icon": "icons/fluent/gateway.png"
+          },
+          "gwlb_type": {
+            "col": "gwlb_col",
+            "row": "type_row",
+            "title": "GWLB",
+            "icon": "icons/fluent/shield.png"
+          },
+          "lbl_use": {
+            "col": "type_label",
+            "row": "use_row",
+            "title": "用途",
+            "icon": "icons/fluent/info.png"
+          },
+          "alb_use": {
+            "col": "alb_col",
+            "row": "use_row",
+            "title": "L7 / パスルーティング",
+            "icon": "icons/fluent/check.png"
+          },
+          "nlb_use": {
+            "col": "nlb_col",
+            "row": "use_row",
+            "title": "L4 / 固定IP",
+            "icon": "icons/fluent/check.png"
+          },
+          "gwlb_use": {
+            "col": "gwlb_col",
+            "row": "use_row",
+            "title": "L3 / 検査挿入",
+            "icon": "icons/fluent/check.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "alb_type",
+            "to": "alb_use",
+            "label": "HTTP/HTTPS"
+          },
+          {
+            "from": "nlb_type",
+            "to": "nlb_use",
+            "label": "TCP/UDP"
+          },
+          {
+            "from": "gwlb_type",
+            "to": "gwlb_use",
+            "label": "GENEVE"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Application LB",
+            "members": [
+              "alb_type",
+              "alb_use"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Network LB",
+            "members": [
+              "nlb_type",
+              "nlb_use"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "Gateway LB",
+            "members": [
+              "gwlb_type",
+              "gwlb_use"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "diagram",
+      "kicker": "入口設計",
+      "title": "エッジからVPCまでの入口",
+      "lead": "入口設計では、CloudFront、WAF、ALB、NLB、Global Acceleratorの役割を重ねすぎずに分ける。",
+      "diagram": {
+        "cols": [
+          "dns",
+          "edge",
+          "security",
+          "vpc",
+          "app"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "route53": {
+            "col": "dns",
+            "row": "main",
+            "title": "Route 53",
+            "icon": "icons/aws/route53.png"
+          },
+          "cloudfront": {
+            "col": "edge",
+            "row": "main",
+            "title": "CloudFront",
+            "icon": "icons/aws/cloudfront.png"
+          },
+          "waf": {
+            "col": "security",
+            "row": "main",
+            "title": "AWS WAF",
+            "icon": "icons/fluent/shield.png"
+          },
+          "alb": {
+            "col": "vpc",
+            "row": "main",
+            "title": "ALB",
+            "icon": "icons/aws/alb.png"
+          },
+          "app": {
+            "col": "app",
+            "row": "main",
+            "title": "App",
+            "icon": "icons/fluent/server.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "route53",
+            "to": "cloudfront",
+            "label": "名前解決"
+          },
+          {
+            "from": "cloudfront",
+            "to": "waf",
+            "label": "HTTP"
+          },
+          {
+            "from": "waf",
+            "to": "alb",
+            "label": "許可リクエスト"
+          },
+          {
+            "from": "alb",
+            "to": "app",
+            "label": "転送"
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "Global",
+      "title": "Global Accelerator",
+      "term": "AWS Global Accelerator",
+      "lead": "Global Acceleratorは固定Anycast IPで、利用者から近いAWSエッジへ誘導する。DNSベースの切り替えとは違う入口制御。",
+      "definition": "静的Anycast IPを入口にし、AWSグローバルネットワーク経由で通信を届けるサービスです。宛先にはALB、NLB、EC2などのRegional Endpointを指定します。",
+      "icon": "icons/aws/global_accelerator.png",
+      "points": [
+        {
+          "label": "固定入口",
+          "text": "利用者には変わらない静的IPを見せ、背後のRegionやEndpointを変えられます。"
+        },
+        {
+          "label": "健全性",
+          "text": "Endpointのヘルスを見て、新しい接続を健全な先へ寄せます。"
+        },
+        {
+          "label": "用途",
+          "text": "グローバル公開、DR、低遅延化、DNS切替時間を嫌うシステムで検討します。"
+        }
+      ],
+      "misconception": "CloudFrontのキャッシュ用途と同じものではありません。動的なTCP/UDP入口として使う場面があります。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Global Acceleratorの入口制御",
+      "lead": "Anycast IPで利用者を最寄りAWSエッジへ誘導し、AWS内部ネットワークでRegional EndpointのALB/NLBへ転送する。",
+      "diagram": {
+        "cols": [
+          "users",
+          "anycast",
+          "edge",
+          "backbone",
+          "endpoint"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "users": {
+            "col": "users",
+            "row": "main",
+            "title": "利用者",
+            "icon": "icons/aws/users.png"
+          },
+          "anycast": {
+            "col": "anycast",
+            "row": "main",
+            "title": "Anycast IP (固定)",
+            "icon": "icons/fluent/globe.png"
+          },
+          "edge": {
+            "col": "edge",
+            "row": "main",
+            "title": "AWS Edge",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "backbone": {
+            "col": "backbone",
+            "row": "main",
+            "title": "AWS Backbone",
+            "icon": "icons/fluent/link.png"
+          },
+          "alb_ep": {
+            "col": "endpoint",
+            "row": "main",
+            "title": "ALB / NLB",
+            "icon": "icons/aws/alb.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "users",
+            "to": "anycast",
+            "label": "アクセス"
+          },
+          {
+            "from": "anycast",
+            "to": "edge",
+            "label": "最寄りエッジへ"
+          },
+          {
+            "from": "edge",
+            "to": "backbone",
+            "label": "AWS内部経路"
+          },
+          {
+            "from": "backbone",
+            "to": "alb_ep",
+            "label": "Regional Endpoint"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "クライアント",
+            "members": [
+              "users"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Global Accelerator",
+            "members": [
+              "anycast",
+              "edge",
+              "backbone"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "AWS Region",
+            "members": [
+              "alb_ep"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "title",
+      "title": "Senior: 防御と統制",
+      "subtitle": "集中egress、検査、IP管理、組織横断の責任分界をそろえる"
+    },
+    {
+      "type": "process",
+      "kicker": "判断フロー",
+      "title": "統制設計の判断フロー",
+      "lead": "大規模環境では、個別VPCの正しさだけでは足りない。組織全体で同じ基準を使えるようにする。",
+      "steps": [
+        {
+          "name": "IP計画",
+          "desc": "IPAMでCIDRの割り当てと重複を管理する。"
+        },
+        {
+          "name": "境界",
+          "desc": "アカウント、VPC、Subnet、Firewallの責任範囲を決める。"
+        },
+        {
+          "name": "出口",
+          "desc": "集中egressで往路と復路の対称性を確認する。"
+        },
+        {
+          "name": "監査",
+          "desc": "ログ、ポリシー、例外申請を残せる運用にする。"
+        }
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "Firewall",
+      "title": "AWS Network Firewall",
+      "term": "AWS Network Firewall",
+      "lead": "Network FirewallはVPC内の検査ポイント。置いた後は、往路と復路を同じ検査点へ通す設計まで確認する。",
+      "definition": "VPCの通信にステートフル、ステートレスな検査ルールを適用するマネージドFirewallです。ルートテーブルで検査経路へ通信を向けます。",
+      "icon": "icons/aws/network_firewall.png",
+      "points": [
+        {
+          "label": "配置",
+          "text": "Firewall Endpointを専用サブネットに置き、保護対象サブネットからの経路を向けます。"
+        },
+        {
+          "label": "検査",
+          "text": "5タプル、ドメイン、Suricata互換ルールなどで通信を検査します。"
+        },
+        {
+          "label": "対象",
+          "text": "南北通信だけでなく、VPC間やオンプレミス間の東西通信検査にも使えます。"
+        }
+      ],
+      "misconception": "Firewallを作るだけでは通信は通りません。対称なルーティング設計が必要です。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Network Firewall配置パターン",
+      "lead": "App VPCの通信はTGWでInspection VPCへ誘導される。Firewall subnetで検査後にNAT/IGWを経てインターネットへ出る。",
+      "diagram": {
+        "cols": [
+          "app",
+          "tgw",
+          "firewall",
+          "nat",
+          "igw",
+          "internet"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "app_vpc": {
+            "col": "app",
+            "row": "main",
+            "title": "App VPC",
+            "icon": "icons/aws/vpc.png"
+          },
+          "tgw_fw": {
+            "col": "tgw",
+            "row": "main",
+            "title": "TGW",
+            "icon": "icons/aws/transit_gateway.png"
+          },
+          "nwfw": {
+            "col": "firewall",
+            "row": "main",
+            "title": "Network Firewall",
+            "icon": "icons/aws/network_firewall.png"
+          },
+          "natgw_fw": {
+            "col": "nat",
+            "row": "main",
+            "title": "NAT Gateway",
+            "icon": "icons/aws/nat_gateway.png"
+          },
+          "igw_fw": {
+            "col": "igw",
+            "row": "main",
+            "title": "Internet Gateway",
+            "icon": "icons/aws/internet_gateway.png"
+          },
+          "internet_fw": {
+            "col": "internet",
+            "row": "main",
+            "title": "Internet",
+            "icon": "icons/fluent/globe.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "app_vpc",
+            "to": "tgw_fw",
+            "label": "egress"
+          },
+          {
+            "from": "tgw_fw",
+            "to": "nwfw",
+            "label": "Inspection VPC"
+          },
+          {
+            "from": "nwfw",
+            "to": "natgw_fw",
+            "label": "許可通信"
+          },
+          {
+            "from": "natgw_fw",
+            "to": "igw_fw",
+            "label": "変換後"
+          },
+          {
+            "from": "igw_fw",
+            "to": "internet_fw",
+            "label": "外部"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Application account",
+            "members": [
+              "app_vpc"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Inspection account",
+            "members": [
+              "tgw_fw",
+              "nwfw",
+              "natgw_fw",
+              "igw_fw"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "Internet",
+            "members": [
+              "internet_fw"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "diagram",
+      "kicker": "Firewall",
+      "title": "集中egress検査",
+      "lead": "集中egressでは、外へ出る通信と戻り通信が同じ検査点を通ることを確認する。非対称になるとステートフル検査が破綻しやすい。",
+      "diagram": {
+        "cols": [
+          "lane",
+          "app",
+          "tgw",
+          "firewall",
+          "nat",
+          "igw",
+          "internet"
+        ],
+        "rows": [
+          "outbound",
+          "return"
+        ],
+        "nodes": {
+          "lane_o": {
+            "col": "lane",
+            "row": "outbound",
+            "title": "往路",
+            "icon": "icons/fluent/info.png"
+          },
+          "app_o": {
+            "col": "app",
+            "row": "outbound",
+            "title": "App VPC",
+            "icon": "icons/aws/vpc.png"
+          },
+          "tgw_o": {
+            "col": "tgw",
+            "row": "outbound",
+            "title": "TGW",
+            "icon": "icons/aws/transit_gateway.png"
+          },
+          "fw_o": {
+            "col": "firewall",
+            "row": "outbound",
+            "title": "Firewall",
+            "icon": "icons/aws/network_firewall.png"
+          },
+          "nat_o": {
+            "col": "nat",
+            "row": "outbound",
+            "title": "NAT",
+            "icon": "icons/aws/nat_gateway.png"
+          },
+          "igw_o": {
+            "col": "igw",
+            "row": "outbound",
+            "title": "IGW",
+            "icon": "icons/aws/internet_gateway.png"
+          },
+          "net_o": {
+            "col": "internet",
+            "row": "outbound",
+            "title": "Internet",
+            "icon": "icons/fluent/globe.png"
+          },
+          "lane_r": {
+            "col": "lane",
+            "row": "return",
+            "title": "復路",
+            "icon": "icons/fluent/info.png"
+          },
+          "app_r": {
+            "col": "app",
+            "row": "return",
+            "title": "App VPC",
+            "icon": "icons/aws/vpc.png"
+          },
+          "tgw_r": {
+            "col": "tgw",
+            "row": "return",
+            "title": "TGW",
+            "icon": "icons/aws/transit_gateway.png"
+          },
+          "fw_r": {
+            "col": "firewall",
+            "row": "return",
+            "title": "Firewall",
+            "icon": "icons/aws/network_firewall.png"
+          },
+          "nat_r": {
+            "col": "nat",
+            "row": "return",
+            "title": "NAT",
+            "icon": "icons/aws/nat_gateway.png"
+          },
+          "igw_r": {
+            "col": "igw",
+            "row": "return",
+            "title": "IGW",
+            "icon": "icons/aws/internet_gateway.png"
+          },
+          "net_r": {
+            "col": "internet",
+            "row": "return",
+            "title": "Internet",
+            "icon": "icons/fluent/globe.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "app_o",
+            "to": "tgw_o",
+            "label": "往路"
+          },
+          {
+            "from": "tgw_o",
+            "to": "fw_o",
+            "label": "検査"
+          },
+          {
+            "from": "fw_o",
+            "to": "nat_o",
+            "label": "変換"
+          },
+          {
+            "from": "nat_o",
+            "to": "igw_o",
+            "label": "出口"
+          },
+          {
+            "from": "igw_o",
+            "to": "net_o",
+            "label": "外部"
+          },
+          {
+            "from": "net_r",
+            "to": "igw_r",
+            "label": "復路"
+          },
+          {
+            "from": "igw_r",
+            "to": "nat_r",
+            "label": "戻り"
+          },
+          {
+            "from": "nat_r",
+            "to": "fw_r",
+            "label": "同じ検査点"
+          },
+          {
+            "from": "fw_r",
+            "to": "tgw_r",
+            "label": "戻り経路"
+          },
+          {
+            "from": "tgw_r",
+            "to": "app_r",
+            "label": "戻る"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Application account",
+            "members": [
+              "app_o",
+              "app_r"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Inspection account",
+            "members": [
+              "tgw_o",
+              "fw_o",
+              "nat_o",
+              "igw_o",
+              "tgw_r",
+              "fw_r",
+              "nat_r",
+              "igw_r"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "External",
+            "members": [
+              "net_o",
+              "net_r"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "kicker": "防御サービス",
+      "title": "ネットワーク防御サービスの役割",
+      "lead": "防御サービスは層で分ける。HTTPの入口、DDoS、VPC内検査、DNS制御を同じものとして扱わない。",
+      "columns": [
+        "サービス",
+        "主な対象",
+        "使いどころ"
+      ],
+      "rows": [
+        [
+          "AWS WAF",
+          "HTTPリクエスト",
+          "CloudFront、ALB、API GatewayなどのL7防御"
+        ],
+        [
+          "AWS Shield",
+          "DDoS",
+          "L3、L4、L7のDDoS対策とイベント可視化"
+        ],
+        [
+          "Network Firewall",
+          "VPC通信",
+          "VPC境界や東西通信のパケット検査"
+        ],
+        [
+          "Firewall Manager",
+          "複数アカウント",
+          "WAF、Shield、SG、Network Firewallなどの中央管理"
+        ],
+        [
+          "DNS Firewall",
+          "DNS問い合わせ",
+          "悪性ドメインや許可リストによる名前解決制御"
+        ]
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "IP管理",
+      "title": "IPAM",
+      "term": "Amazon VPC IP Address Manager",
+      "lead": "IPAMはCIDR台帳を手作業から外し、割り当て、重複検知、監査を組織横断で扱うための仕組み。",
+      "definition": "AWS内のIPアドレス空間を計画、割り当て、追跡、監視するためのVPC機能です。複数アカウント、複数RegionのCIDR管理に使います。",
+      "icon": "icons/fluent/chart.png",
+      "points": [
+        {
+          "label": "Pool",
+          "text": "組織、環境、Region、用途ごとにIPプールを分けられます。"
+        },
+        {
+          "label": "自動割当",
+          "text": "ビジネスルールに基づき、VPCへCIDRを割り当てられます。"
+        },
+        {
+          "label": "監査",
+          "text": "利用中のIP範囲と割り当て履歴を追跡し、重複や枯渇を見つけやすくします。"
+        }
+      ],
+      "misconception": "IPAMは実際のAWSリソースと結びつけてIPアドレスを統制する仕組みです。図面管理だけではありません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "IPAMのプール階層",
+      "lead": "IPAMはOrganizationレベルのプールからアカウント・リージョンごとにCIDRを委任する。重複検知と監査を組織横断で扱う。",
+      "diagram": {
+        "cols": [
+          "org",
+          "bu",
+          "account",
+          "vpc"
+        ],
+        "rows": [
+          "prod",
+          "dev"
+        ],
+        "nodes": {
+          "org_pool": {
+            "col": "org",
+            "row": "prod",
+            "title": "Org Pool /8",
+            "icon": "icons/fluent/organization.png"
+          },
+          "bu_prod": {
+            "col": "bu",
+            "row": "prod",
+            "title": "Prod BU /12",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "acct_prod": {
+            "col": "account",
+            "row": "prod",
+            "title": "Prod Account /16",
+            "icon": "icons/fluent/server.png"
+          },
+          "vpc_prod": {
+            "col": "vpc",
+            "row": "prod",
+            "title": "Prod VPC /20",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "bu_dev": {
+            "col": "bu",
+            "row": "dev",
+            "title": "Dev BU /12",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "acct_dev": {
+            "col": "account",
+            "row": "dev",
+            "title": "Dev Account /16",
+            "icon": "icons/fluent/server.png"
+          },
+          "vpc_dev": {
+            "col": "vpc",
+            "row": "dev",
+            "title": "Dev VPC /20",
+            "icon": "icons/fluent/cloud.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "org_pool",
+            "to": "bu_prod",
+            "label": "割り当て"
+          },
+          {
+            "from": "bu_prod",
+            "to": "acct_prod",
+            "label": "委任"
+          },
+          {
+            "from": "acct_prod",
+            "to": "vpc_prod",
+            "label": "VPC"
+          },
+          {
+            "from": "org_pool",
+            "to": "bu_dev",
+            "label": "割り当て"
+          },
+          {
+            "from": "bu_dev",
+            "to": "acct_dev",
+            "label": "委任"
+          },
+          {
+            "from": "acct_dev",
+            "to": "vpc_dev",
+            "label": "VPC"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "IPAM管理",
+            "members": [
+              "org_pool",
+              "bu_prod",
+              "bu_dev"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "アカウント委任",
+            "members": [
+              "acct_prod",
+              "vpc_prod",
+              "acct_dev",
+              "vpc_dev"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "Global Network",
+      "title": "AWS Cloud WAN",
+      "term": "AWS Cloud WAN",
+      "lead": "Cloud WANは広域ネットワークをセグメントとして管理する選択肢。拠点、VPC、リージョンを運用単位で束ねる。",
+      "definition": "AWSとオンプレミスをまたぐ広域ネットワークを、Core NetworkとPolicyで管理するマネージドWANサービスです。",
+      "icon": "icons/aws/cloud_wan.png",
+      "points": [
+        {
+          "label": "Core Network",
+          "text": "Regionごとの接続点とアタッチメントを持つ、AWS管理の広域ネットワークです。"
+        },
+        {
+          "label": "Segment",
+          "text": "専用のルーティングドメインとして、業務や環境ごとの分離を表現します。"
+        },
+        {
+          "label": "Policy",
+          "text": "JSON形式のPolicyで、Region、Segment、アタッチメント割当、共有ルールを宣言します。"
+        }
+      ],
+      "misconception": "Cloud WANは広域ネットワーク全体を運用するためのサービスです。単一VPCの接続機能として扱うと役割を見誤ります。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Cloud WANのセグメント構造",
+      "lead": "Cloud WANはcore networkとsegmentで広域ネットワークを管理する。VPCや拠点をセグメントへ接続し、通信境界を設計する。",
+      "diagram": {
+        "cols": [
+          "branch",
+          "segment",
+          "core",
+          "vpc"
+        ],
+        "rows": [
+          "prod_seg",
+          "dev_seg"
+        ],
+        "nodes": {
+          "branch_prod": {
+            "col": "branch",
+            "row": "prod_seg",
+            "title": "拠点A",
+            "icon": "icons/fluent/building.png"
+          },
+          "seg_prod": {
+            "col": "segment",
+            "row": "prod_seg",
+            "title": "Prod Segment",
+            "icon": "icons/aws/cloud_wan_segment.png"
+          },
+          "core_nw": {
+            "col": "core",
+            "row": "prod_seg",
+            "title": "Core Network",
+            "icon": "icons/aws/cloud_wan_core_edge.png"
+          },
+          "vpc_prod_cw": {
+            "col": "vpc",
+            "row": "prod_seg",
+            "title": "Prod VPC",
+            "icon": "icons/aws/vpc.png"
+          },
+          "branch_dev": {
+            "col": "branch",
+            "row": "dev_seg",
+            "title": "拠点B",
+            "icon": "icons/fluent/building.png"
+          },
+          "seg_dev": {
+            "col": "segment",
+            "row": "dev_seg",
+            "title": "Dev Segment",
+            "icon": "icons/aws/cloud_wan_segment.png"
+          },
+          "vpc_dev_cw": {
+            "col": "vpc",
+            "row": "dev_seg",
+            "title": "Dev VPC",
+            "icon": "icons/aws/vpc.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "branch_prod",
+            "to": "seg_prod",
+            "label": "拠点アタッチ"
+          },
+          {
+            "from": "seg_prod",
+            "to": "core_nw",
+            "label": "Segment Policy"
+          },
+          {
+            "from": "core_nw",
+            "to": "vpc_prod_cw",
+            "label": "VPCアタッチ"
+          },
+          {
+            "from": "branch_dev",
+            "to": "seg_dev",
+            "label": "拠点アタッチ"
+          },
+          {
+            "from": "seg_dev",
+            "to": "core_nw",
+            "label": "Segment Policy"
+          },
+          {
+            "from": "core_nw",
+            "to": "vpc_dev_cw",
+            "label": "VPCアタッチ"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "拠点",
+            "members": [
+              "branch_prod",
+              "branch_dev"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Cloud WAN",
+            "members": [
+              "seg_prod",
+              "core_nw",
+              "seg_dev"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "VPC",
+            "members": [
+              "vpc_prod_cw",
+              "vpc_dev_cw"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "共有設計",
+      "title": "VPC Sharing",
+      "term": "VPC Sharing",
+      "lead": "VPC SharingはSubnetを複数アカウントへ共有する仕組み。ネットワーク管理とアプリ運用の責任を分けたいときに使う。",
+      "definition": "AWS Resource Access Managerを使い、1つのVPC内のサブネットを複数アカウントで共有する設計です。",
+      "icon": "icons/fluent/organization.png",
+      "points": [
+        {
+          "label": "統制",
+          "text": "ネットワークチームがVPCやSubnetを管理し、アプリチームは共有Subnetへリソースを配置します。"
+        },
+        {
+          "label": "削減",
+          "text": "アカウントごとに似たVPCを増やすより、共通ネットワークを管理しやすくなります。"
+        },
+        {
+          "label": "境界",
+          "text": "責任分界はIAM、Security Group、タグ、運用手順で明確にする必要があります。"
+        }
+      ],
+      "misconception": "VPCを共有しても、すべてのリソース管理権限が共有されるわけではありません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "VPC Sharingの責任境界",
+      "lead": "ネットワークアカウントがVPCとSubnetを持つ。参加アカウントは共有Subnetにワークロードを置き、ネットワーク境界を共用する。",
+      "diagram": {
+        "cols": [
+          "owner",
+          "subnet",
+          "app_a",
+          "app_b"
+        ],
+        "rows": [
+          "account_a",
+          "account_b"
+        ],
+        "nodes": {
+          "owner_a": {
+            "col": "owner",
+            "row": "account_a",
+            "title": "Network Acct",
+            "icon": "icons/fluent/organization.png"
+          },
+          "subnet_a": {
+            "col": "subnet",
+            "row": "account_a",
+            "title": "Shared Subnet",
+            "icon": "icons/aws/subnet_private.png"
+          },
+          "app_a": {
+            "col": "app_a",
+            "row": "account_a",
+            "title": "App Acct A",
+            "icon": "icons/aws/fargate.png"
+          },
+          "owner_b": {
+            "col": "owner",
+            "row": "account_b",
+            "title": "Network Acct",
+            "icon": "icons/fluent/organization.png"
+          },
+          "subnet_b": {
+            "col": "subnet",
+            "row": "account_b",
+            "title": "Shared Subnet",
+            "icon": "icons/aws/subnet_private.png"
+          },
+          "app_b": {
+            "col": "app_b",
+            "row": "account_b",
+            "title": "App Acct B",
+            "icon": "icons/aws/fargate.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "owner_a",
+            "to": "subnet_a",
+            "label": "所有"
+          },
+          {
+            "from": "subnet_a",
+            "to": "app_a",
+            "label": "配置"
+          },
+          {
+            "from": "owner_b",
+            "to": "subnet_b",
+            "label": "所有"
+          },
+          {
+            "from": "subnet_b",
+            "to": "app_b",
+            "label": "配置"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "ネットワーク管理",
+            "members": [
+              "owner_a",
+              "subnet_a",
+              "owner_b",
+              "subnet_b"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "アプリ運用",
+            "members": [
+              "app_a",
+              "app_b"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "IP設計",
+      "title": "重複CIDRの扱い",
+      "term": "重複CIDR",
+      "lead": "CIDR重複は、接続したい段階で初めて気づくと高くつく。IP計画、NAT、再払い出しの選択肢を早めに比較する。",
+      "definition": "2つ以上のネットワークが同じIPアドレス範囲を使っている状態です。直接ルーティングが必要な構成では、宛先を一意に選べなくなります。",
+      "icon": "icons/fluent/warning.png",
+      "points": [
+        {
+          "label": "Peering",
+          "text": "重複CIDRのVPC同士ではPeering接続を作れません。"
+        },
+        {
+          "label": "TGW",
+          "text": "Transit Gatewayでも、重複した経路は伝播や選択の設計を難しくします。"
+        },
+        {
+          "label": "回避",
+          "text": "サービス単位ならPrivateLink、全体接続なら再採番やNATを検討します。"
+        }
+      ],
+      "misconception": "AWSへ移せば重複CIDRの問題が自然に消える、ということはありません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "CIDR重複時の対処法",
+      "lead": "CIDRが重複するとPeeringは使えない。PrivateLinkまたはNATリマップはCIDRに依存せず接続できる。",
+      "diagram": {
+        "cols": [
+          "vpc_a",
+          "method",
+          "vpc_b"
+        ],
+        "rows": [
+          "blocked",
+          "ok"
+        ],
+        "nodes": {
+          "va_blocked": {
+            "col": "vpc_a",
+            "row": "blocked",
+            "title": "VPC A 10.0.0.0/16",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "peer_block": {
+            "col": "method",
+            "row": "blocked",
+            "title": "Peering 不可",
+            "icon": "icons/fluent/warning.png"
+          },
+          "vb_blocked": {
+            "col": "vpc_b",
+            "row": "blocked",
+            "title": "VPC B 10.0.0.0/16",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "va_ok": {
+            "col": "vpc_a",
+            "row": "ok",
+            "title": "VPC A 10.0.0.0/16",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "pl_nat": {
+            "col": "method",
+            "row": "ok",
+            "title": "PrivateLink or NAT",
+            "icon": "icons/fluent/check.png"
+          },
+          "vb_ok": {
+            "col": "vpc_b",
+            "row": "ok",
+            "title": "VPC B 10.0.0.0/16",
+            "icon": "icons/fluent/cloud.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "va_blocked",
+            "to": "peer_block",
+            "label": "接続試行"
+          },
+          {
+            "from": "peer_block",
+            "to": "vb_blocked",
+            "label": "CIDR重複→不可",
+            "dash": "dash"
+          },
+          {
+            "from": "va_ok",
+            "to": "pl_nat",
+            "label": "接続"
+          },
+          {
+            "from": "pl_nat",
+            "to": "vb_ok",
+            "label": "CIDR無関係→到達"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Peering（不可）",
+            "members": [
+              "va_blocked",
+              "peer_block",
+              "vb_blocked"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "PrivateLink / NATリマップ（可）",
+            "members": [
+              "va_ok",
+              "pl_nat",
+              "vb_ok"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "kicker": "組織設計",
+      "title": "マルチアカウントのネットワーク役割",
+      "lead": "マルチアカウントでは、共有するものと任せるものを分ける。ネットワーク管理者の境界を明確にする。",
+      "columns": [
+        "役割",
+        "持つリソース",
+        "主な責任"
+      ],
+      "rows": [
+        [
+          "Network Account",
+          "Transit Gateway、DX、VPN、Firewall",
+          "共通接続と境界防御"
+        ],
+        [
+          "Shared Services Account",
+          "DNS、Directory、監視、Endpoint",
+          "共通サービスの提供"
+        ],
+        [
+          "Application Account",
+          "VPC、ALB、ECS、RDS",
+          "ワークロード単位の構築と運用"
+        ],
+        [
+          "Security Account",
+          "Firewall Manager、監査ログ",
+          "ポリシー適用と検知"
+        ]
+      ]
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "マルチアカウントのネットワーク構成",
+      "lead": "ネットワーク管理、共有サービス、アプリ、セキュリティの4種類でアカウントを分ける。TGWが接続ハブになる。",
+      "diagram": {
+        "cols": [
+          "network",
+          "shared",
+          "tgw",
+          "app",
+          "security"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "nw_acct": {
+            "col": "network",
+            "row": "main",
+            "title": "Network Account",
+            "icon": "icons/fluent/organization.png"
+          },
+          "shared_acct": {
+            "col": "shared",
+            "row": "main",
+            "title": "Shared Services",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "tgw_hub": {
+            "col": "tgw",
+            "row": "main",
+            "title": "TGW Hub",
+            "icon": "icons/aws/transit_gateway.png"
+          },
+          "app_acct": {
+            "col": "app",
+            "row": "main",
+            "title": "Application Accounts",
+            "icon": "icons/fluent/server.png"
+          },
+          "sec_acct": {
+            "col": "security",
+            "row": "main",
+            "title": "Security Account",
+            "icon": "icons/fluent/shield.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "nw_acct",
+            "to": "shared_acct",
+            "label": "管理"
+          },
+          {
+            "from": "shared_acct",
+            "to": "tgw_hub",
+            "label": "アタッチ"
+          },
+          {
+            "from": "tgw_hub",
+            "to": "app_acct",
+            "label": "Spoke"
+          },
+          {
+            "from": "app_acct",
+            "to": "sec_acct",
+            "label": "Inspection経路"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "基盤アカウント",
+            "members": [
+              "nw_acct",
+              "shared_acct"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Hub",
+            "members": [
+              "tgw_hub"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "ワークロード / セキュリティ",
+            "members": [
+              "app_acct",
+              "sec_acct"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "title",
+      "title": "Senior: ワークロードと運用",
+      "subtitle": "ECS、EKS、Lambdaのネットワーク差分と、障害調査の観測点を押さえる"
+    },
+    {
+      "type": "process",
+      "kicker": "判断フロー",
+      "title": "運用切り分けの判断フロー",
+      "lead": "運用では、複雑な構成を一度に疑わない。事実を固定し、設定とログを同じ順番で突き合わせる。",
+      "steps": [
+        {
+          "name": "対象固定",
+          "desc": "送信元、宛先、ポート、時刻を決める。"
+        },
+        {
+          "name": "設定確認",
+          "desc": "Route Table、Security Group、Endpoint、DNSを読む。"
+        },
+        {
+          "name": "観測",
+          "desc": "Flow Logs、Reachability Analyzer、Traffic Mirroringを使い分ける。"
+        },
+        {
+          "name": "再発防止",
+          "desc": "不足していた設計ルールや監視を標準に戻す。"
+        }
+      ]
+    },
+    {
+      "type": "concept",
+      "kicker": "Application Networking",
+      "title": "VPC Lattice",
+      "term": "Amazon VPC Lattice",
+      "lead": "VPC Latticeは、同じService Networkに接続したVPCとサービスだけをつなぐ。通信可否はVPC接続とAuth Policyの両方で読む。",
+      "definition": "複数VPC、複数アカウントにまたがるサービスやリソースを、サービスネットワークで接続、保護、監視するアプリケーションネットワーキングサービスです。",
+      "icon": "icons/aws/vpc_lattice.png",
+      "points": [
+        {
+          "label": "Service Network",
+          "text": "サービスとクライアントVPCを関連付ける論理境界です。"
+        },
+        {
+          "label": "認可",
+          "text": "IAMベースのAuth Policyで、どの主体がどのサービスへアクセスするかを制御します。"
+        },
+        {
+          "label": "抽象化",
+          "text": "CIDRやVPC間経路より、アプリケーションサービス単位の接続を前面に出します。"
+        }
+      ],
+      "misconception": "VPC Latticeを使っても、すべてのVPCがネットワーク的に相互接続されるわけではありません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "VPC Latticeの接続単位",
+      "lead": "VPC同士を丸ごとつなぐのではなく、Service Networkへ関連付けたサービスだけを公開する。接続範囲と認可を分けて確認する。",
+      "diagram": {
+        "cols": [
+          "client",
+          "assoc",
+          "network",
+          "policy",
+          "service",
+          "target"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "client_vpc": {
+            "col": "client",
+            "row": "main",
+            "title": "Client VPC",
+            "icon": "icons/aws/vpc.png"
+          },
+          "vpc_assoc": {
+            "col": "assoc",
+            "row": "main",
+            "title": "VPC association",
+            "icon": "icons/fluent/link.png"
+          },
+          "service_network": {
+            "col": "network",
+            "row": "main",
+            "title": "Service Network",
+            "icon": "icons/aws/vpc_lattice.png"
+          },
+          "auth_policy": {
+            "col": "policy",
+            "row": "main",
+            "title": "Auth Policy",
+            "icon": "icons/fluent/shield_lock.png"
+          },
+          "lattice_service": {
+            "col": "service",
+            "row": "main",
+            "title": "Lattice Service",
+            "icon": "icons/aws/vpc_lattice.png"
+          },
+          "service_target": {
+            "col": "target",
+            "row": "main",
+            "title": "Service target",
+            "icon": "icons/aws/fargate.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "client_vpc",
+            "to": "vpc_assoc",
+            "label": "関連付け"
+          },
+          {
+            "from": "vpc_assoc",
+            "to": "service_network",
+            "label": "参加"
+          },
+          {
+            "from": "service_network",
+            "to": "auth_policy",
+            "label": "認可評価"
+          },
+          {
+            "from": "auth_policy",
+            "to": "lattice_service",
+            "label": "許可時だけ"
+          },
+          {
+            "from": "lattice_service",
+            "to": "service_target",
+            "label": "転送"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Consumer side",
+            "members": [
+              "client_vpc",
+              "vpc_assoc"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "VPC Lattice",
+            "members": [
+              "service_network",
+              "auth_policy",
+              "lattice_service"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "Provider side",
+            "members": [
+              "service_target"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "Zero Trust",
+      "title": "Verified Access",
+      "term": "AWS Verified Access",
+      "lead": "Verified Accessは各リクエストで利用者や端末の信頼情報を評価し、条件を満たす時だけアプリケーションへ通す。",
+      "definition": "VPNを使わずに社内アプリケーションへ安全にアクセスさせるサービスです。利用者や端末の信頼情報をリクエストごとに評価します。",
+      "icon": "icons/aws/verified_access.png",
+      "points": [
+        {
+          "label": "Endpoint",
+          "text": "アプリケーションを表す単位で、ALB、ENI、CIDR、RDSなどへ接続します。"
+        },
+        {
+          "label": "Trust Provider",
+          "text": "IDや端末状態を評価する外部の信頼情報と連携します。"
+        },
+        {
+          "label": "Policy",
+          "text": "グループやEndpointごとに、アクセス条件をポリシーとして定義します。"
+        }
+      ],
+      "misconception": "Verified Accessは拠点ネットワーク同士をつなぐVPNの置き換えではありません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Verified Accessの評価経路",
+      "lead": "VPNのようにネットワーク全体へ入れず、Trust Providerから得た利用者・端末情報とPolicyを照合して、アプリ単位で許可する。",
+      "diagram": {
+        "cols": [
+          "user",
+          "trust",
+          "verified",
+          "endpoint",
+          "app"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "user": {
+            "col": "user",
+            "row": "main",
+            "title": "User / Device",
+            "icon": "icons/aws/user.png"
+          },
+          "trust": {
+            "col": "trust",
+            "row": "main",
+            "title": "Trust Provider",
+            "icon": "icons/fluent/certificate.png"
+          },
+          "verified_access": {
+            "col": "verified",
+            "row": "main",
+            "title": "Verified Access",
+            "icon": "icons/aws/verified_access.png"
+          },
+          "va_endpoint": {
+            "col": "endpoint",
+            "row": "main",
+            "title": "App endpoint",
+            "icon": "icons/aws/alb.png"
+          },
+          "private_app": {
+            "col": "app",
+            "row": "main",
+            "title": "Private App",
+            "icon": "icons/aws/fargate.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "user",
+            "to": "trust",
+            "label": "認証/端末状態"
+          },
+          {
+            "from": "trust",
+            "to": "verified_access",
+            "label": "信頼情報"
+          },
+          {
+            "from": "verified_access",
+            "to": "va_endpoint",
+            "label": "Policy許可"
+          },
+          {
+            "from": "va_endpoint",
+            "to": "private_app",
+            "label": "Private接続"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Access context",
+            "members": [
+              "user",
+              "trust"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Verified Access",
+            "members": [
+              "verified_access",
+              "va_endpoint"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "VPC内アプリ",
+            "members": [
+              "private_app"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "Container",
+      "title": "ECS awsvpc mode",
+      "term": "awsvpc network mode",
+      "lead": "ECSのawsvpcではタスクごとにENIを持つ。Security Group、IP消費、Subnet設計がアプリ運用に直結する。",
+      "definition": "ECSタスクごとにENIとPrivate IPを割り当て、タスクをVPC内の独立した通信主体として扱うネットワークモードです。",
+      "icon": "icons/aws/ecs_task.png",
+      "points": [
+        {
+          "label": "Security Group",
+          "text": "タスク単位でSecurity Groupを関連付け、サービス間通信を細かく制御します。"
+        },
+        {
+          "label": "Fargate",
+          "text": "Fargateではawsvpc modeが前提です。"
+        },
+        {
+          "label": "IP消費",
+          "text": "タスクごとにIPを使うため、サブネットの空きIP数がスケール上限に影響します。"
+        }
+      ],
+      "misconception": "コンテナ数だけを見ても、VPC内のIP枯渇リスクは判断できません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "ECS awsvpc modeの実体",
+      "lead": "タスクはEC2の内側に閉じたDockerネットワークではなく、VPC上のENIとして通信する。SGもFlow Logsもタスク単位で読める。",
+      "diagram": {
+        "cols": [
+          "service",
+          "subnet",
+          "eni",
+          "sg",
+          "target"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "ecs_service": {
+            "col": "service",
+            "row": "main",
+            "title": "ECS Service",
+            "icon": "icons/aws/ecs.png"
+          },
+          "private_subnet": {
+            "col": "subnet",
+            "row": "main",
+            "title": "Private Subnet",
+            "icon": "icons/aws/subnet_private.png"
+          },
+          "task_eni": {
+            "col": "eni",
+            "row": "main",
+            "title": "Task ENI",
+            "icon": "icons/aws/eni.png"
+          },
+          "task_sg": {
+            "col": "sg",
+            "row": "main",
+            "title": "Task SG",
+            "icon": "icons/fluent/shield_lock.png"
+          },
+          "rds_target": {
+            "col": "target",
+            "row": "main",
+            "title": "RDS",
+            "icon": "icons/aws/rds.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "ecs_service",
+            "to": "private_subnet",
+            "label": "配置先"
+          },
+          {
+            "from": "private_subnet",
+            "to": "task_eni",
+            "label": "Private IP割当"
+          },
+          {
+            "from": "task_eni",
+            "to": "task_sg",
+            "label": "許可判定"
+          },
+          {
+            "from": "task_sg",
+            "to": "rds_target",
+            "label": "DB接続"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "ECS",
+            "members": [
+              "ecs_service"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "VPC",
+            "members": [
+              "private_subnet",
+              "task_eni",
+              "task_sg",
+              "rds_target"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "Kubernetes",
+      "title": "EKS VPC CNI",
+      "term": "Amazon VPC CNI",
+      "lead": "EKS VPC CNIではPodがVPCのIPを使う。NodeごとのENI、Pod密度、Subnetサイズを早めに見る。",
+      "definition": "EKSのPodへVPC内のIPアドレスを割り当て、PodをVPCネットワーク上の通信主体として扱うためのCNIプラグインです。",
+      "icon": "icons/aws/eks.png",
+      "points": [
+        {
+          "label": "Pod IP",
+          "text": "Podはサブネットから割り当てられたPrivate IPを使って通信します。"
+        },
+        {
+          "label": "ENI",
+          "text": "Nodeへ追加ENIやSecondary IPを割り当て、PodへIPを供給します。"
+        },
+        {
+          "label": "拡張",
+          "text": "Prefix delegation、Security Groups for Pods、Custom Networkingなどで密度や分離を調整します。"
+        }
+      ],
+      "misconception": "KubernetesのService設計だけでは、VPC側のIP設計やルート設計を省略できません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "EKS VPC CNIのIP割当",
+      "lead": "Amazon VPC CNIはNodeにENIを付け、PodへVPC CIDRのIPを割り当てる。Pod数の上限はSubnetとENI設計に影響される。",
+      "diagram": {
+        "cols": [
+          "cluster",
+          "node",
+          "eni",
+          "pod",
+          "service"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "eks_cluster": {
+            "col": "cluster",
+            "row": "main",
+            "title": "EKS Cluster",
+            "icon": "icons/aws/eks.png"
+          },
+          "worker_node": {
+            "col": "node",
+            "row": "main",
+            "title": "Worker Node",
+            "icon": "icons/fluent/server.png"
+          },
+          "node_eni": {
+            "col": "eni",
+            "row": "main",
+            "title": "Node ENI",
+            "icon": "icons/aws/eni.png"
+          },
+          "pod_ip": {
+            "col": "pod",
+            "row": "main",
+            "title": "Pod IP",
+            "icon": "icons/fluent/app.png"
+          },
+          "service": {
+            "col": "service",
+            "row": "main",
+            "title": "Service / ALB",
+            "icon": "icons/aws/alb.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "eks_cluster",
+            "to": "worker_node",
+            "label": "Pod配置"
+          },
+          {
+            "from": "worker_node",
+            "to": "node_eni",
+            "label": "ENI接続"
+          },
+          {
+            "from": "node_eni",
+            "to": "pod_ip",
+            "label": "VPC IP割当"
+          },
+          {
+            "from": "pod_ip",
+            "to": "service",
+            "label": "公開/接続"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Kubernetes",
+            "members": [
+              "eks_cluster",
+              "worker_node",
+              "pod_ip"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "VPC",
+            "members": [
+              "node_eni",
+              "service"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "Serverless",
+      "title": "Lambda VPC接続",
+      "term": "Lambda VPC configuration",
+      "lead": "LambdaをVPCへ接続すると、Hyperplane ENI経由でPrivateリソースへ届く。外向き通信はSubnetの経路設計に従う。",
+      "definition": "Lambda関数を自分のVPCへ接続し、RDSなどVPC内リソースへprivateに到達させる設定です。",
+      "icon": "icons/aws/lambda.png",
+      "points": [
+        {
+          "label": "到達先",
+          "text": "VPC内のDB、Cache、内部APIなどへPrivate IPで接続します。"
+        },
+        {
+          "label": "外向き通信",
+          "text": "VPC接続した関数がインターネットへ出るには、private subnetからNAT Gatewayなどへ向かう経路が必要です。"
+        },
+        {
+          "label": "Security Group",
+          "text": "関数に関連付けたSecurity Groupが、VPC内通信の許可境界です。"
+        }
+      ],
+      "misconception": "LambdaをVPCに接続すると、自動的にインターネットアクセスが増えるわけではありません。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "Lambda VPC接続の経路",
+      "lead": "関数そのものはLambda管理の環境で動く。VPC内リソースへ向かう時は、指定したSubnetとSecurity Groupの組み合わせに紐づくHyperplane ENIを通る。",
+      "diagram": {
+        "cols": [
+          "lambda",
+          "eni",
+          "sg",
+          "private",
+          "egress"
+        ],
+        "rows": [
+          "private",
+          "internet"
+        ],
+        "nodes": {
+          "lambda_fn": {
+            "col": "lambda",
+            "row": "private",
+            "title": "Lambda function",
+            "icon": "icons/aws/lambda_function.png"
+          },
+          "hyperplane_eni": {
+            "col": "eni",
+            "row": "private",
+            "title": "Hyperplane ENI",
+            "icon": "icons/aws/eni.png"
+          },
+          "lambda_sg": {
+            "col": "sg",
+            "row": "private",
+            "title": "Function SG",
+            "icon": "icons/fluent/shield_lock.png"
+          },
+          "rds": {
+            "col": "private",
+            "row": "private",
+            "title": "RDS / Cache",
+            "icon": "icons/aws/rds.png"
+          },
+          "nat": {
+            "col": "private",
+            "row": "internet",
+            "title": "NAT Gateway",
+            "icon": "icons/aws/nat_gateway.png"
+          },
+          "internet": {
+            "col": "egress",
+            "row": "internet",
+            "title": "Internet / API",
+            "icon": "icons/fluent/globe.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "lambda_fn",
+            "to": "hyperplane_eni",
+            "label": "VPC接続"
+          },
+          {
+            "from": "hyperplane_eni",
+            "to": "lambda_sg",
+            "label": "SG判定"
+          },
+          {
+            "from": "lambda_sg",
+            "to": "rds",
+            "label": "Private IP"
+          },
+          {
+            "from": "lambda_sg",
+            "to": "nat",
+            "label": "外向き"
+          },
+          {
+            "from": "nat",
+            "to": "internet",
+            "label": "0.0.0.0/0"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Lambda service",
+            "members": [
+              "lambda_fn"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "Customer VPC",
+            "members": [
+              "hyperplane_eni",
+              "lambda_sg",
+              "rds",
+              "nat"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "外部",
+            "members": [
+              "internet"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "kicker": "Compute",
+      "title": "コンピュート別のネットワーク観点",
+      "lead": "EC2、ECS、EKS、Lambdaでは同じVPC内でもIP消費とSecurity Groupの持ち方が違う。運用単位で比較する。",
+      "columns": [
+        "実行基盤",
+        "通信主体",
+        "設計で見る点"
+      ],
+      "rows": [
+        [
+          "EC2",
+          "Instance ENI",
+          "Subnet、Public IP、Security Group、Source Destination Check"
+        ],
+        [
+          "ECS Fargate",
+          "Task ENI",
+          "タスク数に応じたIP消費、SG、ALB連携"
+        ],
+        [
+          "EKS",
+          "Pod IPまたはNode ENI",
+          "VPC CNI設定、Pod密度、Network Policy"
+        ],
+        [
+          "Lambda",
+          "VPC接続設定",
+          "private subnet、NAT、VPC Endpoint、SG"
+        ]
+      ]
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "ワークロードごとのENI配置",
+      "lead": "同じVPC内でも、ENIを持つ単位が違う。Security GroupとIP消費を見るときは、ワークロードの実体へ戻る。",
+      "diagram": {
+        "cols": [
+          "workload",
+          "eni",
+          "subnet",
+          "target"
+        ],
+        "rows": [
+          "ecs",
+          "eks",
+          "lambda"
+        ],
+        "nodes": {
+          "ecs": {
+            "col": "workload",
+            "row": "ecs",
+            "title": "ECS Task",
+            "icon": "icons/aws/ecs_task.png"
+          },
+          "ecs_eni": {
+            "col": "eni",
+            "row": "ecs",
+            "title": "Task ENI",
+            "icon": "icons/aws/eni.png"
+          },
+          "ecs_subnet": {
+            "col": "subnet",
+            "row": "ecs",
+            "title": "Subnet IP",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "ecs_rds": {
+            "col": "target",
+            "row": "ecs",
+            "title": "RDS",
+            "icon": "icons/aws/rds.png"
+          },
+          "eks": {
+            "col": "workload",
+            "row": "eks",
+            "title": "EKS Pod",
+            "icon": "icons/aws/eks.png"
+          },
+          "pod_ip": {
+            "col": "eni",
+            "row": "eks",
+            "title": "Pod IP",
+            "icon": "icons/fluent/ethernet.png"
+          },
+          "eks_subnet": {
+            "col": "subnet",
+            "row": "eks",
+            "title": "Subnet IP",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "eks_alb": {
+            "col": "target",
+            "row": "eks",
+            "title": "ALB",
+            "icon": "icons/aws/alb.png"
+          },
+          "lambda": {
+            "col": "workload",
+            "row": "lambda",
+            "title": "Lambda",
+            "icon": "icons/aws/lambda.png"
+          },
+          "lambda_eni": {
+            "col": "eni",
+            "row": "lambda",
+            "title": "Hyperplane ENI",
+            "icon": "icons/aws/eni.png"
+          },
+          "lambda_subnet": {
+            "col": "subnet",
+            "row": "lambda",
+            "title": "Subnet",
+            "icon": "icons/fluent/cloud.png"
+          },
+          "lambda_s3": {
+            "col": "target",
+            "row": "lambda",
+            "title": "S3",
+            "icon": "icons/aws/s3.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "ecs",
+            "to": "ecs_eni",
+            "label": "ENI"
+          },
+          {
+            "from": "ecs_eni",
+            "to": "ecs_subnet",
+            "label": "IP消費"
+          },
+          {
+            "from": "ecs_subnet",
+            "to": "ecs_rds",
+            "label": "接続"
+          },
+          {
+            "from": "eks",
+            "to": "pod_ip",
+            "label": "VPC IP"
+          },
+          {
+            "from": "pod_ip",
+            "to": "eks_subnet",
+            "label": "IP消費"
+          },
+          {
+            "from": "eks_subnet",
+            "to": "eks_alb",
+            "label": "入口"
+          },
+          {
+            "from": "lambda",
+            "to": "lambda_eni",
+            "label": "VPC接続"
+          },
+          {
+            "from": "lambda_eni",
+            "to": "lambda_subnet",
+            "label": "経路"
+          },
+          {
+            "from": "lambda_subnet",
+            "to": "lambda_s3",
+            "label": "S3"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "Workload",
+            "members": [
+              "ecs",
+              "eks",
+              "lambda"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "VPC内の実体",
+            "members": [
+              "ecs_eni",
+              "ecs_subnet",
+              "pod_ip",
+              "eks_subnet",
+              "lambda_eni",
+              "lambda_subnet"
+            ]
+          },
+          {
+            "name": "container_2",
+            "label": "接続先",
+            "members": [
+              "ecs_rds",
+              "eks_alb",
+              "lambda_s3"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "concept",
+      "kicker": "Observability",
+      "title": "VPC Flow Logs",
+      "term": "VPC Flow Logs",
+      "lead": "Flow Logsは通信の許可・拒否や送受信量を確認する材料。アプリログでは見えないネットワーク事実を補う。",
+      "definition": "VPC、Subnet、ENIを対象に、通信フローのメタデータをCloudWatch Logs、S3、Kinesis Data Firehoseなどへ記録する機能です。",
+      "icon": "icons/aws/flow_logs.png",
+      "points": [
+        {
+          "label": "記録内容",
+          "text": "送信元、宛先、ポート、プロトコル、許可または拒否、バイト数などを確認します。"
+        },
+        {
+          "label": "粒度",
+          "text": "記録するのはフロー情報であり、パケットの中身そのものではありません。"
+        },
+        {
+          "label": "用途",
+          "text": "拒否通信、想定外の外向き通信、トラフィック量、到達先の調査に使います。"
+        }
+      ],
+      "misconception": "Flow Logsはリアルタイムのパケットキャプチャではありません。"
+    },
+    {
+      "type": "concept",
+      "kicker": "Troubleshooting",
+      "title": "Reachability Analyzer",
+      "term": "VPC Reachability Analyzer",
+      "lead": "Reachability Analyzerは設定上の到達可能性を検査する道具。実パケットの成功確認とは役割が違い、経路と境界の論理を確認する。",
+      "definition": "AWS上のネットワーク設定をモデル化し、指定した送信元から宛先まで到達可能かを静的に分析するツールです。",
+      "icon": "icons/aws/reachability_analyzer.png",
+      "points": [
+        {
+          "label": "静的分析",
+          "text": "実パケットは送らず、設定を読み取って到達性を判定します。"
+        },
+        {
+          "label": "経路表示",
+          "text": "到達可能な場合は経路を、到達不能な場合はブロック要因を示します。"
+        },
+        {
+          "label": "対象",
+          "text": "ENI、Internet Gateway、Transit Gateway、VPC Endpoint、VPN Gatewayなどを分析対象に含めます。"
+        }
+      ],
+      "misconception": "Reachability Analyzerで到達可能でも、アプリケーションの認証やHTTP応答までは保証しません。"
+    },
+    {
+      "type": "concept",
+      "kicker": "Packet Capture",
+      "title": "Traffic Mirroring",
+      "term": "VPC Traffic Mirroring",
+      "lead": "Traffic Mirroringはパケット内容の詳細調査に使う。常時有効化は避け、目的と期間を絞る。",
+      "definition": "指定したENIのネットワークトラフィックを、ミラーターゲットへコピーして分析できる機能です。",
+      "icon": "icons/aws/traffic_mirroring.png",
+      "points": [
+        {
+          "label": "構成要素",
+          "text": "Mirror Source、Mirror Target、Mirror Filter、Mirror Sessionを作ります。"
+        },
+        {
+          "label": "分析",
+          "text": "コピーされたパケットをIDS、パケット解析ツール、監視基盤へ渡せます。"
+        },
+        {
+          "label": "制御",
+          "text": "Filterで対象通信を絞り、必要な範囲だけをミラーします。"
+        }
+      ],
+      "misconception": "Flow Logsで足りる調査にTraffic Mirroringを使うと、運用負荷とデータ量が増えます。"
+    },
+    {
+      "type": "diagram",
+      "kicker": "構成図",
+      "title": "観測ツールの見る範囲",
+      "lead": "Reachability Analyzerは設定上の到達性、Flow Logsは通信記録、Traffic Mirroringはパケット詳細を見る。用途を混ぜない。",
+      "diagram": {
+        "cols": [
+          "target",
+          "reach",
+          "flow",
+          "mirror",
+          "decision"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "target": {
+            "col": "target",
+            "row": "main",
+            "title": "通信の事実",
+            "icon": "icons/fluent/ethernet.png"
+          },
+          "reach": {
+            "col": "reach",
+            "row": "main",
+            "title": "Reachability",
+            "icon": "icons/aws/reachability_analyzer.png"
+          },
+          "flow": {
+            "col": "flow",
+            "row": "main",
+            "title": "CloudWatch Logs",
+            "icon": "icons/aws/cloudwatch.png"
+          },
+          "mirror": {
+            "col": "mirror",
+            "row": "main",
+            "title": "Traffic Mirroring",
+            "icon": "icons/aws/traffic_mirroring.png"
+          },
+          "decision": {
+            "col": "decision",
+            "row": "main",
+            "title": "原因判定",
+            "icon": "icons/fluent/check.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "target",
+            "to": "reach",
+            "label": "設定上の到達"
+          },
+          {
+            "from": "reach",
+            "to": "flow",
+            "label": "実通信ログ"
+          },
+          {
+            "from": "flow",
+            "to": "mirror",
+            "label": "必要時だけ詳細"
+          },
+          {
+            "from": "mirror",
+            "to": "decision",
+            "label": "切り分け"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "観測の深さ",
+            "members": [
+              "target",
+              "reach",
+              "flow",
+              "mirror",
+              "decision"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "process",
+      "kicker": "Troubleshooting",
+      "title": "つながらない時の切り分け順",
+      "lead": "障害対応でも基本は同じ。送信元、宛先、ポートを固定し、IP、経路、境界、観測へ順番に落とす。",
+      "steps": [
+        {
+          "name": "名前解決",
+          "desc": "DNS名が期待するIPへ解決されるかを確認する"
+        },
+        {
+          "name": "送信元",
+          "desc": "送信元ENI、Subnet、Route Table、SGを確認する"
+        },
+        {
+          "name": "経路",
+          "desc": "VPC、TGW、VPN、Endpointの次ホップを確認する"
+        },
+        {
+          "name": "宛先",
+          "desc": "宛先SG、NACL、Listener、Targetの状態を見る"
+        },
+        {
+          "name": "戻り通信",
+          "desc": "応答パスとステートレス制御の戻り許可を確認する"
+        }
+      ],
+      "emph": [
+        2,
+        4
+      ]
+    },
+    {
+      "type": "diagram",
+      "kicker": "切り分け図",
+      "title": "通信障害の確認ポイント",
+      "lead": "例を1本に固定して、名前解決、送信元、経路、宛先、戻り通信の順に見る。どの設定を見ればよいかを通信経路に結び付ける。",
+      "diagram": {
+        "cols": [
+          "dns",
+          "source",
+          "route",
+          "boundary",
+          "target",
+          "logs"
+        ],
+        "rows": [
+          "main"
+        ],
+        "nodes": {
+          "dns": {
+            "col": "dns",
+            "row": "main",
+            "title": "DNS応答",
+            "icon": "icons/aws/route53.png"
+          },
+          "src": {
+            "col": "source",
+            "row": "main",
+            "title": "Source ENI",
+            "icon": "icons/aws/eni.png"
+          },
+          "route": {
+            "col": "route",
+            "row": "main",
+            "title": "Route Table",
+            "icon": "icons/fluent/document.png"
+          },
+          "boundary": {
+            "col": "boundary",
+            "row": "main",
+            "title": "SG / NACL",
+            "icon": "icons/fluent/shield_lock.png"
+          },
+          "target": {
+            "col": "target",
+            "row": "main",
+            "title": "Target",
+            "icon": "icons/aws/rds.png"
+          },
+          "logs": {
+            "col": "logs",
+            "row": "main",
+            "title": "Flow Logs",
+            "icon": "icons/aws/flow_logs.png"
+          }
+        },
+        "channels": {},
+        "edges": [
+          {
+            "from": "dns",
+            "to": "src",
+            "label": "期待IPか"
+          },
+          {
+            "from": "src",
+            "to": "route",
+            "label": "宛先CIDR"
+          },
+          {
+            "from": "route",
+            "to": "boundary",
+            "label": "次ホップ"
+          },
+          {
+            "from": "boundary",
+            "to": "target",
+            "label": "許可/拒否"
+          },
+          {
+            "from": "target",
+            "to": "logs",
+            "label": "戻り確認"
+          }
+        ],
+        "containers": [
+          {
+            "name": "container_0",
+            "label": "確認対象の通信",
+            "members": [
+              "dns",
+              "src",
+              "route",
+              "boundary",
+              "target"
+            ]
+          },
+          {
+            "name": "container_1",
+            "label": "観測",
+            "members": [
+              "logs"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "kicker": "Troubleshooting",
+      "title": "よくある通信障害",
+      "lead": "詰まりやすい場所は決まっている。症状から飛びつかず、どの観点の問題かに分類してから直す。",
+      "columns": [
+        "症状",
+        "よくある原因",
+        "最初に見る場所"
+      ],
+      "rows": [
+        [
+          "private subnetから外へ出られない",
+          "NAT Gateway向けdefault routeがない",
+          "Subnet Route Table"
+        ],
+        [
+          "ALB配下がUnhealthy",
+          "Target SGがALBからのHealth Checkを拒否",
+          "Target GroupとSG"
+        ],
+        [
+          "VPC間通信が片方向だけ失敗",
+          "戻り経路またはNACLの戻り許可がない",
+          "両側のRoute Table"
+        ],
+        [
+          "S3へprivateに接続できない",
+          "Endpoint RouteまたはPolicyが不足",
+          "EndpointとRoute Table"
+        ],
+        [
+          "オンプレ名が解決できない",
+          "Resolver RuleやOutbound Endpointの向きが違う",
+          "Route 53 Resolver"
+        ]
+      ]
+    },
+    {
+      "type": "config_lab",
+      "kicker": "確認コマンド",
+      "title": "AWS CLIで見る基本情報",
+      "lead": "運用では画面に加えてCLIでも確認できると強い。Route Table、Security Group、Endpointを同じ手順で読む。",
+      "sections": [
+        {
+          "label": "VPCと経路",
+          "code": "aws ec2 describe-vpcs\naws ec2 describe-subnets\naws ec2 describe-route-tables\naws ec2 describe-nat-gateways"
+        },
+        {
+          "label": "制御とログ",
+          "code": "aws ec2 describe-security-groups\naws ec2 describe-network-acls\naws ec2 describe-flow-logs\naws ec2 describe-vpc-endpoints"
+        }
+      ],
+      "check_label": "確認する状態",
+      "checks": [
+        "対象リソースが想定VPCとSubnetに存在する",
+        "サブネットに関連付いたRoute Tableが想定どおり",
+        "SGとNACLの両方で必要通信が通る",
+        "EndpointやNAT Gatewayの状態がAvailable"
+      ]
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "questions",
+      "kicker": "Senior章末チェック",
+      "title": "シニア設計の確認 Hybridと入口",
+      "questions": [
+        {
+          "question": "Direct Connectを本番で使うとき、単線構成のままにしない主な理由はどれか。",
+          "options": [
+            "回線やロケーション障害時の迂回を確保するため",
+            "CIDR表記を短くするため",
+            "S3のバケット名を固定するため"
+          ],
+          "answer": 0,
+          "explanation": "Hybrid接続はつながることだけでなく、障害時の切り替えまで含めて設計する。PrimaryとBackupの分離が重要。"
+        },
+        {
+          "question": "BGP設計でまず確認したいものはどれか。",
+          "options": [
+            "広告するCIDRと受け取る経路",
+            "ALBのリスナールール名",
+            "Lambdaの関数名"
+          ],
+          "answer": 0,
+          "explanation": "BGPは到達範囲と優先経路を決める。何を広報し、何を受け入れるかを明確にする。"
+        },
+        {
+          "question": "Hybrid DNSで最初に決めるべき問いはどれか。",
+          "options": [
+            "どちらのDNSが最終的に名前を解決するか",
+            "EC2のインスタンスタイプを何にするか",
+            "NAT Gatewayのタグ色をどうするか"
+          ],
+          "answer": 0,
+          "explanation": "オンプレミス名をAWSから引くのか、AWS内の名前をオンプレミスから引くのかで、Resolver EndpointとRuleの向きが変わる。"
+        }
+      ],
+      "lead": "Hybridと入口設計は、冗長化、経路交換、名前解決をまとめて確認する。"
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "answers",
+      "kicker": "Senior章末チェック",
+      "title": "シニア設計の解答 Hybridと入口",
+      "questions": [
+        {
+          "question": "Direct Connectを本番で使うとき、単線構成のままにしない主な理由はどれか。",
+          "options": [
+            "回線やロケーション障害時の迂回を確保するため",
+            "CIDR表記を短くするため",
+            "S3のバケット名を固定するため"
+          ],
+          "answer": 0,
+          "explanation": "Hybrid接続はつながることだけでなく、障害時の切り替えまで含めて設計する。PrimaryとBackupの分離が重要。"
+        },
+        {
+          "question": "BGP設計でまず確認したいものはどれか。",
+          "options": [
+            "広告するCIDRと受け取る経路",
+            "ALBのリスナールール名",
+            "Lambdaの関数名"
+          ],
+          "answer": 0,
+          "explanation": "BGPは到達範囲と優先経路を決める。何を広報し、何を受け入れるかを明確にする。"
+        },
+        {
+          "question": "Hybrid DNSで最初に決めるべき問いはどれか。",
+          "options": [
+            "どちらのDNSが最終的に名前を解決するか",
+            "EC2のインスタンスタイプを何にするか",
+            "NAT Gatewayのタグ色をどうするか"
+          ],
+          "answer": 0,
+          "explanation": "オンプレミス名をAWSから引くのか、AWS内の名前をオンプレミスから引くのかで、Resolver EndpointとRuleの向きが変わる。"
+        }
+      ],
+      "lead": "正解はすべて、可用性、経路、名前解決の観点に戻る。大規模設計では、この観点を設計レビューで言葉にする。"
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "questions",
+      "kicker": "Senior章末チェック",
+      "title": "シニア設計の確認 統制と運用",
+      "questions": [
+        {
+          "question": "集中egressでステートフルFirewallを使うとき、特に確認したいことはどれか。",
+          "options": [
+            "往路と復路が同じ検査点を通ること",
+            "Subnet名を短くすること",
+            "S3バケット名を変えること"
+          ],
+          "answer": 0,
+          "explanation": "戻り通信が別経路を通ると、Firewallが状態を持てずに通信を落とすことがある。対称性の確認が重要。"
+        },
+        {
+          "question": "組織全体でCIDR重複を減らすために使うサービスとして近いものはどれか。",
+          "options": [
+            "IPAM",
+            "Classic Load Balancer",
+            "Traffic Mirroring"
+          ],
+          "answer": 0,
+          "explanation": "IPAMはCIDR割り当て、管理、監査を組織横断で扱う。後から接続できない問題を減らすために使う。"
+        },
+        {
+          "question": "EKS VPC CNIやECS awsvpcで早めに見たい設計観点はどれか。",
+          "options": [
+            "SubnetのIP消費とSecurity Groupの持ち方",
+            "Route 53のドメイン販売価格",
+            "PowerPointのテーマ名"
+          ],
+          "answer": 0,
+          "explanation": "ワークロードがVPCのIPやENIをどう使うかで、Subnetサイズ、密度、許可境界が変わる。"
+        }
+      ],
+      "lead": "防御、IP管理、ワークロード、観測は、組織で同じ読み方にそろえる。"
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "answers",
+      "kicker": "Senior章末チェック",
+      "title": "シニア設計の解答 統制と運用",
+      "questions": [
+        {
+          "question": "集中egressでステートフルFirewallを使うとき、特に確認したいことはどれか。",
+          "options": [
+            "往路と復路が同じ検査点を通ること",
+            "Subnet名を短くすること",
+            "S3バケット名を変えること"
+          ],
+          "answer": 0,
+          "explanation": "戻り通信が別経路を通ると、Firewallが状態を持てずに通信を落とすことがある。対称性の確認が重要。"
+        },
+        {
+          "question": "組織全体でCIDR重複を減らすために使うサービスとして近いものはどれか。",
+          "options": [
+            "IPAM",
+            "Classic Load Balancer",
+            "Traffic Mirroring"
+          ],
+          "answer": 0,
+          "explanation": "IPAMはCIDR割り当て、管理、監査を組織横断で扱う。後から接続できない問題を減らすために使う。"
+        },
+        {
+          "question": "EKS VPC CNIやECS awsvpcで早めに見たい設計観点はどれか。",
+          "options": [
+            "SubnetのIP消費とSecurity Groupの持ち方",
+            "Route 53のドメイン販売価格",
+            "PowerPointのテーマ名"
+          ],
+          "answer": 0,
+          "explanation": "ワークロードがVPCのIPやENIをどう使うかで、Subnetサイズ、密度、許可境界が変わる。"
+        }
+      ],
+      "lead": "統制と運用の設問は、対称経路、IP管理、ワークロードのIP消費へ戻って考える。"
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "questions",
+      "kicker": "Senior章末チェック",
+      "title": "シニア設計の確認 入口と観測",
+      "questions": [
+        {
+          "question": "利用者入口で、HTTPの防御、配信、負荷分散を分けて考えるときの組み合わせとして近いものはどれか。",
+          "options": [
+            "WAF、CloudFront、ALBまたはNLB",
+            "IPAM、ECS、Traffic Mirroring",
+            "NAT Gateway、RDS、S3バケット名"
+          ],
+          "answer": 0,
+          "explanation": "WAFはHTTP防御、CloudFrontはエッジ配信、ALB/NLBは負荷分散を担う。入口設計では層を分ける。"
+        },
+        {
+          "question": "固定Anycast IPで利用者を近いAWSエッジへ誘導したい。候補になるものはどれか。",
+          "options": [
+            "Global Accelerator",
+            "Gateway Endpoint",
+            "Network ACLだけ"
+          ],
+          "answer": 0,
+          "explanation": "Global Acceleratorは静的Anycast IPを入口にし、健全なRegional Endpointへ接続を寄せる。"
+        },
+        {
+          "question": "設定上の到達確認、実通信ログ、パケット詳細調査を分ける組み合わせとして近いものはどれか。",
+          "options": [
+            "Reachability Analyzer、VPC Flow Logs、Traffic Mirroring",
+            "Route 53、IPAM、WAFだけ",
+            "ALB、NAT Gateway、S3だけ"
+          ],
+          "answer": 0,
+          "explanation": "Reachability Analyzerは設定上の経路、Flow Logsは通信記録、Traffic Mirroringはパケット詳細を見る。"
+        }
+      ],
+      "lead": "入口設計と障害調査では、層ごとの役割と観測ツールの違いを確認する。"
+    },
+    {
+      "type": "knowledge_check",
+      "mode": "answers",
+      "kicker": "Senior章末チェック",
+      "title": "シニア設計の解答 入口と観測",
+      "questions": [
+        {
+          "question": "利用者入口で、HTTPの防御、配信、負荷分散を分けて考えるときの組み合わせとして近いものはどれか。",
+          "options": [
+            "WAF、CloudFront、ALBまたはNLB",
+            "IPAM、ECS、Traffic Mirroring",
+            "NAT Gateway、RDS、S3バケット名"
+          ],
+          "answer": 0,
+          "explanation": "WAFはHTTP防御、CloudFrontはエッジ配信、ALB/NLBは負荷分散を担う。入口設計では層を分ける。"
+        },
+        {
+          "question": "固定Anycast IPで利用者を近いAWSエッジへ誘導したい。候補になるものはどれか。",
+          "options": [
+            "Global Accelerator",
+            "Gateway Endpoint",
+            "Network ACLだけ"
+          ],
+          "answer": 0,
+          "explanation": "Global Acceleratorは静的Anycast IPを入口にし、健全なRegional Endpointへ接続を寄せる。"
+        },
+        {
+          "question": "設定上の到達確認、実通信ログ、パケット詳細調査を分ける組み合わせとして近いものはどれか。",
+          "options": [
+            "Reachability Analyzer、VPC Flow Logs、Traffic Mirroring",
+            "Route 53、IPAM、WAFだけ",
+            "ALB、NAT Gateway、S3だけ"
+          ],
+          "answer": 0,
+          "explanation": "Reachability Analyzerは設定上の経路、Flow Logsは通信記録、Traffic Mirroringはパケット詳細を見る。"
+        }
+      ],
+      "lead": "入口と観測の設問は、どの層で判断し、どの事実を見ているかへ戻る。"
+    },
+    {
+      "type": "decision_summary",
+      "kicker": "設計原則",
+      "title": "AWSネットワーク設計の軸",
+      "lead": "最後に、全章で使った4つの観点へ戻る。新しいサービスを見ても、まずIP、経路、境界、観測に分ければ読み始められる。",
+      "sections": [
+        {
+          "heading": "IPは先に決める",
+          "icon": "search",
+          "body": "CIDRの重複や枯渇は後から直しにくい。IPAMや命名規則を使い、環境とRegionの余白を残す。"
+        },
+        {
+          "heading": "経路は明示する",
+          "icon": "router",
+          "body": "public、private、endpoint、hybridの出口をRoute Tableで読み切れる状態にする。"
+        },
+        {
+          "heading": "境界は重ねる",
+          "icon": "shield",
+          "body": "Security Group、NACL、Firewall、DNS制御を役割ごとに置き、同じ目的の重複を増やしすぎない。"
+        },
+        {
+          "heading": "観測点を置く",
+          "icon": "monitor",
+          "body": "Flow Logs、Reachability Analyzer、Network Managerで、障害時に推測だけで追わない設計にする。"
+        }
+      ]
+    },
+    {
+      "type": "bullets",
+      "style": "checklist",
+      "kicker": "次の行動",
+      "title": "この資料の使い方",
+      "lead": "読むだけで終わらせず、構成図、設定値、ログを同じ順番で確認する練習に進む。",
+      "bullets": [
+        {
+          "text": "EC2からS3までの経路を、NAT経由とEndpoint経由で比較する",
+          "checked": false
+        },
+        {
+          "text": "ALBからRDSまで、名前解決、経路、SG、NACL、戻り通信を順に説明する",
+          "checked": false
+        },
+        {
+          "text": "Peering、Transit Gateway、PrivateLinkの選定理由を要件別に書く",
+          "checked": false
+        },
+        {
+          "text": "Flow LogsとReachability Analyzerで、意図した拒否と想定外の拒否を分ける",
+          "checked": false
+        }
+      ]
+    }
+  ]
+}

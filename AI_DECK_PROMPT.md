@@ -65,8 +65,9 @@
    生成・検証工程は書かない。日付、組織名、作成者・責任者が資料要件にある場合だけ
    `meta.date` / `meta.organization` / `meta.author`へ書く。これらは標準表紙の右側railへ表示されるため、
    表紙タイトルやサブタイトルへ重複して書かない。
-   表紙または章扉が必要な場合だけ`type: "title"`を使う。表紙なし、任意位置、複数枚を選べるため、
-   資料要件にない`title` slideは追加しない。
+   表紙が必要な場合だけ`type: "title"`を使い、章扉・中扉には`type: "section_divider"`を使う。
+   `section_divider.kicker`は指定された章ラベルをそのまま表示し、`SECTION`や章番号を自動生成しない。
+   表紙なし、任意位置、複数枚を選べるため、資料要件にない`title`や`section_divider` slideは追加しない。
 3. 既存サンプルの題材・文言・固有名詞・数値を流用しない。
 4. 実在の構成・組織・数値が分からない場合は、勝手に具体化せず、その情報を必要とする任意表示やスライドを省く。
    `要確認`、`TBD`、例示用の組織名・担当名を完成スライドへ残さない。
@@ -77,7 +78,8 @@
    AWSサービスを表すノードは、対応するAWS公式アイコンがある場合に必ずそれを使う。Fluentアイコンは
    人、組織、端末、オンプレミス、一般概念、または対応するAWS素材がない要素に使う。
    VLANやセキュリティゾーンのように、物理機器と論理セグメント、Access・Trunk・L3接続の意味を
-   同時に示す場合は`diagram`へ押し込まず`nw_topology`を使う。
+   同時に示す場合は`diagram`へ押し込まず`nw_topology`を使う。AWSのVPC、AZ、Subnetの境界を
+   学習対象として見せる場合は、`diagram`ではなく`aws_vpc_layout`を使う。
 6. 研修・解説資料で専門用語や判断基準を初めて示す場合は、図解より先に`concept`で定義する。
    `term`と`definition`で意味を固定し、理解に必要な要点を`points`、誤解しやすい境界を`misconception`へ書く。
    用語を未定義のまま構成図や詳細手順から始めない。
@@ -117,7 +119,8 @@
 
 Common:
 
-- `title`
+- `title` (表紙)
+- `section_divider` (章扉・中扉。`kicker` / `title` / 任意`lead`)
 - `bullets`
 - `cards`
 - `table`
@@ -142,6 +145,7 @@ Common:
 
 NW:
 
+- `aws_vpc_layout` (AWSのVPC・AZ・Subnet境界と、配置リソース・通信経路を同時に示す構成図)
 - `nw_topology` (物理機器・論理セグメント・Access / Trunk / L3接続を同時に示すネットワーク図)
 - `nw_protocol_flow` (端末・装置・伝送区間ごとのフレームまたはパケット状態の変化)
 - `nw_frame_anatomy` (フレーム・パケットのフィールド構造と注釈)

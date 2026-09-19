@@ -16,7 +16,8 @@
 - 結論・前提・読み方が必要な場合だけ`lead`へ1〜2行で書く。本文の繰り返しなら省略する。
 - `meta.date`、`meta.organization`、`meta.author`、`meta.footer`、`note`、`actor`、`attribute`、`emphasis`は、必要性と値が資料要件にある場合だけ使う。
 - 座標、寸法、余白、フォント、色、描画順、表の列幅、ラベル位置をJSONへ書かない。
-- 表紙が必要な場合だけ`title`、章扉が必要な場合だけ`section_divider`を使う。ギャラリーのページ順やtype順を流用しない。
+- 表紙が必要な場合だけ`title`を使う。typeは同梱のschemaにあるものだけを選び、ギャラリーのページ順やtype順を流用しない。
+- 章区切りは`section_divider`を使い、章番号・章ラベルを`kicker`に書く。自動採番を前提にしない。
 - システムやネットワーク図のノード・エッジには意味だけを書き、配置はrendererへ任せる。存在しないアイコン名を発明しない。
 - 画像typeでは、実在して利用可能なリポジトリ相対パスだけを書く。追加素材の出典とライセンスは`slidegen/assets/CREDITS.md`へ記録する。
 - `tests/fixtures/gallery/content*.py`と`tests/fixtures/gallery/diagram_specs.py`から題材、文言、数値、ページ構成をコピーしない。

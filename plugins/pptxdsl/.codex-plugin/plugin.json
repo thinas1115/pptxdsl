@@ -1,0 +1,22 @@
+{
+  "name": "pptxdsl",
+  "version": "0.1.0",
+  "description": "資料要件からPPTX生成・機械検証・PNG目視QAまで行うpptxdsl Plugin",
+  "author": {
+    "name": "pptxdsl"
+  },
+  "repository": "https://github.com/thinas1115/pptxdsl",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "pptxdsl",
+    "shortDescription": "内容と構造からPowerPoint資料を作成",
+    "longDescription": "資料要件と情報源からJSONを設計し、同梱rendererでPPTXを生成します。実行環境のレンダリング手段を探索し、機械検証と全ページのPNG目視QAまで行います。",
+    "developerName": "pptxdsl",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/thinas1115/pptxdsl",
+    "defaultPrompt": ["この資料と要件から、目視確認済みのPPTXを作成してください。"],
+    "brandColor": "#00857D"
+  }
+}

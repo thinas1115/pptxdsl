@@ -1,6 +1,6 @@
 # AWS Architecture Icons
 
-このディレクトリのPNGは、AWS公式アイコンデッキから無改変で抽出したAWS Architecture Iconsです。
+このディレクトリのPNGは、AWS公式アイコンデッキまたは公式Icon packageから無改変で抽出したAWS Architecture Iconsです。
 
 - 作品名: AWS Architecture Icons
 - 原著作者・権利者: Amazon Web Services, Inc.またはその関連会社

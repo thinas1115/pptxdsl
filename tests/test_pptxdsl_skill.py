@@ -60,7 +60,7 @@ def test_skill_links() -> None:
     assert re.search(r"\[[^]]+\]\(([^)]+)\)", text), (
         "SKILL.mdから内部リファレンスが見つかりません"
     )
-    for markdown in (ROOT / "AGENTS.md", ROOT / "README.md", skill_file):
+    for markdown in (ROOT / "AGENTS.md", ROOT / "README.md", ROOT / "docs/plugin.md", skill_file):
         broken = _broken_local_links(markdown)
         assert not broken, f"{markdown.name}に存在しないリンクがあります: {broken}"
     assert render_preview.REPO_ROOT == ROOT

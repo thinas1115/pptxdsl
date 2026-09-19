@@ -28,6 +28,15 @@ def _assert_error(deck, expected):
 def main():
     assert not validate(_deck(_bullets()))
 
+    section_divider = _deck({
+        "type": "section_divider", "kicker": "第2章", "title": "導入計画",
+        "lead": "試験導入から展開判断まで",
+    })
+    assert not validate(section_divider), "\n".join(validate(section_divider))
+    unknown_section_key = deepcopy(section_divider)
+    unknown_section_key["slides"][1]["section"] = "SECTION"
+    _assert_error(unknown_section_key, "section: 未対応")
+
     linked_note = _deck({
         "type": "table", "kicker": "用語", "title": "規格",
         "columns": ["用語", "定義"], "rows": [["規格名", "定義文"]],
@@ -211,6 +220,57 @@ def main():
     errors = validate(invalid_diagram)
     for expected in ("nodes.a.sub", "label_w: 未対応", ".dash", ".both"):
         assert any(expected in error for error in errors), "\n".join(errors)
+
+    aws_vpc_layout = {
+        "type": "aws_vpc_layout",
+        "kicker": "構成図",
+        "title": "VPC構成",
+        "vpc": {"label": "VPC", "cidr": "10.0.0.0/16"},
+        "external": [
+            {"id": "user", "label": "利用者", "icon": "icons/aws/users.png"},
+        ],
+        "azs": [
+            {
+                "id": "az_a",
+                "label": "AZ-a",
+                "subnets": [
+                    {
+                        "id": "public_a",
+                        "label": "public subnet",
+                        "resources": [
+                            {"id": "alb_a", "label": "ALB",
+                             "icon": "icons/aws/alb.png"},
+                        ],
+                    },
+                    {
+                        "id": "app_a",
+                        "label": "private subnet",
+                        "resources": [
+                            {"id": "app_a_node", "label": "App",
+                             "icon": "icons/fluent/server.png"},
+                        ],
+                    },
+                ],
+            },
+        ],
+        "flows": [{"from": "user", "to": "alb_a", "label": "HTTPS"}],
+    }
+    assert not validate(_deck(aws_vpc_layout))
+
+    invalid_aws_vpc = _deck(deepcopy(aws_vpc_layout))
+    invalid_aws_vpc["slides"][1]["azs"][0]["subnets"][0]["resources"][0][
+        "x"] = 0.3
+    invalid_aws_vpc["slides"][1]["flows"][0]["to"] = "missing"
+    errors = validate(invalid_aws_vpc)
+    for expected in ("resources[0].x", "未定義resource"):
+        assert any(expected in error for error in errors), "\n".join(errors)
+
+    for endpoint in ([], {}, None, 1):
+        for key in ("from", "to"):
+            invalid = _deck(deepcopy(aws_vpc_layout))
+            invalid["slides"][1]["flows"][0][key] = endpoint
+            errors = validate(invalid)
+            assert any("参照文字列" in error for error in errors), errors
 
     print("OK: AI content contract accepts headings and rejects assertive page titles")
 
