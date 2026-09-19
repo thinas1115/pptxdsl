@@ -68,8 +68,8 @@ git status --short
 
 ## 実装原則
 
-- 本処理は`slidegen/`、テストは`tests/`、回帰専用入力は`tests/fixtures/gallery/`、
-  ギャラリー生成・素材管理などの開発ツールは`tools/`へ置く。本処理からテストや開発ツールをimportしない。
+- PPTX生成・検証コードは`slidegen/`、テストは`tests/`、回帰専用入力は`tests/fixtures/gallery/`、
+  ギャラリー生成・素材管理などの開発ツールは`tools/`へ置く。`slidegen/`からテストや開発ツールをimportしない。
 - テストは`python -m tests`、単体は`python -m tests.test_check_layout`のように実行する。
   回帰文言を変更したときは`python -m tools.gallery.build_sample_fingerprints`で同梱の混入検出辞書を更新する。
 

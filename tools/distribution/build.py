@@ -188,7 +188,7 @@ def build_release(output_dir: Path, *, tag: str | None = None,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=Path("out/release"))
-    parser.add_argument("--tag", help="manifestと一致を確認するReleaseタグ（例: v1.0.0）")
+    parser.add_argument("--tag", help="manifestと一致を確認するReleaseタグ（例: vX.Y.Z）")
     args = parser.parse_args()
     try:
         assets = build_release(args.output_dir, tag=args.tag)
