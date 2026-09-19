@@ -1,4 +1,4 @@
-"""本処理だけをコピーしても通常生成でき、開発資産へ依存しないことを検証する。"""
+"""PPTX生成コードだけをコピーしても通常生成でき、開発資産へ依存しないことを検証する。"""
 import ast
 import json
 import os
@@ -53,7 +53,7 @@ def main():
         assert retired.returncode != 0
         assert "python -m tools.gallery.generate_basic" in retired.stderr
         assert "Traceback" not in retired.stderr
-    print("OK: 本処理だけでファイル実行・module実行の生成と検証が完了")
+    print("OK: PPTX生成コードだけでファイル実行・module実行の生成と検証が完了")
 
 
 if __name__ == "__main__":

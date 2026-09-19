@@ -38,15 +38,16 @@ python -m pip install -r requirements.txt
 
 | 利用形態 | 向いている用途 | 実行に使うもの |
 |---|---|---|
-| Skill | Skillとして直接導入する、またはこのリポジトリ内で開発する | ReleaseのSkill ZIP、または`.agents/skills/pptxdsl/`とcloneした本処理 |
-| Plugin | Plugins Directoryから導入する、他の利用者へPluginとして配布する | ReleaseのPlugin ZIPに同梱されたmanifest・Skill・本処理・素材 |
+| Skill | Skillとして直接導入する、またはこのリポジトリ内で開発する | ReleaseのSkill ZIP、または`.agents/skills/pptxdsl/`とcloneしたPPTX生成コード |
+| Plugin | Plugins Directoryから導入する、他の利用者へPluginとして配布する | ReleaseのPlugin ZIPに同梱されたmanifest・Skill・PPTX生成コード・素材 |
 
 どちらも、資料要件と情報源の確認、`content.json`の設計、PPTX生成、機械検証、PNG化、
 全ページの目視QA、修正後の再確認までを1つの作業として実行します。
 
 ### Skillとして使う
 
-GitHub Releaseの`pptxdsl-skill-v1.0.0.zip`は自己完結型です。ZIPを展開し、できた`pptxdsl/`を
+最新の[GitHub Release](https://github.com/thinas1115/pptxdsl/releases/latest)にあるSkill ZIPは自己完結型です。
+ZIPを展開し、できた`pptxdsl/`を
 CodexのSkillディレクトリへ配置します。`SKILL.md`、renderer、schema、素材が同梱されているため、
 リポジトリのcloneは不要です。
 
@@ -74,19 +75,19 @@ CodexでSkillが候補に出ない場合は、`/skills`で一覧を確認する�
 
 ### Pluginとして使う
 
-Plugin版はSkill・本処理・素材を同梱するため、利用時にこのリポジトリをcloneする必要がありません。
+Plugin版はSkill・PPTX生成コード・素材を同梱するため、利用時にこのリポジトリをcloneする必要がありません。
 Python 3.10以上、日本語フォント、PowerPointまたはLibreOfficeなどのレンダリング手段は実行環境側に必要です。
 
 #### 1. 配布物を作る
 
-正式配布は[GitHub Release v1.0.0](https://github.com/thinas1115/pptxdsl/releases/tag/v1.0.0)の
-`pptxdsl-plugin-v1.0.0.zip`です。開発中の配布候補を作る場合は、未使用の出力先を指定してビルドします。
+正式配布は最新の[GitHub Release](https://github.com/thinas1115/pptxdsl/releases/latest)にあるPlugin ZIPです。
+開発中の配布候補を作る場合は、未使用の出力先を指定してビルドします。
 
 ```powershell
 python -m tools.plugin.build --output-dir out\plugins
 ```
 
-インストール対象は`out/plugins/pptxdsl/`です。`out/plugins/pptxdsl-plugin-v1.0.0.zip`を渡す場合は、
+インストール対象は`out/plugins/pptxdsl/`です。生成されたZIPを渡す場合は、
 展開後に`plugin.json`が直下にあるフォルダをPluginルートとして使います。
 
 #### 2. Codexへ登録・インストールする
@@ -120,25 +121,6 @@ ChatGPTでは`@pptxdsl`、Codexでは`$pptxdsl`で明示選択できます。目
 
 OpenAI公式の基本仕様は[Skills](https://developers.openai.com/docs/build-skills)と
 [Pluginパッケージ](https://developers.openai.com/plugins/build/plugins)を参照してください。
-
-### Release配布物
-
-`v1.0.0`では、1つのGitHub Releaseに用途の異なる配布物を別アセットとして掲載します。
-
-| アセット | 用途 | ZIPのトップ階層 |
-|---|---|---|
-| `pptxdsl-skill-v1.0.0.zip` | Skillとして直接導入 | `pptxdsl/SKILL.md` |
-| `pptxdsl-plugin-v1.0.0.zip` | Pluginとして登録・導入 | `plugin.json`、`.codex-plugin/`、`skills/` |
-| `pattern_gallery.pptx` | 対応typeの出力確認 | PowerPointファイル |
-| `SHA256SUMS.txt` | ダウンロードした3ファイルの検証 | SHA-256一覧 |
-
-Release候補をまとめて生成する場合は、次を実行します。タグとPlugin manifestのバージョンが違う場合は停止します。
-
-```powershell
-python -m tools.distribution.build --tag v1.0.0 --output-dir out\release
-```
-
-`v1.0.0`タグをmainに含まれるコミットへ付けると、品質検証後に同じ4アセットをGitHub Releaseへ公開します。
 
 ## CLIで直接使う
 
@@ -202,7 +184,7 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 | パス | 内容 |
 |---|---|
 | `.agents/skills/pptxdsl/` | AIエージェント向けのPPTX作成Skill |
-| `slidegen/` | renderer、レイアウトエンジン、validator、PPTX検査の本処理 |
+| `slidegen/` | renderer、レイアウトエンジン、validator、PPTX検査コード |
 | `slidegen/data/` | 通常入力へのサンプル混入を防ぐ生成済み辞書 |
 | `tests/` | 契約・回帰テスト。全件実行は`python -m tests` |
 | `tests/fixtures/gallery/` | 回帰専用の内容データ・構成図仕様 |

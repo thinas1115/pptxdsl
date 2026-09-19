@@ -1,13 +1,13 @@
-"""Skill・Pluginを別アセットにしたRelease配布物を検証する。"""
+"""Skill・Pluginを分けたReleaseアセットを検証する。"""
 import hashlib
 from pathlib import Path
 import tempfile
 import zipfile
 
-from tools.distribution.build import ROOT, build_release
+from tools.distribution.build import ROOT, build_release, version
 
 
-VERSION = "v1.0.0"
+VERSION = f"v{version()}"
 
 
 def _sha256(path: Path) -> str:
@@ -57,7 +57,7 @@ def test_release_assets() -> None:
         assert first.gallery.read_bytes() == (ROOT / "examples/gallery/pattern_gallery.pptx").read_bytes()
 
         try:
-            build_release(base / "wrong-tag", tag="v1.0.1")
+            build_release(base / "wrong-tag", tag="v999.0.0")
         except ValueError as error:
             assert VERSION in str(error)
         else:

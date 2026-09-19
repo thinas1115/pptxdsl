@@ -12,7 +12,7 @@ def project_root() -> Path:
         for candidate in (parent / "project", parent):
             if (candidate / "slidegen/generate_from_json.py").is_file():
                 return candidate
-    raise RuntimeError("同梱のpptxdsl本処理が見つかりません")
+    raise RuntimeError("同梱のpptxdsl生成コードが見つかりません")
 
 
 def main() -> int:

@@ -7,9 +7,9 @@ pptxdslをskills-only Pluginとして配布する。資料要件と情報源の�
 
 ## 配布物の作成
 
-正式配布は[GitHub Release v1.0.0](https://github.com/thinas1115/pptxdsl/releases/tag/v1.0.0)の
-`pptxdsl-plugin-v1.0.0.zip`を使用する。同じReleaseにある`pptxdsl-skill-v1.0.0.zip`は
-Skillとして直接導入する配布物であり、Plugin manifestを含まない。
+正式配布は[GitHub Releases](https://github.com/thinas1115/pptxdsl/releases)の
+`pptxdsl-plugin-v<version>.zip`を使用する。同じReleaseにある
+`pptxdsl-skill-v<version>.zip`はSkillとして直接導入する配布物であり、Plugin manifestを含まない。
 
 ビルドにはPython 3.10以上とGitが必要。リポジトリルートで実行する。
 
@@ -18,7 +18,7 @@ python -m tools.plugin.build
 ```
 
 - `out/plugins/pptxdsl/`: インストール対象の自己完結したPluginフォルダ
-- `out/plugins/pptxdsl-plugin-v1.0.0.zip`: フォルダと同じ内容の配布ZIP。ZIP直下がPluginルート
+- `out/plugins/pptxdsl-plugin-v<version>.zip`: フォルダと同じ内容の配布ZIP。ZIP直下がPluginルート
 
 既存出力を上書きしない。再ビルド時は`--output-dir out/plugins-next`など、未使用の出力先を指定する。
 生成済みのPluginフォルダとZIPはGitへコミットしない。
@@ -26,17 +26,18 @@ python -m tools.plugin.build
 Skill ZIP、Plugin ZIP、パターンギャラリー、SHA-256一覧をRelease候補としてまとめる場合は次を実行する。
 
 ```text
-python -m tools.distribution.build --tag v1.0.0 --output-dir out/release
+python -m tools.distribution.build --output-dir out/release
 ```
 
-タグとmanifestのバージョンが一致しない場合は生成を停止する。`v1.0.0`タグのpushでは
-`.github/workflows/release.yml`が全テストを実行し、タグがmainに含まれることを確認してからReleaseを公開する。
+Release workflowはタグとmanifestのバージョンが一致しない場合に停止する。
+`v<version>`タグのpushでは`.github/workflows/release.yml`が全テストを実行し、
+タグがmainに含まれることを確認してからReleaseを公開する。
 
 追跡する正本は`.agents/skills/pptxdsl/`、`slidegen/`、公開スキーマと説明文書、
 `plugins/pptxdsl/.codex-plugin/plugin.json`。Plugin専用のrendererやSkill複製を管理しない。
-ビルド時に正本を集め、`skills/pptxdsl/project/`へ必要な本処理・素材・依存一覧・ライセンスを同梱する。
+ビルド時に正本を集め、`skills/pptxdsl/project/`へ必要なPPTX生成コード・素材・依存一覧・ライセンスを同梱する。
 テスト、回帰入力、開発ツール、ローカル設定、生成デッキは配布へ含めない。
-本処理・素材はGit追跡対象だけを同梱し、未追跡の利用者画像などは公開しない。
+PPTX生成コードと素材はGit追跡対象だけを同梱し、未追跡の利用者画像などは公開しない。
 
 Portable形式の`plugin.json`を生成し、`.codex-plugin/plugin.json`も互換用に同梱する。
 表示情報は互換manifestを正本としてPortable側の`extensions.com.openai.interface`へ反映する。
@@ -53,7 +54,7 @@ ChatGPT向けとCodex向けでSkillやrendererを分岐させない。同じ配�
 
 1. Codexへ次のように依頼し、個人設定を変更する承認を与える。
    「`$plugin-creator`で、このビルド済みpptxdsl Pluginを個人marketplaceへ登録してください。
-   同梱Skillと本処理を保持し、既存Plugin・marketplace項目は上書きしないでください。」
+   同梱SkillとPPTX生成コードを保持し、既存Plugin・marketplace項目は上書きしないでください。」
 2. 登録後、Codexを再読み込みし、Plugins Directoryの個人タブからpptxdslをインストールする。
    CLIが利用できる場合は、登録済みmarketplaceの実際の名前で以下を実行して確認できる。
 
