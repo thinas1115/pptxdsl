@@ -59,13 +59,27 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python -m tools.distribution.build --tag $env:GITHUB_REF_NAME --output-dir out/release
 
-      - name: Releaseノートを確認
+      - name: Releaseノートを生成
         shell: pwsh
         run: |
-          $notes = "docs/releases/$env:GITHUB_REF_NAME.md"
-          if (-not (Test-Path -LiteralPath $notes)) {
-            throw "Releaseノートがありません: $notes"
+          $source = "docs/releases/$env:GITHUB_REF_NAME.md"
+          $target = "out/release/RELEASE_NOTES.md"
+          if (-not (Test-Path -LiteralPath $source)) {
+            throw "Releaseノートがありません: $source"
           }
+          $notes = (Get-Content -LiteralPath $source -Raw).TrimEnd().Replace("`r`n", "`n").Replace("`r", "`n")
+          $checksums = (Get-Content -LiteralPath "out/release/SHA256SUMS.txt" -Raw).TrimEnd().Replace("`r`n", "`n").Replace("`r", "`n")
+          $body = @(
+            $notes
+            ""
+            "## SHA-256"
+            ""
+            '```text'
+            $checksums
+            '```'
+            ""
+          ) -join "`n"
+          [IO.File]::WriteAllText($target, $body, [Text.UTF8Encoding]::new($false))
 
       - name: Draft Releaseを作成
         shell: pwsh
@@ -81,7 +95,7 @@ jobs:
             --verify-tag `
             --draft `
             --title "pptxdsl $tag" `
-            --notes-file "docs/releases/$tag.md"
+            --notes-file "out/release/RELEASE_NOTES.md"
 
       - name: Releaseを公開
         shell: pwsh
