@@ -1,5 +1,6 @@
-"""Skill・Pluginを分けたReleaseアセットを検証する。"""
+"""Skill・Pluginを分けたReleaseアセットとClaude Marketplaceを検証する。"""
 import hashlib
+import json
 from pathlib import Path
 import tempfile
 import zipfile
@@ -35,6 +36,7 @@ def test_release_assets() -> None:
             assert "pptxdsl/project/slidegen/generate_from_json.py" in names
             assert "pptxdsl/plugin.json" not in names
             assert "pptxdsl/.codex-plugin/plugin.json" not in names
+            assert "pptxdsl/.claude-plugin/plugin.json" not in names
             assert not any(set(Path(name).parts) & {"tests", "tools", ".git", "out", "__pycache__"}
                            for name in names)
 
@@ -42,8 +44,23 @@ def test_release_assets() -> None:
             names = set(bundle.namelist())
             assert "plugin.json" in names
             assert ".codex-plugin/plugin.json" in names
+            assert ".claude-plugin/plugin.json" in names
             assert "skills/pptxdsl/SKILL.md" in names
             assert "skills/pptxdsl/project/slidegen/generate_from_json.py" in names
+
+        marketplace = json.loads((ROOT / ".claude-plugin/marketplace.json")
+                                 .read_text(encoding="utf-8"))
+        assert marketplace["name"] == "pptxdsl-marketplace"
+        assert marketplace["version"] == version()
+        assert len(marketplace["plugins"]) == 1
+        entry = marketplace["plugins"][0]
+        assert entry["name"] == "pptxdsl"
+        assert entry["source"] == {
+            "source": "archive",
+            "url": ("https://github.com/thinas1115/pptxdsl/releases/download/"
+                    f"{VERSION}/{first.plugin.name}"),
+            "sha256": _sha256(first.plugin),
+        }
 
         checksums = {}
         for line in first.checksums.read_text(encoding="utf-8").splitlines():

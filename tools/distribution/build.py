@@ -25,6 +25,11 @@ SEMVER = re.compile(
     r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
     r"(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?"
 )
+TEXT_SUFFIXES = {
+    ".csv", ".json", ".md", ".ps1", ".py", ".svg", ".toml", ".tsv",
+    ".txt", ".xml", ".yaml", ".yml",
+}
+TEXT_FILENAMES = {"LICENSE"}
 
 
 @dataclass(frozen=True)
@@ -36,12 +41,17 @@ class ReleaseAssets:
 
 
 def _manifest(source_root: Path) -> dict:
-    manifest = json.loads((source_root / "plugins/pptxdsl/.codex-plugin/plugin.json")
-                          .read_text(encoding="utf-8"))
-    if manifest.get("name") != "pptxdsl" or not SEMVER.fullmatch(
-            str(manifest.get("version", ""))):
+    codex = json.loads((source_root / "plugins/pptxdsl/.codex-plugin/plugin.json")
+                       .read_text(encoding="utf-8"))
+    claude = json.loads((source_root / "plugins/pptxdsl/.claude-plugin/plugin.json")
+                        .read_text(encoding="utf-8"))
+    if codex.get("name") != "pptxdsl" or not SEMVER.fullmatch(
+            str(codex.get("version", ""))):
         raise ValueError("Plugin名またはバージョンが不正です")
-    return manifest
+    if (claude.get("name"), claude.get("version")) != (
+            codex["name"], codex["version"]):
+        raise ValueError("CodexとClaude CodeのPlugin名またはバージョンが一致しません")
+    return codex
 
 
 def version(source_root: Path = ROOT) -> str:
@@ -57,8 +67,17 @@ def _copy_tree(source: Path, destination: Path) -> None:
             raise ValueError("配布対象にシンボリックリンクがあります")
         if path.is_file():
             target = destination / path.relative_to(source)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, target)
+            _copy_content(path, target)
+
+
+def _copy_content(source: Path, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if source.suffix.lower() in TEXT_SUFFIXES or source.name in TEXT_FILENAMES:
+        text = source.read_text(encoding="utf-8")
+        target.write_text(text.replace("\r\n", "\n").replace("\r", "\n"),
+                          encoding="utf-8", newline="\n")
+    else:
+        shutil.copyfile(source, target)
 
 
 def _copy_file(source: Path, target: Path, root: Path) -> None:
@@ -67,8 +86,7 @@ def _copy_file(source: Path, target: Path, root: Path) -> None:
             raise ValueError("配布対象にシンボリックリンクがあります")
         if path == root:
             break
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, target)
+    _copy_content(source, target)
 
 
 def _populate_skill(skill: Path, source_root: Path) -> None:
@@ -86,7 +104,7 @@ def _populate_skill(skill: Path, source_root: Path) -> None:
 
 def _write_zip(source: Path, archive: Path, *, include_root: bool) -> None:
     relative_to = source.parent if include_root else source
-    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_STORED) as bundle:
         for path in sorted(source.rglob("*")):
             if not path.is_file():
                 continue
@@ -94,7 +112,7 @@ def _write_zip(source: Path, archive: Path, *, include_root: bool) -> None:
                 path.relative_to(relative_to).as_posix(),
                 date_time=(2020, 1, 1, 0, 0, 0),
             )
-            info.compress_type = zipfile.ZIP_DEFLATED
+            info.compress_type = zipfile.ZIP_STORED
             info.external_attr = 0o100644 << 16
             bundle.writestr(info, path.read_bytes())
 
@@ -129,6 +147,8 @@ def build_plugin(output_dir: Path, source_root: Path = ROOT) -> tuple[Path, Path
         staging = Path(temporary) / "pptxdsl"
         _copy_file(source_root / "plugins/pptxdsl/.codex-plugin/plugin.json",
                    staging / ".codex-plugin/plugin.json", source_root)
+        _copy_file(source_root / "plugins/pptxdsl/.claude-plugin/plugin.json",
+                   staging / ".claude-plugin/plugin.json", source_root)
         _populate_skill(staging / "skills/pptxdsl", source_root)
         portable = {key: value for key, value in manifest.items()
                     if key not in ("skills", "interface")}

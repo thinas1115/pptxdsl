@@ -38,8 +38,8 @@ python -m pip install -r requirements.txt
 
 | 利用形態 | 向いている用途 | 実行に使うもの |
 |---|---|---|
-| Skill | Skillとして直接導入する、またはこのリポジトリ内で開発する | ReleaseのSkill ZIP、または`.agents/skills/pptxdsl/`とcloneしたPPTX生成コード |
-| Plugin | Plugins Directoryから導入する、他の利用者へPluginとして配布する | ReleaseのPlugin ZIPに同梱されたmanifest・Skill・PPTX生成コード・素材 |
+| Skill | CodexまたはClaude Codeへ直接導入する、このリポジトリ内で開発する | ReleaseのSkill ZIP、または`.agents/skills/pptxdsl/`とcloneしたPPTX生成コード |
+| Plugin | Codex、ChatGPT Work、Claude CodeへPluginとして導入する | ReleaseのPlugin ZIPに同梱された各環境のmanifest・Skill・PPTX生成コード・素材 |
 
 どちらも、資料要件と情報源の確認、`content.json`の設計、PPTX生成、機械検証、PNG化、
 全ページの目視QA、修正後の再確認までを1つの作業として実行します。
@@ -47,15 +47,14 @@ python -m pip install -r requirements.txt
 ### Skillとして使う
 
 最新の[GitHub Release](https://github.com/thinas1115/pptxdsl/releases/latest)にあるSkill ZIPは自己完結型です。
-ZIPを展開し、できた`pptxdsl/`を
-CodexのSkillディレクトリへ配置します。`SKILL.md`、renderer、schema、素材が同梱されているため、
-リポジトリのcloneは不要です。
+`SKILL.md`、renderer、schema、素材が入っているため、リポジトリのcloneは不要です。
+
+Codexでは、ZIPを展開してできた`pptxdsl/`をSkillディレクトリへ配置します。
+新しいタスクで`$pptxdsl`を明示して依頼してください。
 
 このリポジトリ内で開発しながら使う場合は、[セットアップ](#セットアップ)を完了してリポジトリのルートを開きます。
 Codexは作業ディレクトリからリポジトリルートまでの`.agents/skills/`を探索するため、
 リポジトリ内のSkillを別の場所へコピーする必要はありません。
-
-どちらの導入方法でも、新しいタスクで`$pptxdsl`を明示して依頼します。
 
 ```text
 $pptxdsl
@@ -73,9 +72,23 @@ Skillは[pptxdsl Skill](.agents/skills/pptxdsl/SKILL.md)を入口に、必要な
 renderer、検証手順を読み込みます。通常は利用者が生成コマンドを個別に指示する必要はありません。
 CodexでSkillが候補に出ない場合は、`/skills`で一覧を確認するか、`$`に続けて`pptxdsl`を検索します。
 
+Claude Codeで個人用Skillとして使う場合は、ZIP内の`pptxdsl/`が
+`~/.claude/skills/pptxdsl/`になるように展開します。Windows PowerShellでは次のように配置できます。
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null
+$skillZip = Get-Item .\pptxdsl-skill-v*.zip
+Expand-Archive $skillZip.FullName "$HOME\.claude\skills" -Force
+python -m pip install -r "$HOME\.claude\skills\pptxdsl\project\requirements.txt"
+```
+
+プロジェクト内だけで使う場合は、`<プロジェクト>/.claude/skills/`へ展開します。
+Claude Codeを再起動し、`/pptxdsl`に続けて資料要件を入力してください。
+
 ### Pluginとして使う
 
-Plugin版はSkill・PPTX生成コード・素材を同梱するため、利用時にこのリポジトリをcloneする必要がありません。
+Plugin版はCodex、ChatGPT Work、Claude Codeのmanifestと、共通のSkill・PPTX生成コード・素材を同梱します。
+利用時にこのリポジトリをcloneする必要はありません。
 Python 3.10以上、日本語フォント、PowerPointまたはLibreOfficeなどのレンダリング手段は実行環境側に必要です。
 
 #### 1. 配布物を作る
@@ -119,8 +132,23 @@ ChatGPTでは`@pptxdsl`、Codexでは`$pptxdsl`で明示選択できます。目
 名前を付けずに依頼して自動選択させることもできます。登録、更新、ChatGPT Workでの導入、
 隔離実行の確認方法は[Pluginガイド](docs/plugin.md)を参照してください。
 
+#### 3. Claude Codeへインストールする
+
+Claude Code 2.1.224以上で次を実行します。MarketplaceはReleaseのPlugin ZIPをSHA-256で検証して導入します。
+
+```text
+/plugin marketplace add thinas1115/pptxdsl
+/plugin install pptxdsl@pptxdsl-marketplace
+```
+
+必要に応じて`/reload-plugins`を実行します。Pluginに含まれるSkillは
+`/pptxdsl:pptxdsl`で明示でき、依頼内容がdescriptionに合う場合はClaude Codeが自動で選択します。
+
 OpenAI公式の基本仕様は[Skills](https://developers.openai.com/docs/build-skills)と
 [Pluginパッケージ](https://developers.openai.com/plugins/build/plugins)を参照してください。
+Claude Codeの仕様は[Skills](https://code.claude.com/docs/en/skills)、
+[Plugins](https://code.claude.com/docs/en/plugins)、
+[Plugin Marketplace](https://code.claude.com/docs/en/plugin-marketplaces)を参照してください。
 
 ## CLIで直接使う
 

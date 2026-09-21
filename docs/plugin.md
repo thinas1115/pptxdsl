@@ -1,4 +1,4 @@
-# ChatGPT・Codex向けPlugin
+# ChatGPT・Codex・Claude Code向けPlugin
 
 pptxdslをskills-only Pluginとして配布する。資料要件と情報源の確認から、JSON成形、PPTX生成、
 機械検証、実行環境のPNGレンダリング、全ページの目視QAまでを1つのSkillで扱う。
@@ -34,12 +34,13 @@ Release workflowはタグとmanifestのバージョンが一致しない場合�
 タグがmainに含まれることを確認してからReleaseを公開する。
 
 追跡する正本は`.agents/skills/pptxdsl/`、`slidegen/`、公開スキーマと説明文書、
-`plugins/pptxdsl/.codex-plugin/plugin.json`。Plugin専用のrendererやSkill複製を管理しない。
+`plugins/pptxdsl/.codex-plugin/plugin.json`、`plugins/pptxdsl/.claude-plugin/plugin.json`。
+Plugin専用のrendererやSkill複製を管理しない。
 ビルド時に正本を集め、`skills/pptxdsl/project/`へ必要なPPTX生成コード・素材・依存一覧・ライセンスを同梱する。
 テスト、回帰入力、開発ツール、ローカル設定、生成デッキは配布へ含めない。
 PPTX生成コードと素材はGit追跡対象だけを同梱し、未追跡の利用者画像などは公開しない。
 
-Portable形式の`plugin.json`を生成し、`.codex-plugin/plugin.json`も互換用に同梱する。
+Portable形式の`plugin.json`を生成し、`.codex-plugin/plugin.json`と`.claude-plugin/plugin.json`も同梱する。
 表示情報は互換manifestを正本としてPortable側の`extensions.com.openai.interface`へ反映する。
 形式と固定の`skills/`検出については[公式のPluginパッケージ仕様](https://developers.openai.com/plugins/build/plugins)を参照する。
 
@@ -73,6 +74,26 @@ ChatGPT向けとCodex向けでSkillやrendererを分岐させない。同じ配�
 新しいタスクで確認する。生成物だけでなくCodexのPlugin一覧でインストール済みか確認する。
 個人設定への登録・インストールは、配布ビルドとは別の操作であり、ビルド時に自動実行しない。
 Pluginの導入と新しい会話での利用は[公式のPlugin利用ガイド](https://learn.chatgpt.com/docs/plugins)を参照する。
+
+### Claude Codeでの導入
+
+`.claude-plugin/marketplace.json`は、GitHub ReleaseのPlugin ZIPをバージョン付きURLとSHA-256で固定する。
+Claude Code 2.1.224以上で次を実行する。
+
+```text
+/plugin marketplace add thinas1115/pptxdsl
+/plugin install pptxdsl@pptxdsl-marketplace
+```
+
+Plugin ZIPの直下には`.claude-plugin/plugin.json`と`skills/pptxdsl/`がある。
+Claude Codeが再読み込みを求めた場合は`/reload-plugins`を実行する。
+Skillを明示する場合は`/pptxdsl:pptxdsl`を使う。個人用Skillとして導入する場合は、
+同じReleaseのSkill ZIPを`~/.claude/skills/`へ展開し、`/pptxdsl`で呼び出す。
+
+Marketplaceの`version`、Plugin manifestの`version`、Releaseタグ、ZIP名は同じ版にそろえる。
+`sha256`には、その版のPlugin ZIPをビルドして得た値を記録する。値が違う場合、Claude Codeは導入を拒否する。
+仕様は[Claude Code Plugins](https://code.claude.com/docs/en/plugins)と
+[Plugin Marketplace](https://code.claude.com/docs/en/plugin-marketplaces)を参照する。
 
 ### ChatGPT Workでの導入
 

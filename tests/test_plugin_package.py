@@ -68,16 +68,21 @@ def test_archive_and_runtime() -> None:
                            for name in bundle.namelist())
             bundle.extractall(installed)
         portable = json.loads((installed / "plugin.json").read_text(encoding="utf-8"))
-        compatibility = json.loads((installed / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        assert portable["name"] == compatibility["name"] == installed.name
-        assert portable["version"] == compatibility["version"]
-        assert portable["extensions"]["com.openai"]["interface"] == compatibility["interface"]
+        codex = json.loads((installed / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
+        claude = json.loads((installed / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
+        assert portable["name"] == codex["name"] == claude["name"] == installed.name
+        assert portable["version"] == codex["version"] == claude["version"]
+        assert portable["extensions"]["com.openai"]["interface"] == codex["interface"]
         assert "mcpServers" not in portable and "apps" not in portable
         skill = installed / "skills/pptxdsl"
         project = skill / "project"
         for markdown in installed.rglob("*.md"):
             assert not _broken_local_links(markdown), markdown.relative_to(installed)
-        assert _hashes(ROOT / "slidegen/assets") == _hashes(project / "slidegen/assets")
+        source_icons = ROOT / "slidegen/assets/icons"
+        packaged_icons = project / "slidegen/assets/icons"
+        for source_icon in source_icons.rglob("*.png"):
+            relative = source_icon.relative_to(source_icons)
+            assert source_icon.read_bytes() == (packaged_icons / relative).read_bytes()
         assert (project / "LICENSE").is_file()
         assert (project / "THIRD_PARTY_NOTICES.md").is_file()
         assert (project / "slidegen/data/sample_fingerprints.json").is_file()
@@ -124,6 +129,7 @@ def test_untracked_files_excluded() -> None:
     with tempfile.TemporaryDirectory(prefix="pptxdsl-plugin-source-") as temporary:
         source = Path(temporary) / "source"
         for relative in (*PROJECT_FILES, "plugins/pptxdsl/.codex-plugin/plugin.json",
+                         "plugins/pptxdsl/.claude-plugin/plugin.json",
                          ".agents/skills/pptxdsl/SKILL.md", "slidegen/generate_from_json.py"):
             target = source / relative
             target.parent.mkdir(parents=True, exist_ok=True)
