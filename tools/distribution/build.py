@@ -36,12 +36,17 @@ class ReleaseAssets:
 
 
 def _manifest(source_root: Path) -> dict:
-    manifest = json.loads((source_root / "plugins/pptxdsl/.codex-plugin/plugin.json")
-                          .read_text(encoding="utf-8"))
-    if manifest.get("name") != "pptxdsl" or not SEMVER.fullmatch(
-            str(manifest.get("version", ""))):
+    codex = json.loads((source_root / "plugins/pptxdsl/.codex-plugin/plugin.json")
+                       .read_text(encoding="utf-8"))
+    claude = json.loads((source_root / "plugins/pptxdsl/.claude-plugin/plugin.json")
+                        .read_text(encoding="utf-8"))
+    if codex.get("name") != "pptxdsl" or not SEMVER.fullmatch(
+            str(codex.get("version", ""))):
         raise ValueError("Plugin名またはバージョンが不正です")
-    return manifest
+    if (claude.get("name"), claude.get("version")) != (
+            codex["name"], codex["version"]):
+        raise ValueError("CodexとClaude CodeのPlugin名またはバージョンが一致しません")
+    return codex
 
 
 def version(source_root: Path = ROOT) -> str:
@@ -129,6 +134,8 @@ def build_plugin(output_dir: Path, source_root: Path = ROOT) -> tuple[Path, Path
         staging = Path(temporary) / "pptxdsl"
         _copy_file(source_root / "plugins/pptxdsl/.codex-plugin/plugin.json",
                    staging / ".codex-plugin/plugin.json", source_root)
+        _copy_file(source_root / "plugins/pptxdsl/.claude-plugin/plugin.json",
+                   staging / ".claude-plugin/plugin.json", source_root)
         _populate_skill(staging / "skills/pptxdsl", source_root)
         portable = {key: value for key, value in manifest.items()
                     if key not in ("skills", "interface")}
