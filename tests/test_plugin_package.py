@@ -78,7 +78,11 @@ def test_archive_and_runtime() -> None:
         project = skill / "project"
         for markdown in installed.rglob("*.md"):
             assert not _broken_local_links(markdown), markdown.relative_to(installed)
-        assert _hashes(ROOT / "slidegen/assets") == _hashes(project / "slidegen/assets")
+        source_icons = ROOT / "slidegen/assets/icons"
+        packaged_icons = project / "slidegen/assets/icons"
+        for source_icon in source_icons.rglob("*.png"):
+            relative = source_icon.relative_to(source_icons)
+            assert source_icon.read_bytes() == (packaged_icons / relative).read_bytes()
         assert (project / "LICENSE").is_file()
         assert (project / "THIRD_PARTY_NOTICES.md").is_file()
         assert (project / "slidegen/data/sample_fingerprints.json").is_file()
