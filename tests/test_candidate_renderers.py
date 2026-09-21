@@ -28,6 +28,7 @@ from slidegen.layout_fit import FitError
 from slidegen.quality_markers import (
     MIN_SURFACE_CONTRAST,
     MIN_SURFACE_EDGE_CONTRAST,
+    SEQUENCE_LIFELINE_PREFIX,
     SURFACE_ON_CANVAS_PREFIX,
 )
 from slidegen.validate_content import validate
@@ -215,6 +216,17 @@ def _assert_sequence_structure():
         shape.left + shape.width / 2 for shape in participant_shapes
     ) / len(participant_shapes)
     assert abs(center - _presentation().slide_width / 2) <= Inches(0.05)
+    lifelines = [
+        shape for shape in slide.shapes
+        if shape.name.startswith(SEQUENCE_LIFELINE_PREFIX)
+    ]
+    assert {shape.name.removeprefix(SEQUENCE_LIFELINE_PREFIX) for shape in lifelines} == {
+        participant["id"] for participant in spec["participants"]
+    }
+    for lifeline in lifelines:
+        assert _rgb(lifeline) == RULE
+        assert lifeline.line.width == Pt(0.60)
+        assert "prstDash" not in lifeline.line._get_or_add_ln().xml
 
     dense_spec = deepcopy(next(
         spec for spec in REVIEW_DECK["slides"]

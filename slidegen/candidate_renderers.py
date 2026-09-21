@@ -31,6 +31,7 @@ from slidegen.generate import (
 )
 from slidegen.layout_fit import FitError, fit_text_or_raise, select_fit, stepped
 from slidegen.quality_markers import (
+    SEQUENCE_LIFELINE_PREFIX,
     SEQUENCE_MESSAGE_LABEL_PREFIX,
     SEQUENCE_SELF_ROUTE_PREFIX,
     SURFACE_ON_CANVAS_PREFIX,
@@ -744,8 +745,9 @@ def s_sequence(slide, spec, page):
         plain_line(slide, x - box_w / 2 + 0.08, top + header_h,
                    x + box_w / 2 - 0.08, top + header_h,
                    color=RULE, width=0.8)
-        plain_line(slide, x, top + header_h, x, lifeline_bottom,
-                   color=GRAY, width=0.75, dash="dash")
+        lifeline = plain_line(slide, x, top + header_h, x, lifeline_bottom,
+                              color=RULE, width=0.60)
+        lifeline.name = f"{SEQUENCE_LIFELINE_PREFIX}{participant['id']}"
     for index, message in enumerate(messages):
         y = message_y[message["id"]] + fitted.values["row_h"] / 2
         sx, tx = x_by_id[message["from"]], x_by_id[message["to"]]

@@ -7,10 +7,12 @@ from pptx.chart.data import ChartData
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
+from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 from slidegen.check_layout import check
 from slidegen.quality_markers import (
+    SEQUENCE_LIFELINE_PREFIX,
     SEQUENCE_MESSAGE_LABEL_PREFIX,
     SEQUENCE_SELF_ROUTE_PREFIX,
     SURFACE_ON_CANVAS_PREFIX,
@@ -129,5 +131,23 @@ with TemporaryDirectory() as td:
     label.top = Inches(2.05)
     findings = save(prs, out / "sequence_label_clearance_ok.pptx")
     assert not any(kind == "SEQ-CLEARANCE" for _, kind, _, _ in findings), findings
+
+    # 応答を表す破線をライフラインへ流用した場合は、意味の衝突として拒否する。
+    prs = Presentation()
+    prs.slide_width = Inches(13.333)
+    prs.slide_height = Inches(7.5)
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    lifeline = slide.shapes.add_connector(
+        MSO_CONNECTOR.STRAIGHT, Inches(2), Inches(1), Inches(2), Inches(5))
+    lifeline.name = f"{SEQUENCE_LIFELINE_PREFIX}client"
+    line_xml = lifeline.line._get_or_add_ln()
+    dashed = line_xml.makeelement(qn("a:prstDash"), {"val": "dash"})
+    line_xml.insert(0, dashed)
+    findings = save(prs, out / "sequence_lifeline_dashed_ng.pptx")
+    assert any(kind == "SEQ-LIFELINE" for _, kind, _, _ in findings), findings
+
+    dashed.set("val", "solid")
+    findings = save(prs, out / "sequence_lifeline_solid_ok.pptx")
+    assert not any(kind == "SEQ-LIFELINE" for _, kind, _, _ in findings), findings
 
 print("check_layout broken-PPTX regression: ALL OK")

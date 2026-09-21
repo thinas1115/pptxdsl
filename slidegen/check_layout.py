@@ -11,6 +11,7 @@
   OOB: スライド境界からの図形・画像・表・グラフのはみ出し
   VIS-CONTRAST: 背景に接する意味面とキャンバスの分離不足
   SEQ-CLEARANCE: sequence自己処理の戻り線とメッセージラベルの接触
+  SEQ-LIFELINE: sequenceライフラインが応答と同じ破線になっている
 """
 import sys
 from pathlib import Path
@@ -21,11 +22,13 @@ if __package__ in (None, ""):
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml.ns import qn
 from slidegen.cover_footer import COVER_BACKGROUND_NAME
 from slidegen.quality_markers import (
     MIN_SURFACE_CONTRAST,
     MIN_SURFACE_EDGE_CONTRAST,
     SEQUENCE_LABEL_CLEARANCE,
+    SEQUENCE_LIFELINE_PREFIX,
     SEQUENCE_MESSAGE_LABEL_PREFIX,
     SEQUENCE_SELF_ROUTE_PREFIX,
     SURFACE_ON_CANVAS_PREFIX,
@@ -193,6 +196,15 @@ def solid_line_rgb(sh):
         return None
 
 
+def preset_dash(sh):
+    """線へ明示されたプリセット破線名を返す。実線または取得不能ならNone。"""
+    try:
+        dash = sh.line._get_or_add_ln().find(qn("a:prstDash"))
+        return dash.get("val") if dash is not None else None
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
 def relative_luminance(rgb):
     values = [value / 255 for value in rgb]
     linear = [
@@ -272,6 +284,11 @@ def check(path):
             elif st == MSO_SHAPE_TYPE.LINE:
                 seg = seg_of(sh)
                 segs.append((seg, sh.name, z))
+                if (sh.name.startswith(SEQUENCE_LIFELINE_PREFIX)
+                        and preset_dash(sh) not in (None, "solid")):
+                    findings.append((
+                        si, "SEQ-LIFELINE", sh.name,
+                        "ライフラインは応答と区別できる実線にしてください"))
                 if (sh.name.startswith(SEQUENCE_SELF_ROUTE_PREFIX)
                         and sh.name.endswith(":return")):
                     sequence_returns.append((seg, sh.name))
