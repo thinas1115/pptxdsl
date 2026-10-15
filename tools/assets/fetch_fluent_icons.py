@@ -8,8 +8,8 @@
 - 出典: https://github.com/microsoft/fluentui-system-icons (MITライセンス)。
   PowerPointの「挿入 > アイコン」と同じデザイン体系のアイコンセット。
 - python-pptx はSVGを挿入できない(PIL依存)ため、svglib+reportlab でPNG化する。
-  依存: pip install svglib reportlab rlPyCairo
-  (rlPyCairo は reportlab 4.x のPNG描画バックエンド。無いと RenderPMError になる)
+  依存: python -m pip install -r requirements-assets.txt
+  rlPyCairoはPNG描画backend。CairoなどOS側の前提はdocs/dependencies.mdを参照する。
 - 生成したPNGは slidegen/assets/CREDITS.md のクレジット表記とともにリポジトリに同梱する
   (MITライセンス。リカラー等の改変も許諾範囲内)。
 - PNGは背景透過とし、SVGの実描画領域を256pxキャンバスの中央へ配置する。
@@ -27,8 +27,6 @@ from urllib.error import HTTPError
 from pathlib import Path
 
 from PIL import Image, ImageChops
-from reportlab.graphics import renderPM
-from svglib.svglib import svg2rlg
 
 # 出力名 → fluentui-system-icons/assets/ のフォルダ名
 ICONS = {
@@ -142,6 +140,10 @@ def fetch_svg(folder: str) -> str:
 
 
 def to_png(svg_text: str, out_path: Path):
+    # 一覧表示や同梱素材のテストでは、任意導入の変換依存を読み込まない。
+    from reportlab.graphics import renderPM
+    from svglib.svglib import svg2rlg
+
     # Fluentのパス色(#212121 / currentColor)をスライドの配色に置換
     svg_text = svg_text.replace("#212121", COLOR).replace("currentColor", COLOR)
     m = re.search(r'viewBox="0 0 (\d+) (\d+)"', svg_text)

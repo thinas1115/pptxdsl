@@ -23,6 +23,7 @@ PROJECT_FILES = (
     "docs/aws-icon-selection.md",
     "docs/font-contract.md",
     "docs/text-metrics.md",
+    "docs/dependencies.md",
     "requirements.txt", "render.ps1", "contact_sheet.py",
     "LICENSE", "THIRD_PARTY_NOTICES.md",
 )
