@@ -3,14 +3,8 @@
 PowerPointに置く前にPillowで日本語フォントの実寸を測り、
 「テキストボックスから溢れない」ことを生成時点で保証する。
 """
-import os
 import re
-import shutil
-import subprocess
-from functools import lru_cache
-from pathlib import Path
-
-from PIL import ImageFont
+from slidegen.font_config import font_face, load_font
 
 # pt -> px (96dpi)。PowerPoint実測はPillow計測より僅かに広く出ることが
 # あるため安全係数を掛ける。
@@ -18,78 +12,14 @@ PT_TO_PX = 96 / 72
 SAFETY = 1.08
 
 
-def _configured_font(weight: str) -> str | None:
-    value = os.environ.get(f"PPTXDSL_FONT_{weight.upper()}")
-    if not value:
-        return None
-    path = Path(value).expanduser()
-    if not path.is_file():
-        raise RuntimeError(
-            f"PPTXDSL_FONT_{weight.upper()}で指定したフォントが見つかりません"
-        )
-    return str(path)
+FONT_WEIGHTS = ("regular", "medium", "bold", "code")
 
 
-def _fontconfig_match(style: str) -> str | None:
-    executable = shutil.which("fc-match")
-    if not executable:
-        return None
-    result = subprocess.run(
-        [executable, "-f", "%{file}\n", f"sans-serif:lang=ja:style={style}"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-        errors="replace",
-        check=False,
-    )
-    if result.returncode:
-        return None
-    for line in result.stdout.splitlines():
-        path = Path(line.strip())
-        if path.is_file():
-            return str(path)
-    return None
-
-
-@lru_cache(maxsize=1)
-def _font_paths() -> dict[str, str]:
-    configured = {weight: _configured_font(weight) for weight in FONT_WEIGHTS}
-    if "WINDIR" in os.environ:
-        font_dir = Path(os.environ["WINDIR"]) / "Fonts"
-        windows = {
-            "regular": font_dir / "YuGothR.ttc",
-            "medium": font_dir / "YuGothM.ttc",
-            "bold": font_dir / "YuGothB.ttc",
-        }
-        resolved = {
-            weight: configured[weight] or (str(path) if path.is_file() else None)
-            for weight, path in windows.items()
-        }
-    else:
-        regular = configured["regular"] or _fontconfig_match("Regular")
-        medium = configured["medium"] or _fontconfig_match("Medium") or regular
-        bold = configured["bold"] or _fontconfig_match("Bold") or medium or regular
-        resolved = {"regular": regular, "medium": medium, "bold": bold}
-
-    missing = [weight for weight, path in resolved.items() if not path]
-    if missing:
-        raise RuntimeError(
-            "日本語フォントを検出できません。Windowsでは游ゴシックを用意し、"
-            "非Windowsではfontconfigで日本語sansフォントを利用可能にするか、"
-            "PPTXDSL_FONT_REGULAR/MEDIUM/BOLDでフォントを指定してください"
-        )
-    return {weight: str(path) for weight, path in resolved.items() if path}
-
-
-FONT_WEIGHTS = ("regular", "medium", "bold")
-
-
-@lru_cache(maxsize=64)
-def _font(weight: str, size_pt: float) -> ImageFont.FreeTypeFont:
+def _font(weight: str, size_pt: float):
     if weight not in FONT_WEIGHTS:
         raise ValueError(f"未対応のフォントウェイトです: {weight}")
     px = max(4, round(size_pt * PT_TO_PX))
-    return ImageFont.truetype(_font_paths()[weight], px, index=0)
+    return load_font(font_face(weight), px)
 
 
 def text_width_in(text: str, size_pt: float, weight: str = "regular") -> float:

@@ -1023,8 +1023,13 @@ def s_protocol_anatomy(slide, spec, page):
                      "\n".join(lines), fit_size, color=TEXT, spacing=1.08)
 
 def _fit_code_text(code, width, height):
+    from slidegen.font_config import font_family
+    if font_family("code") == "Consolas" and not code.isascii():
+        raise FitError(
+            "config_lab.code: ConsolasではASCIIのコードだけを扱います。"
+            "日本語コメントは本文へ移すか、PPTXDSL_FONT_CODEでNoto Sans Mono CJK JPを指定してください。")
     for size in stepped(13.0, 9.5, 0.5):
-        widest = max(text_width_in(line or " ", size) for line in code.splitlines())
+        widest = max(text_width_in(line or " ", size, "code") for line in code.splitlines())
         used_h = max(1, len(code.splitlines())) * line_height_in(size, 1.18)
         if widest <= width and used_h <= height:
             return size
@@ -1034,16 +1039,18 @@ def _fit_code_text(code, width, height):
 
 
 def _apply_code_font(textbox):
+    from slidegen.font_config import font_family
+    family = font_family("code")
     for paragraph in textbox.text_frame.paragraphs:
         for run in paragraph.runs:
-            run.font.name = "Consolas"
+            run.font.name = family
             r_pr = run._r.get_or_add_rPr()
             for tag in ("a:ea", "a:cs"):
                 element = r_pr.find(qn(tag))
                 if element is None:
                     element = r_pr.makeelement(qn(tag), {})
                     r_pr.append(element)
-                element.set("typeface", "Consolas")
+                element.set("typeface", family)
 
 
 def s_code_lab(slide, spec, page):

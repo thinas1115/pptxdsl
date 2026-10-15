@@ -25,6 +25,7 @@ from slidegen.layout_fit import (
 )
 from slidegen.textfit import line_height_in, text_width_in, wrap_natural, wrap_text
 from slidegen.slide_footnote import fit_footnote
+from slidegen.font_config import font_family
 
 # 入力デッキは生成入口から設定する。回帰用データを初期値として読み込まない。
 DECK = {"meta": {}, "slides": []}
@@ -42,7 +43,6 @@ SURFACE = RGBColor(0xFA, 0xF9, 0xF5)
 ZEBRA = RGBColor(0xEC, 0xEA, 0xE4)
 CANVAS = RGBColor(0xF7, 0xF5, 0xEF)
 RULE = RGBColor(0xD1, 0xCF, 0xC8)
-FONT = "Yu Gothic"
 SLIDE_W, SLIDE_H = 13.333, 7.5
 MARGIN = 0.55
 BODY_W = SLIDE_W - MARGIN * 2
@@ -86,7 +86,8 @@ def set_run(run, size, *, bold=False, color=TEXT):
     run.font.size = Pt(size)
     run.font.bold = bold
     run.font.color.rgb = color
-    run.font.name = FONT
+    family = font_family()
+    run.font.name = family
     rPr = run._r.get_or_add_rPr()
     rPr.set("lang", "ja-JP")
     for tag in ("a:ea", "a:cs"):
@@ -94,7 +95,7 @@ def set_run(run, size, *, bold=False, color=TEXT):
         if el is None:
             el = rPr.makeelement(qn(tag), {})
             rPr.append(el)
-        el.set("typeface", FONT)
+        el.set("typeface", family)
 
 
 def add_text(slide, x, y, w, h, text, size, *, bold=False, color=TEXT,

@@ -368,7 +368,11 @@ def check(path):
 
 if __name__ == "__main__":
     path = sys.argv[1]
-    fs = check(path)
+    from slidegen.font_config import FontConfigError
+    try:
+        fs = check(path)
+    except FontConfigError as error:
+        raise SystemExit(f"NG: フォント設定: {error}") from None
     if not fs:
         print(f"OK: no layout or visual QA findings in {path}")
         sys.exit(0)
