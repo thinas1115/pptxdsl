@@ -113,7 +113,7 @@ def test_archive_and_runtime() -> None:
                 assert image.size[0] > 0 and image.size[1] > 0
             print(f"Plugin実レンダリング: {backend}")
         else:
-            print("Plugin実レンダリング: 未実行（CIまたは環境変数で有効化）")
+            print("SKIP: Plugin実レンダリング: PPTXDSL_PLUGIN_REQUIRE_RENDER未指定")
         (task / "invalid.json").write_text("{", encoding="utf-8")
         failure = _run(runner, task, "generate", "invalid.json", "out/invalid.pptx", success=False)
         assert not (task / "out/invalid.pptx").exists()

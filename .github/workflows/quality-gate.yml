@@ -112,6 +112,14 @@ jobs:
           python -m tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: 全件テストの詳細結果を保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: out/test-results.json
+          if-no-files-found: warn
+
       - name: 主要デッキを生成して機械検証
         shell: pwsh
         run: |
