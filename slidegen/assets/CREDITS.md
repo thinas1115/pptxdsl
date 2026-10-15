@@ -43,6 +43,13 @@
 - `pptxdsl-repository.png`: 公開中のpptxdslリポジトリ画面のスクリーンショット。
   画像加工なし。GitHubおよびGitHubロゴはGitHub, Inc.の商標であり、本リポジトリとの提携・承認を示さない。
 
+## 比較用画面 (`images/request-list-*.png`)
+
+- `images/request-list-before.png` / `images/request-list-after.png`:
+  `tools/assets/build_compare_example.py`で描画した架空の申請一覧画面。同じ画面・同じ表示範囲で、
+  条件表示・申請名・状態の強調を比較する。全データは例示用で、実在の利用者情報を含まない。
+  本プロジェクトのオリジナル素材としてMIT Licenseで提供する。
+
 ## 表紙背景画像 (`cover/*`)
 
 - `cover-background.png`: プロジェクト所有者がOpenAIのgpt-imageで生成した背景画像。
