@@ -1,5 +1,12 @@
 """image_compare rendererのパス・段階的収容・schemaを検証する。"""
 from copy import deepcopy
+import os
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from PIL import Image, ImageDraw
 
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -11,6 +18,8 @@ from slidegen.image_slide import (
 )
 from slidegen.layout_fit import FitError
 from slidegen.validate_content import validate
+from slidegen import image_slide
+from slidegen.check_layout import check
 
 
 def _slide():
@@ -80,7 +89,7 @@ def main():
     assert fit_image_compare_layout(5.27).stage == "standard"
     assert fit_image_compare_layout(3.60).stage == "gap"
     assert fit_image_compare_layout(3.20).stage == "element"
-    _must_fail(lambda: fit_image_compare_layout(2.50), "最小設定")
+    _must_fail(lambda: fit_image_compare_layout(2.30), "最小設定")
 
     invalid = deepcopy(deck)
     del invalid["slides"][0]["right"]
@@ -110,5 +119,74 @@ def main():
     print("image_compare slide tests passed")
 
 
+class CompareQualityTests(unittest.TestCase):
+    def test_long_labels_are_measured_and_dense_labels_stop(self):
+        labels = ("変更前の画面\n表示条件を選択する前", "変更後")
+        fitted = fit_image_compare_layout(5.27, labels)
+        self.assertGreater(fitted.values["marker_h"], 0.4)
+        with self.assertRaises(FitError):
+            fit_image_compare_layout(5.27, ("非常に長い見出し" * 100, "変更後"))
+        with self.assertRaises(FitError):
+            fit_image_compare_layout(5.27, ("X" * 200, "変更後"))
+
+    def test_aspect_ratios_labels_and_footnote(self):
+        prs = Presentation()
+        prs.slide_width = Inches(generate.SLIDE_W)
+        prs.slide_height = Inches(generate.SLIDE_H)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            # 自前の格子素材で端の欠落・変形を検出する。既存画像の加工はしない。
+            for name, size in (("wide", (1200, 600)), ("portrait", (500, 1000))):
+                image = Image.new("RGB", size, "#dfeae7")
+                draw = ImageDraw.Draw(image)
+                draw.rectangle((2, 2, size[0] - 3, size[1] - 3), outline="#0d7870", width=10)
+                for x in range(100, size[0], 100):
+                    draw.line((x, 0, x, size[1]), fill="#718d92", width=2)
+                for y in range(100, size[1], 100):
+                    draw.line((0, y, size[0], y), fill="#718d92", width=2)
+                image.save(root / (name + ".png"))
+            for index, (left, right, fit, decorated) in enumerate((
+                ("wide", "wide", "contain", False),
+                ("portrait", "portrait", "contain", False),
+                ("wide", "portrait", "contain", False),
+                ("portrait", "wide", "cover", False),
+                ("wide", "wide", "contain", True),
+                ("wide", "portrait", "cover", True),
+            ), 1):
+                slide = prs.slides.add_slide(prs.slide_layouts[6])
+                spec = {"type": "image_compare", "kicker": "画像比較の回帰検証", "title": "画像比率とラベル",
+                        "left": {"image": left, "label": "変更前\n比較対象の基準"},
+                        "right": {"image": right, "label": "変更後"},
+                        "fit": fit, "shadow": decorated}
+                if decorated:
+                    spec.update(lead="画像端の表示と左右の上端を確認します。",
+                                footnote={"text": "画像比較の検証用格子です。"})
+                with patch.object(image_slide, "resolve_image_path", side_effect=lambda p: root / (p + ".png")):
+                    generate.render_slide(s_image_compare, slide, spec, index)
+                pictures = [s for s in slide.shapes if s.name == COMPARE_PICTURE_NAME]
+                self.assertEqual(len(pictures), 2)
+                self.assertEqual(pictures[0].top, pictures[1].top)
+                for picture, key in zip(pictures, (left, right)):
+                    self.assertLessEqual((picture.top + picture.height) / 914400, generate.BODY_BOTTOM)
+                    if fit == "contain":
+                        expected = 2 if key == "wide" else 0.5
+                        self.assertAlmostEqual(picture.width / picture.height, expected, places=4)
+                        self.assertEqual(picture.crop_left + picture.crop_top + picture.crop_right + picture.crop_bottom, 0)
+                if left == "portrait" and fit == "contain" and not decorated:
+                    self.assertGreater(pictures[0].height / 914400, 4)
+                labels = [s for s in slide.shapes if s.name.startswith("image-compare:label:")]
+                self.assertEqual(labels[0].height, labels[1].height)
+                self.assertFalse(labels[0].text_frame.word_wrap)
+                self.assertEqual(labels[0].text_frame.text, "変更前\n比較対象の基準")
+            output = root / "compare.pptx"
+            prs.save(output)
+            self.assertEqual(check(output), [])
+            if os.environ.get("PPTXDSL_COMPARE_QA_OUT"):
+                destination = Path(os.environ["PPTXDSL_COMPARE_QA_OUT"])
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                prs.save(destination)
+
+
 if __name__ == "__main__":
     main()
+    unittest.main()
