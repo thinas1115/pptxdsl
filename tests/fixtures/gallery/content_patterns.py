@@ -167,16 +167,16 @@ PATTERN_DECK = {
             "kicker": "画面比較",
             "title": "変更前後のスクリーンショットを左右で比較する",
             "left": {
-                "image": "images/pptxdsl-repository.png",
+                "image": "images/request-list-before.png",
                 "label": "変更前",
-                "alt": "GitHubで公開されているpptxdslリポジトリのトップ画面",
+                "alt": "架空の申請一覧画面。すべての申請を同じ文字階層で表示した変更前のサンプル",
             },
             "right": {
-                "image": "cover/cover-background.png",
+                "image": "images/request-list-after.png",
                 "label": "変更後",
-                "alt": "濃紺のグラデーションに幾何学的な線を重ねた背景素材",
+                "alt": "同じ申請一覧の条件表示・申請名・状態を強調した変更後のサンプル",
             },
-            "fit": "cover",
+            "fit": "contain",
             "shadow": True,
         },
         {
