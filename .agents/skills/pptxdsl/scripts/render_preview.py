@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextvars import ContextVar
 import importlib.util
 import json
 from pathlib import Path
@@ -24,6 +25,7 @@ def _project_root() -> Path:
 
 REPO_ROOT = _project_root()
 RENDER_PS1 = REPO_ROOT / "render.ps1"
+_COMMAND_TIMEOUT = ContextVar("render_command_timeout", default=None)
 
 
 class RenderError(RuntimeError):
@@ -120,6 +122,8 @@ def _probe_conversion(backend: str, details: dict[str, object]) -> None:
         slide.shapes.add_textbox(0, 0, 914400, 914400).text = "Probe"
         presentation.save(source)
         output = task_dir / "png"
+        # 環境判定の最小変換だけ時間を制限する。通常の長い資料へ波及させない。
+        timeout_token = _COMMAND_TIMEOUT.set(60)
         try:
             if backend == "powerpoint":
                 count = _render_powerpoint(source, output, 320, [], details)
@@ -137,15 +141,17 @@ def _probe_conversion(backend: str, details: dict[str, object]) -> None:
                 "libreoffice-impressとPDF画像化ツールの導入を確認してください。")
             # backend出力に利用者の絶対パスが入ることがあるため、診断理由を分類して返す。
             raise RenderError(guidance) from error
+        finally:
+            _COMMAND_TIMEOUT.reset(timeout_token)
 
 
 def _run(command: list[str]) -> subprocess.CompletedProcess[str]:
     try:
         result = subprocess.run(
             command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, errors="replace", check=False, timeout=60)
+            text=True, errors="replace", check=False, timeout=_COMMAND_TIMEOUT.get())
     except subprocess.TimeoutExpired as error:
-        raise RenderError("変換が60秒以内に完了しませんでした。Officeの状態を確認してください。") from error
+        raise RenderError(f"変換が{error.timeout:g}秒以内に完了しませんでした。Officeの状態を確認してください。") from error
     except OSError as error:
         raise RenderError("変換コマンドを起動できません。必要なソフトを確認してください。") from error
     if result.returncode:

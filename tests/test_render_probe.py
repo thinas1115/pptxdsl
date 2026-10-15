@@ -58,6 +58,19 @@ class ProbeTests(unittest.TestCase):
             with self.assertRaisesRegex(renderer.RenderError, "60秒"):
                 renderer._run(["office"])
 
+    def test_timeout_is_limited_to_probe_and_restored_on_failure(self):
+        def broken_render(*args):
+            renderer._run(["office"])
+
+        with patch.object(renderer, "_render_libreoffice", side_effect=broken_render), \
+                patch.object(renderer.subprocess, "run", side_effect=subprocess.TimeoutExpired("office", 60)) as run:
+            with self.assertRaises(renderer.RenderError):
+                renderer._probe_conversion("libreoffice", {})
+            self.assertEqual(run.call_args.kwargs["timeout"], 60)
+        with patch.object(renderer.subprocess, "run", return_value=subprocess.CompletedProcess("office", 0, "")) as run:
+            renderer._run(["office"])
+            self.assertIsNone(run.call_args.kwargs["timeout"])
+
 
 if __name__ == "__main__":
     unittest.main()
