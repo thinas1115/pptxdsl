@@ -161,6 +161,9 @@ python contact_sheet.py out\png
 
 `out\png\sheet.png`の一覧と各ページの原寸画像を確認してください。レンダリング補助スクリプトは、
 WindowsではPowerPointを優先し、それ以外ではLibreOfficeとPDF画像化手段の組み合わせを探索します。
+`--probe`は一時領域で1枚のPPTXを実際にPNGへ変換し、backendの利用可否と失敗時の対処法を返します。
+実行ファイルがあるだけでは利用可能と判定しません。LibreOfficeはImpressモジュールも必要です。
+最小変換を使う環境判定では各コマンドに60秒の制限を設けますが、通常の資料の変換にはこの制限を適用しません。
 機械検証だけでは、文字の読みやすさ、内容の正確性、余白や配線の印象までは判断できません。
 
 Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テスト、主要デッキ生成、
