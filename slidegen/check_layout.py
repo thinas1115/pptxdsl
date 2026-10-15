@@ -20,6 +20,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pptx import Presentation
+from pptx.enum.dml import MSO_FILL_TYPE
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
@@ -140,7 +141,6 @@ def is_oob(rect, slide_w, slide_h):
 def seg_of(sh):
     """コネクタの線分端点(flipで向きを解決)。"""
     x1, y1, x2, y2 = rect_of(sh)
-    fh = getattr(sh, "rotation", 0)  # dummy no-op
     el = sh._element
     flip_h = el.spPr.xfrm.get("flipH") == "1" if el.spPr.xfrm is not None else False
     flip_v = el.spPr.xfrm.get("flipV") == "1" if el.spPr.xfrm is not None else False
@@ -159,21 +159,29 @@ def seg_hits_rect(seg, r, eps=EPS):
     ux, uy = (x2 - x1) / L, (y2 - y1) / L
     x1, y1 = x1 + ux * SEG_TRIM, y1 + uy * SEG_TRIM
     x2, y2 = x2 - ux * SEG_TRIM, y2 - uy * SEG_TRIM
-    # 双方の投影が重なるかをサンプリングで簡易判定
-    steps = max(2, int(L / 0.05))
-    for i in range(steps + 1):
-        t = i / steps
-        px, py = x1 + (x2 - x1) * t, y1 + (y2 - y1) * t
-        if r[0] + eps < px < r[2] - eps and r[1] + eps < py < r[3] - eps:
-            return True
-    return False
+    # 開矩形とのslab交差。サンプリング間隔より細いラベルも取り逃がさない。
+    low, high = 0.0, 1.0
+    for start, delta, minimum, maximum in (
+        (x1, x2 - x1, r[0] + eps, r[2] - eps),
+        (y1, y2 - y1, r[1] + eps, r[3] - eps),
+    ):
+        if minimum >= maximum:
+            return False
+        if delta == 0:
+            if not minimum < start < maximum:
+                return False
+            continue
+        entry, leave = sorted(((minimum - start) / delta,
+                               (maximum - start) / delta))
+        low, high = max(low, entry), min(high, leave)
+        if low >= high:
+            return False
+    return low < high
 
 
 def has_solid_fill(sh):
-    try:
-        return sh.fill.type is not None and str(sh.fill.type) == "SOLID (1)"
-    except Exception:
-        return False
+    # 属性や型を取得できない場合は例外を伝播し、不明を「塗りなし」へ偽装しない。
+    return sh.fill.type == MSO_FILL_TYPE.SOLID
 
 
 def solid_fill_rgb(sh):
