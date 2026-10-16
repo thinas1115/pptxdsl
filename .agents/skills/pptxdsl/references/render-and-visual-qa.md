@@ -12,9 +12,10 @@ python .agents/skills/pptxdsl/scripts/render_preview.py --probe
 
 `auto`は、WindowsでPowerPoint COMと`render.ps1`を利用できる場合はPowerPointを優先し、それ以外ではLibreOfficeとPDF画像化手段の組み合わせを使う。
 
-非WindowsでPPTXを生成する場合は、`fontconfig`から検出できる日本語sansフォントも必要になる。
-Noto Sans CJKを推奨する。環境側のフォントを明示する場合は、
-`PPTXDSL_FONT_REGULAR`、`PPTXDSL_FONT_MEDIUM`、`PPTXDSL_FONT_BOLD`へファイルパスを設定する。
+非Windowsではfontconfigから検出できるNoto Sans CJK JP/Noto Sans JPが必要。
+明示する場合は`PPTXDSL_FONT_REGULAR`、`PPTXDSL_FONT_BOLD`へ対応ファイルを設定する。
+`docs/font-contract.md`のface・可変軸・コード用書体の条件を確認する。
+生成時と同じ書体がレンダラー側でも使用されることを確認し、置換があれば完了扱いにしない。
 
 ```text
 python .agents/skills/pptxdsl/scripts/render_preview.py out/deck.pptx out/png
