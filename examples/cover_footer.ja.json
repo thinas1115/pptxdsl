@@ -1,0 +1,12 @@
+{
+  "cover": {
+    "show_date": false,
+    "show_author": false,
+    "show_rail": true,
+    "rail": [
+      {"label": "日付", "value": "{date}"},
+      {"label": "所属", "value": "{organization}"},
+      {"label": "作成者", "value": "{author}"}
+    ]
+  }
+}
