@@ -337,6 +337,7 @@ jobs:
           python -m tools.gallery.generate_patterns out/fonts-qa/patterns.pptx
           python -m tools.gallery.generate_lead_patterns out/fonts-qa/lead.pptx
           python -m tools.gallery.generate_stress_patterns out/fonts-qa/stress.pptx
+          python -m tools.gallery.generate_protocol_cases out/fonts-qa/protocol.pptx
           for deck in out/fonts-qa/*.pptx; do python -m slidegen.check_layout "$deck"; done
           python -m tools.quality.cross_platform environment out/fonts-qa/environment.json
       - name: 実レンダリングと幅の校正
@@ -347,7 +348,7 @@ jobs:
           pdffonts out/fonts-qa/metrics/metrics.pdf
           pdftotext -bbox-layout out/fonts-qa/metrics/metrics.pdf out/fonts-qa/metrics/actual.xhtml
           python -m tools.quality.font_metrics compare out/fonts-qa/metrics/expected.json out/fonts-qa/metrics/actual.xhtml --backend poppler --pdf out/fonts-qa/metrics/metrics.pdf --report out/fonts-qa/metrics/report.json
-          for name in basic extended patterns lead stress; do
+          for name in basic extended patterns lead stress protocol; do
             python .agents/skills/pptxdsl/scripts/render_preview.py "out/fonts-qa/$name.pptx" "out/fonts-qa/$name-png" --backend libreoffice
             python contact_sheet.py "out/fonts-qa/$name-png"
           done
