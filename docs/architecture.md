@@ -58,6 +58,7 @@
 `slidegen/`から`tests/`や`tools/`をimportしない。通常入力のサンプル混入検出には
 `slidegen/data/sample_fingerprints.json`を使い、回帰データの変更時に開発ツールで再生成する。
 全テストは`python -m tests`で、各モジュールを独立プロセスとして実行する。
+正式対応書体のOS間回帰と、同一PPTXの相互検査は[OS間の回帰検証](cross-platform-regression.md)を参照する。
 
 実装は4つの層に分けて考える。
 

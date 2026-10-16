@@ -9,6 +9,80 @@ permissions:
   contents: read
 
 jobs:
+  regression-origin:
+    name: 主要5デッキと全テスト (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      PYTHONIOENCODING: utf-8
+      PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/cross-fonts/NotoSansJP-VF.ttf
+      PPTXDSL_FONT_CODE: ${{ github.workspace }}/out/cross-fonts/NotoSansMonoCJKjp-Regular.otf
+      PPTXDSL_TEST_VARIABLE_FONT: ${{ github.workspace }}/out/cross-fonts/NotoSansJP-VF.ttf
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Office互換ソフトのバージョンを記録できる環境を準備
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libreoffice-impress
+      - name: 依存と固定書体を準備
+        run: |
+          python -m pip install -r requirements.txt
+          python -m tools.quality.cross_platform prepare-fonts out/cross-fonts
+      - name: 全テストを実行
+        run: python -m tests --report out/regression/tests.json
+      - name: 主要5デッキの生成と検査基準値を記録
+        if: always()
+        run: python -m tools.quality.cross_platform build out/regression/decks
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-origin-${{ matrix.os }}
+          path: out/regression
+          if-no-files-found: error
+
+  regression-cross:
+    name: 主要5デッキの相互検査 (${{ matrix.os }})
+    needs: regression-origin
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      PYTHONIOENCODING: utf-8
+      PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/cross-fonts/NotoSansJP-VF.ttf
+      PPTXDSL_FONT_CODE: ${{ github.workspace }}/out/cross-fonts/NotoSansMonoCJKjp-Regular.otf
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: 依存と固定書体を準備
+        run: |
+          python -m pip install -r requirements.txt
+          python -m tools.quality.cross_platform prepare-fonts out/cross-fonts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: regression-origin-*
+          path: out/inbound
+      - name: 双方の生成PPTXを全件再検査
+        run: python -m tools.quality.cross_platform cross out/inbound out/regression-cross
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-cross-${{ matrix.os }}
+          path: out/regression-cross
+          if-no-files-found: error
+
   text-metrics-origin:
     name: 文字矩形の入力と基準値 (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -258,10 +332,13 @@ jobs:
         run: |
           python -m slidegen.font_config
           python -m tests
+          python -m tools.gallery.generate_basic out/fonts-qa/basic.pptx
+          python -m tools.gallery.generate_extended out/fonts-qa/extended.pptx
           python -m tools.gallery.generate_patterns out/fonts-qa/patterns.pptx
           python -m tools.gallery.generate_lead_patterns out/fonts-qa/lead.pptx
           python -m tools.gallery.generate_stress_patterns out/fonts-qa/stress.pptx
           for deck in out/fonts-qa/*.pptx; do python -m slidegen.check_layout "$deck"; done
+          python -m tools.quality.cross_platform environment out/fonts-qa/environment.json
       - name: 実レンダリングと幅の校正
         run: |
           soffice --version | tee out/fonts-qa/backend.txt
@@ -270,7 +347,7 @@ jobs:
           pdffonts out/fonts-qa/metrics/metrics.pdf
           pdftotext -bbox-layout out/fonts-qa/metrics/metrics.pdf out/fonts-qa/metrics/actual.xhtml
           python -m tools.quality.font_metrics compare out/fonts-qa/metrics/expected.json out/fonts-qa/metrics/actual.xhtml --backend poppler --pdf out/fonts-qa/metrics/metrics.pdf --report out/fonts-qa/metrics/report.json
-          for name in patterns lead stress; do
+          for name in basic extended patterns lead stress; do
             python .agents/skills/pptxdsl/scripts/render_preview.py "out/fonts-qa/$name.pptx" "out/fonts-qa/$name-png" --backend libreoffice
             python contact_sheet.py "out/fonts-qa/$name-png"
           done
