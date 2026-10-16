@@ -88,7 +88,7 @@ def _box_label(slide, x, y, w, text, *, color, name):
     label_h = min(0.24, line_height_in(size, 1.05) * len(lines) + 0.03)
     tb = generate.add_text(
         slide, x, y, label_w, label_h, rendered, size,
-        bold=True, color=color, anchor=MSO_ANCHOR.MIDDLE, spacing=1.05)
+        bold=True, color=color, anchor=MSO_ANCHOR.MIDDLE, spacing=1.05, role="compact")
     tb.name = name
     # 改行は実測済みlinesだけを使う。互換Officeで狭いラベルを二重改行させない。
     tb.text_frame.word_wrap = False
@@ -128,7 +128,7 @@ def _node_label(slide, cx, y, text, *, max_w, size, min_pt, bold, color):
     tb = generate.add_text(
         slide, cx - label_w / 2, y, label_w, label_h, rendered, actual_size,
         bold=bold, color=color, align=PP_ALIGN.CENTER,
-        anchor=MSO_ANCHOR.MIDDLE, spacing=1.05)
+        anchor=MSO_ANCHOR.MIDDLE, spacing=1.05, role="natural" if bold else "compact")
     tb.text_frame.word_wrap = False
     tb.fill.solid()
     tb.fill.fore_color.rgb = generate.CANVAS

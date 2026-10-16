@@ -91,6 +91,10 @@ def test_archive_and_runtime() -> None:
         _run(runner, task, "validate", "content.json")
         _run(runner, task, "generate", "content.json", "out/deck.pptx")
         _run(runner, task, "check", "out/deck.pptx")
+        fonts = json.loads(_run(runner, task, "fonts").stdout)
+        assert fonts["regular"]["family"] == fonts["bold"]["family"]
+        assert fonts["regular"]["style"] == "Regular" and fonts["bold"]["style"] == "Bold"
+        assert all("path" not in face for face in fonts.values())
         assert len(Presentation(task / "out/deck.pptx").slides) == len(deck["slides"])
         details = json.loads(_run(runner, task, "probe").stdout)
         # Windowsの一時ディレクトリは短縮名・長い名前のどちらでも同じ場所を指す。
@@ -109,7 +113,7 @@ def test_archive_and_runtime() -> None:
                 assert image.size[0] > 0 and image.size[1] > 0
             print(f"Plugin実レンダリング: {backend}")
         else:
-            print("Plugin実レンダリング: 未実行（CIまたは環境変数で有効化）")
+            print("SKIP: Plugin実レンダリング: PPTXDSL_PLUGIN_REQUIRE_RENDER未指定")
         (task / "invalid.json").write_text("{", encoding="utf-8")
         failure = _run(runner, task, "generate", "invalid.json", "out/invalid.pptx", success=False)
         assert not (task / "out/invalid.pptx").exists()

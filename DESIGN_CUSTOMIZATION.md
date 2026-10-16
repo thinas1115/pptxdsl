@@ -29,8 +29,8 @@ rendererと共通部品の範囲に閉じ込めやすい。
 | 対象 | ファイル / シンボル | 変更内容 |
 |---|---|---|
 | 基本配色 | `slidegen/generate.py` の `NAVY`〜`RULE` | 背景、本文、アクセント、罫線、薄色面のカラートークン。`WHITE`は濃色上の反転文字、`SURFACE`は通常の明るい塗り面に使い分ける |
-| 基本フォント | `slidegen/generate.py` の `FONT` / `set_run()` | PowerPointに設定する日本語フォント、言語、太字、文字色 |
-| フォント実測 | `slidegen/textfit.py` の `_font()` | `FONT` を変える場合に、Pillowが同じフォントファイルを測るよう変更 |
+| 基本フォント | `slidegen/font_config.py` / `generate.set_run()` | 実測とPPTXで共有するfamily・face・ウェイト。言語・文字色はset_run |
+| フォント実測 | `slidegen/textfit.py` の `_font()` | 共有設定からPillowへ同じface・可変軸を渡す |
 | スライド寸法・本文領域 | `generate.py` の `SLIDE_W` / `SLIDE_H` / `MARGIN` / `BODY_*` | 画面比率、余白、本文の使用可能領域。変更影響が大きいため全rendererを再検証 |
 | 表紙・フッター | `slidegen/cover_footer.py` / `--cover-footer-config` | 表紙、ページ番号、フッター文言。利用者別設定はコード変更不要 |
 | 共通ヘッダー・注記 | `generate.py` の `header()` / `note_line()` | 全本文スライドの背景、見出し、注記 |
@@ -38,7 +38,7 @@ rendererと共通部品の範囲に閉じ込めやすい。
 | カード / KPI | `generate.py` の `s_cards()` | 列数計算、強調カード、背景面、見出しと本文の階層 |
 | 比較表 | `generate.py` の `s_table()` / `_cell()` | ヘッダー、行高、交互色、列見出し、文字位置 |
 | 2カラム比較 | `two_column` (`generate.py` の `s_twocol()`) | 左右のコントラスト、見出し、箇条書き、区切り |
-| グラフ | `generate.py` の `s_chart()` | グラフ面、系列色、凡例、余白、データラベル |
+| グラフ | `chart_renderer.py`の`plan_chart()` / `render_chart()`、`chart_model.py` | 実測した軸・カテゴリ・凡例・値、符号付き数値範囲、段階的収容 |
 | 大判画像 | `slidegen/image_slide.py` の `s_image()` / `fit_image_layout()` | 画像枠、contain/cover、右下影、縮小限界 |
 | 図解共通部品 | `slidegen/diagrams.py` の `LINE` / `add_arrow()` / `arrow_label()` / `container()` / `icon_node()` | アイコンノード、枠、矢印、線上ラベルの見た目 |
 | 体制図 | `org_layout.py` の `OrgLayout` | 階層DAG、関係線、ノードstyle、段階的収容 |
@@ -65,9 +65,9 @@ rendererと共通部品の範囲に閉じ込めやすい。
 
 ### フォントを変える
 
-1. `generate.py` の `FONT` を変更する。
-2. `textfit.py` のフォントファイル参照を同じ書体へ変更する。
-3. グラフの `chart.font.name` も `FONT` を参照していることを確認する。
+1. [フォント契約](docs/font-contract.md)に従い、対応フォントを環境変数で選択する。
+2. 未対応familyの追加は`font_config.py`で実測・PPTX指定を同時に拡張する。
+3. グラフの文字も`set_run()`を経由し、同じfamilyを参照していることを確認する。
 4. 全パターンを再生成し、折り返し・禁則・表の行高を再検証する。
 
 PowerPoint側だけフォントを変え、`textfit.py` を変えない状態は禁止。測定値と実描画がずれて溢れの原因になる。

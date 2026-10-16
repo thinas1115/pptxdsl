@@ -32,6 +32,7 @@ def main() -> int:
     render.add_argument("--width", type=int, default=1600)
     render.add_argument("--slides")
     commands.add_parser("probe")
+    commands.add_parser("fonts")
     args = parser.parse_args()
     try:
         root = project_root()
@@ -45,6 +46,7 @@ def main() -> int:
         "sheet": root / "contact_sheet.py",
         "render": Path(__file__).with_name("render_preview.py"),
         "probe": Path(__file__).with_name("render_preview.py"),
+        "fonts": root / "slidegen/font_config.py",
     }
     command = [sys.executable, str(scripts[args.command])]
     if args.command == "generate":
@@ -58,7 +60,7 @@ def main() -> int:
             command.extend(["--slides", args.slides])
     elif args.command == "probe":
         command.append("--probe")
-    else:
+    elif args.command != "fonts":
         command.append(args.input)
     # 入出力は呼び出し元の作業領域。インストール先へのchdirはしない。
     return subprocess.run(command, check=False).returncode
