@@ -10,7 +10,6 @@ generate_from_json.py が生成前に自動で呼ぶため、通常は単体実�
 ここで強制する件数上限は「段階的収容の最小値でも崩れる」値。
 通常・余白圧縮・要素縮小・明示停止を実測して決める。
 """
-import json
 import re
 import sys
 from pathlib import Path
@@ -22,6 +21,7 @@ if __package__ in (None, ""):
 from PIL import Image
 
 from slidegen.asset_paths import resolve_icon_path, resolve_image_path
+from slidegen.input_io import load_content_json
 from slidegen.aws_icon_policy import icon_policy_error
 from slidegen.chart_model import NUMBER_FORMAT, finite_number
 from slidegen.sample_content_guard import sample_reuse_paths
@@ -48,9 +48,9 @@ _TITLE_ASSERTIVE_QUALITY = re.compile(
 
 _TOP_LEVEL_KEYS = {"meta", "slides"}
 _META_KEYS = {"title", "footer", "date", "organization", "author"}
-_BASE_SLIDE_KEYS = {"type", "kicker", "title", "lead", "footnote"}
+_BASE_SLIDE_KEYS = {"type", "kicker", "title", "lead", "footnote", "title_nominal_review"}
 _TYPE_KEYS = {
-    "title": {"type", "title", "subtitle", "footnote"},
+    "title": {"type", "title", "subtitle", "footnote", "title_nominal_review"},
     "section_divider": _BASE_SLIDE_KEYS,
     "bullets": _BASE_SLIDE_KEYS | {"style", "bullets"},
     "cards": _BASE_SLIDE_KEYS | {"style", "cards"},
@@ -128,12 +128,41 @@ def _is_num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
+def _is_web_url(value, *, https_only=False):
+    if (not _is_str(value) or "\\" in value
+            or any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in value)):
+        return False
+    try:
+        parsed = urlsplit(value)
+        return (parsed.scheme in ({"https"} if https_only else {"http", "https"})
+                and bool(parsed.hostname) and parsed.username is None
+                and parsed.password is None and parsed.port != 0)
+    except ValueError:
+        return False
+
+
+def validation_warnings(deck):
+    """エラーとは分けて返す移行警告。入力値や端末固有パスを出さない。"""
+    messages = []
+    if not isinstance(deck, dict) or not isinstance(deck.get("slides"), list):
+        return messages
+    for index, slide in enumerate(deck["slides"]):
+        if not isinstance(slide, dict) or slide.get("type") != "bullets":
+            continue
+        items = slide.get("bullets")
+        if isinstance(items, list) and any(isinstance(item, list) for item in items):
+            messages.append(
+                f"slides[{index}].bullets: 旧2要素配列は非推奨です。"
+                '各項目を {"text": "本文"} へ移行してください。2.0.0で受理を終了します。')
+    return messages
+
+
 def _title_policy_error(value):
     """通常資料のページタイトルが、見出しではなく主張文なら理由を返す。"""
     if not _is_str(value):
         return None
     title = value.strip()
-    if _TITLE_SENTENCE_MARKS.search(title):
+    if _TITLE_SENTENCE_MARKS.search(value):
         return "読点・句点・改行を含む文章"
     if _TITLE_PREDICATE_ENDING.search(title):
         return "文末が述語になっている文章"
@@ -142,6 +171,25 @@ def _title_policy_error(value):
     if _TITLE_ASSERTIVE_QUALITY.search(title):
         return "評価や必要性を言い切る文章"
     return None
+
+
+def _validate_nominal_review(s, title_error):
+    """語尾だけによる名詞の誤検知を、対象見出しと理由付きで限定解除する。"""
+    review = s.spec.get("title_nominal_review")
+    if "title_nominal_review" not in s.spec:
+        return False
+    title = s.spec.get("title")
+    if not (isinstance(review, dict) and set(review) == {"title", "reason"}
+            and review.get("title") == title and _is_str(review.get("reason"))
+            and 10 <= len(review["reason"].strip()) <= 200
+            and isinstance(title, str) and 2 <= len(title.strip()) <= 40):
+        s.err("title_nominal_review は現在のtitleと、名詞句と判断した10〜200文字のreasonを指定してください")
+        return False
+    if (title_error != "文末が述語になっている文章"
+            or re.search(r"[をがは]|では|には|でき|です|ます|しない|なかった", title)):
+        s.err("title_nominal_review は短い名詞句の語尾誤検知だけに使えます。文章はleadまたは本文へ移してください")
+        return False
+    return True
 
 
 def _placeholder_paths(value, path=""):
@@ -274,9 +322,8 @@ def _v_table(s):
             s.allow_keys(link, {"label", "url"}, "note_link")
             if not _is_str(link.get("label")):
                 s.err("note_link.label は空でない文字列にしてください")
-            if not (_is_str(link.get("url"))
-                    and link["url"].startswith("https://")):
-                s.err("note_link.url は https:// で始まるURLにしてください")
+            if not _is_web_url(link.get("url"), https_only=True):
+                s.err("note_link.url は https:// で始まる完全なURLにしてください（認証情報・空白は含めないでください）")
         if not _is_str(s.spec.get("note")):
             s.err("note_link を指定する場合は note も指定してください")
 
@@ -1378,9 +1425,8 @@ def _v_references(s):
                 s.err(f"{path}.id={entry['id']!r} が重複しています")
             seen_ids.add(entry["id"])
         if _is_str(entry.get("url")):
-            parsed = urlsplit(entry["url"])
-            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-                s.err(f"{path}.url はhttpまたはhttpsの完全なURLにしてください")
+            if not _is_web_url(entry["url"]):
+                s.err(f"{path}.url はhttpまたはhttpsの完全なURLにしてください（認証情報・空白は含めないでください）")
             if entry["url"] in seen_urls:
                 s.err(f"{path}.url が同じスライド内で重複しています")
             seen_urls.add(entry["url"])
@@ -1637,7 +1683,7 @@ def validate(deck, *, allow_sample_content=False):
             continue
         s = _Slide(idx, spec, errors)
         t = spec.get("type")
-        if t not in VALIDATORS:
+        if not isinstance(t, str) or t not in VALIDATORS:
             s.err(f"未対応のtypeです。使用可能: {', '.join(sorted(VALIDATORS))}")
             continue
         for key in _unknown_keys(spec, _TYPE_KEYS[t]):
@@ -1651,7 +1697,8 @@ def validate(deck, *, allow_sample_content=False):
                     '内容は共通フィールド "lead" へ移してください')
         if not allow_sample_content:
             title_error = _title_policy_error(spec.get("title"))
-            if title_error:
+            reviewed = _validate_nominal_review(s, title_error)
+            if title_error and not reviewed:
                 s.err(
                     f'"title" は名詞句または短い疑問形の見出しにしてください '
                     f"({title_error})。結論・因果・行動はsubtitle、leadまたは本文へ移してください")
@@ -1681,14 +1728,16 @@ def validate(deck, *, allow_sample_content=False):
 
 
 def main(json_path):
-    deck = json.loads(Path(json_path).read_text(encoding="utf-8"))
+    deck = load_content_json(json_path)
     errors = validate(deck)
+    for message in validation_warnings(deck):
+        print(f"警告: {message}", file=sys.stderr)
     if errors:
-        print(f"NG: {json_path} に {len(errors)} 件の問題", file=sys.stderr)
+        print(f"NG: {Path(json_path).name} に {len(errors)} 件の問題", file=sys.stderr)
         for e in errors:
             print(f"  - {e}", file=sys.stderr)
         raise SystemExit(1)
-    print(f"OK: {json_path} ({len(deck['slides'])} slides) 検証通過")
+    print(f"OK: {Path(json_path).name} ({len(deck['slides'])} slides) 検証通過")
 
 
 if __name__ == "__main__":

@@ -85,6 +85,11 @@ python slidegen/validate_content.py content.json
   文末の述語を含めず、疑問形にも疑問符を付けない。結論や読み方は`lead`、根拠は本文へ書く。
 - 文章型タイトルを許可するのは回帰検証ギャラリーの内部生成だけであり、通常の`content.json`は
   `validate_content.py`が生成前に拒否する。
+- `こたつ`などの短い名詞句が語尾だけで誤検知される場合は、そのslideへ
+  `title_nominal_review: {"title": "こたつ", "reason": "暖房器具の名称であり動作を述べる文章ではないため"}`を指定できる。
+  titleは現在の見出しと完全一致、2〜40文字、reasonは判断理由10〜200文字が必要。
+  読点・句点・改行、結論・評価の言い切りや`を`・`が`などを含む文章は解除できない。
+  タイトルを変更した場合は再判断する。これは誤検知の判断記録であり、文章型タイトルの許可や全検証の無効化ではない。
 - `type: "title"` 以外は `lead` (string) を任意指定できる。タイトル直下に要旨を置き、指定時だけ本文開始位置が下がる。未指定時の本文位置は変わらない。
 - `lead` は本文を読む前に伝える結論・前提・読み方を1〜2行で書く。単なるタイトルの言い換えや本文項目の列挙には使わない。文字数の固定上限はないが、最小フォントでも領域へ収まらない場合は生成を停止する。
 - `footnote`は表紙・中扉を含む全type共通の任意補足欄。`text`は必須の空でない文字列、
@@ -106,8 +111,8 @@ python slidegen/validate_content.py content.json
   "title": "検討事項",
   "lead": "本文を読む前に必要な要旨を記載します。",
   "bullets": [
-    ["箇条書き本文A", null],
-    ["箇条書き本文B", null]
+    {"text": "箇条書き本文A"},
+    {"text": "箇条書き本文B"}
   ]
 }
 ```
@@ -186,6 +191,12 @@ python slidegen/validate_content.py content.json
 
 - `style`: `"numbered"` / `"bullet"` / `"checklist"`。省略時は`"numbered"`
 - `bullets[*].checked`: boolean。`style: "checklist"`の場合だけ指定可能。省略時は`false`
+- 公開形式はobjectに統一する。旧形式`["本文", null]`は、本変更を含む1.xからCLIで警告し、
+  2.0.0で受理を終了する。1.xの間は移行期間として受理し、`{"text": "本文"}`へ置換する。
+  旧配列の2要素目へ値を入れる形式は受理しない。cardsの旧配列形式は以前からvalidatorが拒否し、
+  `{"heading": "見出し", "body": "本文"}`へ移行する。新たな互換受理は追加しない。
+- Python APIの`validate()`はエラー一覧だけを返す。移行警告は`validation_warnings()`から取得でき、
+  検証・生成CLIでは自動で標準エラーへ表示する。
 
 制約:
 
@@ -262,7 +273,9 @@ python slidegen/validate_content.py content.json
 任意:
 
 - `note`: string
-- `note_link`: 注記に続けて表示するリンク。`label`と`https://`で始まる`url`を指定する
+- `note_link`: 注記に続けて表示するリンク。`label`と`https://`で始まる完全な`url`を指定する。
+  新規の誘導先としてHTTPSを必須にする。一方、`references[*].url`は既存の原典を正確に記録するため
+  HTTPも受理する。いずれもホスト名必須で、認証情報や空白入りのURLは受理しない。
 制約:
 
 - `columns`と各`rows[*]`の要素数は同じにする(2〜8列)。

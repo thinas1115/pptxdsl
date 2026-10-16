@@ -7,7 +7,7 @@ import json
 import re
 from copy import deepcopy
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PureWindowsPath, PurePosixPath
 from string import Formatter
 
 from PIL import Image, UnidentifiedImageError
@@ -136,19 +136,19 @@ def _expect_optional_image(value, path, *, base_dir):
     value = _expect_text(value, path, max_length=500).strip()
     if not value:
         raise ValueError(f"{path} は画像ファイルのパスまたは null にしてください")
-    source = Path(value).expanduser()
+    source = Path(value)
     if not source.is_absolute():
         source = base_dir / source
     source = source.resolve()
     if source.suffix.lower() not in {".png", ".jpg", ".jpeg"}:
-        raise ValueError(f"{path} はPNGまたはJPEGを指定してください: {value}")
+        raise ValueError(f"{path} はPNGまたはJPEGを指定してください")
     if not source.is_file():
-        raise ValueError(f"{path} の画像が見つかりません: {value}")
+        raise ValueError(f"{path} の画像が見つかりません。設定JSONからの相対パスを確認してください")
     try:
         with Image.open(source) as image:
             image.verify()
     except (OSError, UnidentifiedImageError) as e:
-        raise ValueError(f"{path} を画像として読み込めません: {value}") from e
+        raise ValueError(f"{path} を画像として読み込めません。PNG/JPEGとして保存し直してください") from e
     return source
 
 
@@ -197,6 +197,15 @@ def parse_cover_footer_config(data, *, base_dir=None):
     """設定dictを検証し、描画用の不変オブジェクトへ変換する。"""
     base_dir = Path.cwd() if base_dir is None else Path(base_dir)
     merged = _merge_data(data)
+    image_override = data.get("cover", {}).get("background_image")
+    if isinstance(image_override, str):
+        image_override = image_override.strip()
+    if isinstance(image_override, str) and (
+            PurePosixPath(image_override).is_absolute()
+            or PureWindowsPath(image_override).drive
+            or PureWindowsPath(image_override).root
+            or image_override.startswith("~")):
+        raise ValueError("cover.background_image は設定JSONからの相対パスにしてください。絶対パス・ホーム展開は公開設定へ持ち込めません")
     cover = merged["cover"]
     footer = merged["footer"]
 
@@ -271,12 +280,14 @@ def load_cover_footer_config(path=None):
     try:
         data = json.loads(source.read_text(encoding="utf-8"))
     except FileNotFoundError as e:
-        raise ValueError(f"設定ファイルが見つかりません: {source}") from e
+        raise ValueError("設定ファイルが見つかりません。--cover-footer-configの指定を確認してください") from e
     except json.JSONDecodeError as e:
         raise ValueError(
-            f"設定JSONが不正です: {source} ({e.lineno}行{e.colno}列)") from e
+            f"設定JSONが不正です ({e.lineno}行{e.colno}列)。括弧・カンマ・引用符を確認してください") from e
     except UnicodeDecodeError as e:
-        raise ValueError(f"設定JSONはUTF-8で保存してください: {source}") from e
+        raise ValueError("設定JSONはUTF-8で保存してください") from e
+    except OSError as e:
+        raise ValueError("設定JSONを読み取れません。ファイル種別と読み取り権限を確認してください") from e
     return parse_cover_footer_config(data, base_dir=source.parent.resolve())
 
 
