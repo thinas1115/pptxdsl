@@ -44,10 +44,13 @@ python <Skill>/scripts/run.py fonts
 
 ## 安全係数と再現性
 
-幅の実測はPillow/FreeTypeのadvance幅を96dpiへ換算し、游ゴシックでは`SAFETY = 1.08`、
-Noto系では`SAFETY_BY_FAMILY`の1.10を掛ける。8.2〜42pt・通常/太字・和文/英文/混在文の
-48条件を実描画と照合した最大比は、游ゴシック＋PowerPointで1.0749、Noto CJK/JP＋
-LibreOfficeで1.0858だった。Notoの混在文では1.08を超えたため、書体別に余裕を確保する。
+幅の実測はPillow/FreeTypeのadvance幅を96dpiへ換算する。Noto系では、LibreOfficeが加える
+和欧間隔を見込み、日本語と英数字が直接隣接する境界ごとに1/4emを確保したうえで、
+共通の`SAFETY = 1.08`を掛ける。係数だけを増やして境界数の影響を吸収しない。
+初回48条件の実描画／Pillow advanceの最大比は、游ゴシック＋PowerPointで1.0749、
+Noto CJK/JP＋LibreOfficeで1.0858だった。このNotoの差を受けて和欧間隔をモデルへ加え、
+和英交互の文を含む64条件へ校正を拡張する。advance幅と字間込み推定幅を別々に記録する。
+和欧間隔の機能は[LibreOfficeのAsian Typography](https://help.libreoffice.org/latest/en-US/text/shared/01/05020700.html)を参照する。
 pt→pxの整数丸め、Officeの字送り・カーニング差を見込む幅方向の余裕であり、
 行高、混在書体、未対応フォント、代替書体、任意のOffice版を保証する値ではない。
 Pillowのfamily/styleと可変軸の扱いは[公式API](https://pillow.readthedocs.io/en/stable/reference/ImageFont.html)に従う。

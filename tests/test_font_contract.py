@@ -106,6 +106,16 @@ class FontContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "ASCII"):
                 _fit_code_text("日本語コメント", 10, 2)
 
+    def test_noto_mixed_script_spacing_scales_with_boundaries(self):
+        measured = unittest.mock.Mock()
+        measured.getlength.return_value = 96
+        face = config.FontFace("font.ttf", 0, "Noto Sans JP", "Regular")
+        with patch.object(textfit, "_font", return_value=measured), patch.object(textfit, "font_face", return_value=face):
+            plain = textfit.text_width_in("ABCDEFG", 16)
+            alternating = textfit.text_width_in("A日B本C語D", 16)
+            self.assertAlmostEqual(alternating - plain, 6 * 16 / 72 / 4 * textfit.SAFETY)
+            self.assertEqual(textfit.text_width_in("ABC 日本語", 16), plain)
+
     @unittest.skipUnless(os.environ.get("PPTXDSL_TEST_VARIABLE_FONT"), "可変フォントは専用CIで実ファイルを指定する")
     def test_real_variable_font_selects_400_and_700(self):
         with patch.dict(os.environ, {key: "" for key in config._ENV_KEYS}):

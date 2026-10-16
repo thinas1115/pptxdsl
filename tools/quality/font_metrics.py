@@ -11,7 +11,7 @@ from pptx.util import Inches
 
 from slidegen.font_config import describe
 from slidegen.generate import SLIDE_W, SLIDE_H, add_text
-from slidegen.textfit import SAFETY, SAFETY_BY_FAMILY, text_width_in, width_safety
+from slidegen.textfit import SAFETY, _font, text_width_in, width_safety
 
 
 def build(output):
@@ -24,17 +24,18 @@ def build(output):
         add_text(slide, 0.7, 0.2, 11, 0.4, f"書体の幅測定 / {size}pt", 14, bold=True)
         for row, (weight, text) in enumerate((
             (weight, text) for weight in ("regular", "bold")
-            for text in ("日本語の測定結果", "WWW iii 012.3", "申請API: 123件")
+            for text in ("日本語の測定結果", "WWW iii 012.3", "申請API: 123件", "A日B本C語D")
         )):
-            top = 0.85 + row * 0.88
+            top = 0.85 + row * 0.70
             name = f"font-metric:{page}:{row}"
-            shape = add_text(slide, 0.7, top, 11.9, 0.82, text, size, bold=weight == "bold", wrap=False, spacing=1.0)
+            shape = add_text(slide, 0.7, top, 11.9, 0.70, text, size, bold=weight == "bold", wrap=False, spacing=1.0)
             shape.name = name
             cases.append({"id": name, "page": page, "top_pt": top * 72,
-                          "bottom_pt": (top + 0.82) * 72, "text": text,
+                          "bottom_pt": (top + 0.70) * 72, "text": text,
                           "size": size, "weight": weight,
                           "safety": width_safety(weight),
-                          "pillow_width_pt": text_width_in(text, size, weight) / width_safety(weight) * 72})
+                          "pillow_width_pt": _font(weight, size).getlength(text) * 72 / 96,
+                          "estimated_width_pt": text_width_in(text, size, weight) / width_safety(weight) * 72})
     prs.save(output / "metrics.pptx")
     (output / "expected.json").write_text(json.dumps({"fonts": describe(), "cases": cases}, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -53,10 +54,10 @@ def compare(expected_path, observed, backend):
             if found != "".join(case["text"].split()) or not words:
                 raise ValueError(f"実描画の文字列を照合できません: {case['id']}")
             actual[case["id"]] = max(float(w.get("xMax")) for w in words) - min(float(w.get("xMin")) for w in words)
-    family = expected["fonts"].get("regular", {}).get("family")
-    limit = SAFETY_BY_FAMILY.get(family, SAFETY)
+    limit = SAFETY
     results = [{**case, "safety": case.get("safety", limit), "actual_width_pt": actual[case["id"]],
-                "ratio": actual[case["id"]] / case["pillow_width_pt"]} for case in expected["cases"]]
+                "raw_ratio": actual[case["id"]] / case["pillow_width_pt"],
+                "ratio": actual[case["id"]] / case.get("estimated_width_pt", case["pillow_width_pt"])} for case in expected["cases"]]
     report = {"backend": backend, "fonts": expected["fonts"], "safety": limit,
               "max_ratio": max(row["ratio"] for row in results), "cases": results}
     if any(row["ratio"] > row["safety"] or row["ratio"] <= 0 for row in results):
