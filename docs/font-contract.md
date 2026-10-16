@@ -49,7 +49,7 @@ python <Skill>/scripts/run.py fonts
 共通の`SAFETY = 1.08`を掛ける。係数だけを増やして境界数の影響を吸収しない。
 初回48条件の実描画／Pillow advanceの最大比は、游ゴシック＋PowerPointで1.0749、
 Noto CJK/JP＋LibreOfficeで1.0858だった。このNotoの差を受けて和欧間隔をモデルへ加え、
-和英交互の文を含む64条件へ校正を拡張する。advance幅と字間込み推定幅を別々に記録する。
+和英交互の文を含む64条件へ校正を拡張した。advance幅と字間込み推定幅を別々に記録する。
 和欧間隔の機能は[LibreOfficeのAsian Typography](https://help.libreoffice.org/latest/en-US/text/shared/01/05020700.html)を参照する。
 pt→pxの整数丸め、Officeの字送り・カーニング差を見込む幅方向の余裕であり、
 行高、混在書体、未対応フォント、代替書体、任意のOffice版を保証する値ではない。
@@ -58,3 +58,49 @@ Pillowのfamily/styleと可変軸の扱いは[公式API](https://pillow.readthed
 同じ入力・renderer・依存バージョン・フォントファイルとindex・可変軸・設定で同じ配置を再現する。
 異なるフォント間の同一改行、Office/OSをまたぐピクセル一致、ZIP日時を含むPPTXのバイト一致は保証しない。
 測定値で収まることと、描画後に読みやすいことを分け、全ページのPNG確認を省略しない。
+
+## 実レンダリングによる校正記録
+
+2026-10-16に、8.2／9／10.5／11／13.5／16／24／42pt、通常／太字、
+日本語・英数字・和英混在・和英交互文の64条件を各環境で照合した。
+「推定幅」は安全係数を掛ける前の値であり、合格条件は実描画幅／推定幅が1.08以下である。
+
+| 測定書体 | 描画環境 | 実描画幅／advance幅の最大値 | 実描画幅／推定幅の最大値 |
+| --- | --- | ---: | ---: |
+| Yu Gothic Regular/Bold | Windows、PowerPoint 16.0 build 20430 | 1.074859 | 1.074859 |
+| Noto Sans CJK JP Regular/Bold | Ubuntu、LibreOffice 24.2.7.2 420(Build:2)、Poppler | 1.271585 | 1.012383 |
+| Noto Sans JP Weight軸400/700 | Ubuntu、LibreOffice 24.2.7.2 420(Build:2)、Poppler | 1.271585 | 1.012383 |
+
+Notoで和欧間隔を無視すると、和英交互文の実描画幅はadvance幅より最大27.16%広い。
+境界ごとの間隔を加えた最終モデルでは、3書体とも共通の安全係数内に収まった。
+この結果は上記64条件の観測であり、未検証の文字列や描画環境すべての保証ではない。
+
+各書体で通常37ページ・lead付き36ページ・過密入力5ページを生成・機械検査し、
+計234ページのPNGを一覧と原寸で確認した。フォント変更による新しい文字切れ・欠字・
+重なりは見つからず、可変フォントも通常／太字の描き分けを確認した。
+LibreOfficeではPowerPointと異なる線・図形の影が見られるため、ピクセル一致とは扱わない。
+既存の画像比較、グラフ、パケット図、ギャラリー文言などの課題は別Issueの対象であり、
+この校正はそれらのデザイン・内容の完成を意味しない。
+
+Notoの全テスト、測定値、フォントSHA-256、PPTX、PNGは
+[検証実行38851559009](https://github.com/thinas1115/pptxdsl/actions/runs/38851559009)の
+`font-contract-noto-cjk`／`font-contract-noto-jp-variable`成果物に保存している。
+成果物の保持期限後も、同じ検証は次のコマンドとCIから再実行できる。
+Noto Sans JPの取得元commitとSHA-256はCIで固定・照合する。
+PDFのPostScript名にThinが残る場合があるため、その名前だけで可変軸の選択を判定しない。
+
+```powershell
+python -m tools.quality.font_metrics build out/font-metrics
+powershell -NoProfile -File tools/quality/font_metrics.ps1 -PptxPath out/font-metrics/metrics.pptx -Output out/font-metrics/actual.json
+python -m tools.quality.font_metrics compare out/font-metrics/expected.json out/font-metrics/actual.json --backend powerpoint --report out/font-metrics/report.json
+```
+
+LibreOffice環境では、同じフォントを描画側にも導入してからPDF内のfamilyも照合する。
+必要なツールはLibreOffice Impress、Popplerの`pdftotext`と`pdffonts`である。
+
+```sh
+python -m tools.quality.font_metrics build out/font-metrics
+soffice --headless --convert-to pdf --outdir out/font-metrics out/font-metrics/metrics.pptx
+pdftotext -bbox-layout out/font-metrics/metrics.pdf out/font-metrics/actual.xhtml
+python -m tools.quality.font_metrics compare out/font-metrics/expected.json out/font-metrics/actual.xhtml --backend poppler --pdf out/font-metrics/metrics.pdf --report out/font-metrics/report.json
+```
