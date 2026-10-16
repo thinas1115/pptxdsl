@@ -262,6 +262,16 @@ jobs:
       - name: 一覧画像を生成
         run: python contact_sheet.py out/libreoffice-smoke
 
+      - name: PNG実画素の正常と既知NGを検証
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python -m tools.quality.raster_smoke build out/raster-qa
+          for case in good text_oob line_gap; do
+            python .agents/skills/pptxdsl/scripts/render_preview.py "out/raster-qa/$case.pptx" "out/raster-qa/$case" --backend libreoffice --width 800
+          done
+          python -m tools.quality.raster_smoke verify out/raster-qa --backend libreoffice --version "$(soffice --version)"
+
       - name: グラフ数値回帰デッキを生成して実レンダリング
         env:
           PYTHONIOENCODING: utf-8
@@ -283,6 +293,7 @@ jobs:
             out/chart-png/*.png
             out/chart-cases.json
             out/chart-cases.pptx
+            out/raster-qa
           if-no-files-found: error
 
       - name: Skill・Plugin配布候補を保存

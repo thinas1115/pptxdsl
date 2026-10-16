@@ -1,6 +1,7 @@
 # レンダリングと目視QA
 
 PPTX生成と`check_layout.py`の成功だけでは完成にしない。実行環境で使えるbackendを確認し、全ページをPNGへ変換して確認する。
+作業前に[PNGの合否基準と検証記録](visual-acceptance.md)を読み、自動検査・目視・人の承認を分けて記録する。
 
 ## Backendの探索と実行
 

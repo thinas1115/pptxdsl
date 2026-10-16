@@ -23,6 +23,8 @@ python <Skill>/scripts/run.py sheet out/png
 
 `generate`の出力先、`render`のPNG保存先は省略できない。`render`は`--backend`、`--width`、
 `--slides`を、`generate`は`--cover-footer-config`を受け付ける。
+回帰用PNG検査仕様がある場合は、`python <Skill>/scripts/run.py raster out/raster-checks.json out/png --report out/raster-report.json`も使える。
+合否・目視・人の承認は[PNGの合否基準](visual-acceptance.md)に従って別々に記録する。
 
 ## 前提条件と停止条件
 
