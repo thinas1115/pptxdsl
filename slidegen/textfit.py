@@ -38,10 +38,15 @@ def text_width_in(text: str, size_pt: float, weight: str = "regular") -> float:
     px = f.getlength(text)
     # LibreOfficeの和欧間隔はPillowのadvanceに含まれない。Noto系では
     # 直接隣接する日本語/英数字境界ごとに最大1/4emを確保する。
-    gap = 0.0
-    if font_face(weight).family.startswith("Noto Sans"):
-        gap = len(_CJK_LATIN_BOUNDARY.findall(text)) * size_pt / 72.0 / 4
+    gap = boundary_spacing_in(text, size_pt, weight)
     return (px / 96.0 + gap) * width_safety(weight)
+
+
+def boundary_spacing_in(text: str, size_pt: float, weight: str = "regular") -> float:
+    """runの境界にも適用する和欧間隔。単一runの測定と同じ規則を共有する。"""
+    if font_face(weight).family.startswith("Noto Sans"):
+        return len(_CJK_LATIN_BOUNDARY.findall(text)) * size_pt / 72.0 / 4
+    return 0.0
 
 
 _BREAK_BEFORE = "、。，．）」』】”？！・：；"  # 行頭に来てはいけない文字

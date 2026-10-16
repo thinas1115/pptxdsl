@@ -155,7 +155,7 @@ def s_concept(slide, spec, page):
         add_text(
             slide, right_x, y + 0.03, right_w, label_h,
             "\n".join(label_lines), label_size, bold=True, color=ACCENT,
-            spacing=1.08,
+            spacing=1.08, role="compact",
         )
         body_y = y + label_h + values["inside_gap"]
         body_size, body_lines = fit_text_or_raise(
@@ -253,7 +253,7 @@ def _node_label(slide, x, y, width, text, font, *, sub=None):
     box = add_text(
         slide, x - width / 2, y, width, title_h, rendered, title_size,
         bold=True, color=NAVY, align=PP_ALIGN.CENTER,
-        anchor=MSO_ANCHOR.MIDDLE, spacing=1.05)
+        anchor=MSO_ANCHOR.MIDDLE, spacing=1.05, role="compact")
     box.fill.solid()
     box.fill.fore_color.rgb = CANVAS
     if sub:
@@ -264,7 +264,7 @@ def _node_label(slide, x, y, width, text, font, *, sub=None):
         sub_box = add_text(
             slide, x - width / 2, y + title_h + 0.01, width, sub_h,
             "\n".join(sub_lines), sub_size, color=GRAY,
-            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0)
+            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, role="compact")
         sub_box.fill.solid()
         sub_box.fill.fore_color.rgb = CANVAS
 
@@ -458,7 +458,7 @@ def s_network(slide, spec, page):
                 min(source_y, target_y) - 0.42, label_w, 0.34,
                 "\n".join(label_lines), label_size, bold=True, color=NAVY,
                 align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
-                spacing=1.0)
+                spacing=1.0, role="compact")
             label.fill.solid()
             label.fill.fore_color.rgb = CANVAS
             continue
@@ -697,7 +697,7 @@ def _protocol_state_marker(
             slide, x + 0.02, y + 0.01, tag_w - 0.04, marker_h - 0.02,
             "\n".join(label_lines), label_size,
             bold=True, color=WHITE, align=PP_ALIGN.CENTER,
-            anchor=MSO_ANCHOR.MIDDLE, spacing=1.0,
+            anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, role="compact",
         )
     return marker_w
 
@@ -753,7 +753,7 @@ def s_protocol_state_flow(slide, spec, page):
             slide, cx - stage_w / 2 + 0.06, top + icon_size + 0.06,
             stage_w - 0.12, values["header_h"] - icon_size - 0.04,
             "\n".join(label_lines), label_size, bold=True, color=NAVY,
-            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.TOP, spacing=1.0,
+            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.TOP, spacing=1.0, role="compact",
         )
 
     row_y = rows_top
@@ -777,7 +777,7 @@ def s_protocol_state_flow(slide, spec, page):
             slide, MARGIN + 0.10, row_y + 0.20,
             rail_w - 0.20, flow_label_h,
             "\n".join(flow_label_lines), flow_label_size,
-            bold=True, color=color, spacing=1.0,
+            bold=True, color=color, spacing=1.0, role="compact",
         )
         if flow.get("sub"):
             flow_sub_y = row_y + 0.20 + flow_label_h + 0.04
@@ -790,7 +790,7 @@ def s_protocol_state_flow(slide, spec, page):
             add_text(
                 slide, MARGIN + 0.10, flow_sub_y,
                 rail_w - 0.20, row_y + row_h - flow_sub_y - 0.10,
-                "\n".join(sub_lines), sub_size, color=GRAY, spacing=1.0,
+                "\n".join(sub_lines), sub_size, color=GRAY, spacing=1.0, role="compact",
             )
 
         states = sorted(
@@ -835,7 +835,7 @@ def s_protocol_state_flow(slide, spec, page):
             add_text(
                 slide, cx - text_w / 2, title_y, text_w, title_h,
                 "\n".join(title_lines), title_size, bold=True, color=NAVY,
-                align=PP_ALIGN.CENTER, spacing=1.0,
+                align=PP_ALIGN.CENTER, spacing=1.0, role="compact",
             )
             if state.get("detail"):
                 detail_y = title_y + title_h + 0.03
@@ -848,7 +848,7 @@ def s_protocol_state_flow(slide, spec, page):
                 add_text(
                     slide, cx - text_w / 2, detail_y, text_w, detail_h,
                     "\n".join(detail_lines), detail_size, color=GRAY,
-                    align=PP_ALIGN.CENTER, spacing=1.0,
+                    align=PP_ALIGN.CENTER, spacing=1.0, role="compact",
                 )
         row_y += row_h + values["row_gap"]
 
@@ -966,7 +966,7 @@ def s_protocol_anatomy(slide, spec, page):
                 min_pt=7.5, weight="bold", spacing=1.0, role="compact")
             add_text(slide, x + 0.05, y + 0.12, width - 0.10, frame_h * 0.48,
                      "\n".join(name_lines), name_size, bold=True, color=color,
-                     align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0)
+                     align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, role="compact")
             add_text(slide, x + 0.04, y + frame_h - 0.25, width - 0.08, 0.16,
                      field.get("size_label", f"{field['bits']} bit"),
                      max(7.0, font - 2), color=GRAY,
@@ -1020,7 +1020,7 @@ def s_protocol_anatomy(slide, spec, page):
             add_text(slide, x + annotation_label_w + 0.06, y,
                      annotation_w - annotation_label_w - 0.06,
                      values["annotation_text_h"],
-                     "\n".join(lines), fit_size, color=TEXT, spacing=1.08)
+                     "\n".join(lines), fit_size, color=TEXT, spacing=1.08, role="compact")
 
 def _fit_code_text(code, width, height):
     from slidegen.font_config import font_family
@@ -1076,7 +1076,7 @@ def s_code_lab(slide, spec, page):
         size = _fit_code_text(section["code"], left_w - 0.56, code_h)
         code_box = add_text(
             slide, MARGIN + 0.28, code_y, left_w - 0.56, code_h,
-            section["code"], size, color=WHITE, spacing=1.18, wrap=False)
+            section["code"], size, color=WHITE, spacing=1.18, wrap=False, role="compact")
         _apply_code_font(code_box)
 
     add_text(slide, right_x, top + 0.02, right_w, 0.32,
@@ -1215,7 +1215,7 @@ def s_knowledge_check(slide, spec, page):
                     slide, option_x, option_y, item["width"], item["height"],
                     item["text"], size - 1.5,
                     bold=mode == "answers" and correct,
-                    color=option_color, spacing=1.08,
+                    color=option_color, spacing=1.08, role="body",
                 )
                 option_x += item["width"] + 0.18
             option_y += option_row_h + 0.05

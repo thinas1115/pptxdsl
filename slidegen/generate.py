@@ -25,6 +25,7 @@ from slidegen.layout_fit import (
 )
 from slidegen.textfit import line_height_in, text_width_in, wrap_natural, wrap_text
 from slidegen.slide_footnote import fit_footnote
+from slidegen.text_roles import set_text_role
 from slidegen.font_config import font_family
 
 # 入力デッキは生成入口から設定する。回帰用データを初期値として読み込まない。
@@ -100,9 +101,10 @@ def set_run(run, size, *, bold=False, color=TEXT):
 
 def add_text(slide, x, y, w, h, text, size, *, bold=False, color=TEXT,
              align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP, spacing=1.3,
-             wrap=True):
+             wrap=True, role=None):
     tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
     tf = tb.text_frame
+    set_text_role(tf, role or ("natural" if bold else "body"))
     tf.word_wrap = wrap
     tf.vertical_anchor = anchor
     tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
@@ -649,6 +651,7 @@ def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=Fals
     cell.margin_left = cell.margin_right = Inches(0.09)
     cell.margin_top = cell.margin_bottom = Inches(0.04)
     tf = cell.text_frame
+    set_text_role(tf, "compact")
     tf.word_wrap = True
     for i, line in enumerate(text.split("\n")):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()

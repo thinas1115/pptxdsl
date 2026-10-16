@@ -9,6 +9,72 @@ permissions:
   contents: read
 
 jobs:
+  text-metrics-origin:
+    name: 文字矩形の入力と基準値 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      PYTHONIOENCODING: utf-8
+      PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/fonts/NotoSansJP-VF.ttf
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: 依存と固定書体を準備
+        run: |
+          python -m pip install -r requirements.txt
+          python -m tools.quality.text_metrics_cases prepare-font out/fonts/NotoSansJP-VF.ttf
+      - name: 真値付きテストと検査基準値を生成
+        run: |
+          python -m tests.test_text_metrics
+          python -m tools.quality.text_metrics_cases build out/text-cases
+      - uses: actions/upload-artifact@v4
+        with:
+          name: text-metrics-${{ matrix.os }}
+          path: out/text-cases
+          if-no-files-found: error
+
+  text-metrics-cross:
+    name: 同一PPTXの文字検査 (${{ matrix.os }})
+    needs: text-metrics-origin
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      PYTHONIOENCODING: utf-8
+      PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/fonts/NotoSansJP-VF.ttf
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: 依存と固定書体を準備
+        run: |
+          python -m pip install -r requirements.txt
+          python -m tools.quality.text_metrics_cases prepare-font out/fonts/NotoSansJP-VF.ttf
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: text-metrics-*
+          path: out/inbound
+      - name: 双方のPPTXを同じ書体で再検査
+        run: |
+          python -m tools.quality.text_metrics_cases compare out/inbound/text-metrics-windows-latest/cases.pptx out/inbound/text-metrics-windows-latest/report.json out/cross/windows-origin.json
+          python -m tools.quality.text_metrics_cases compare out/inbound/text-metrics-ubuntu-latest/cases.pptx out/inbound/text-metrics-ubuntu-latest/report.json out/cross/ubuntu-origin.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: text-cross-${{ matrix.os }}
+          path: out/cross
+          if-no-files-found: error
+
   verify:
     name: Python ${{ matrix.python-version }}
     runs-on: windows-latest
