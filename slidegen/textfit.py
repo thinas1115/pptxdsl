@@ -1,7 +1,7 @@
 """日本語テキストの実測折り返し・自動フィットエンジン。
 
-PowerPointに置く前にPillowで日本語フォントの実寸を測り、
-「テキストボックスから溢れない」ことを生成時点で保証する。
+PPTXへ指定するフォントをPillowで測り、幅と折り返しを推定する。
+実描画の置換・行送り・視認性は、別途レンダリング後の品質ゲートで確認する。
 """
 import re
 from slidegen.font_config import font_face, load_font
@@ -10,6 +10,13 @@ from slidegen.font_config import font_face, load_font
 # あるため安全係数を掛ける。
 PT_TO_PX = 96 / 72
 SAFETY = 1.08
+SAFETY_BY_FAMILY = {"Noto Sans CJK JP": 1.10, "Noto Sans JP": 1.10,
+                    "Noto Sans Mono CJK JP": 1.10}
+
+
+def width_safety(weight="regular"):
+    """実描画校正に基づく幅方向の余裕。Noto混在文の最大比1.0858を含む。"""
+    return SAFETY_BY_FAMILY.get(font_face(weight).family, SAFETY)
 
 
 FONT_WEIGHTS = ("regular", "medium", "bold", "code")
@@ -28,7 +35,7 @@ def text_width_in(text: str, size_pt: float, weight: str = "regular") -> float:
         return 0.0
     f = _font(weight, size_pt)
     px = f.getlength(text)
-    return px * SAFETY / 96.0
+    return px * width_safety(weight) / 96.0
 
 
 _BREAK_BEFORE = "、。，．）」』】”？！・：；"  # 行頭に来てはいけない文字
