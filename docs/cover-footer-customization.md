@@ -85,6 +85,40 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 画像は生成時にPPTXへ埋め込まれるため、生成後の閲覧時に元画像は不要。
 標準表紙は、タイトルとサブタイトルの右側に`DATE / ORGANIZATION / AUTHOR`のrailを表示する。
 
+### 社内資料向けの日本語ラベル
+
+既存の`cover.rail`だけで項目名を日本語化できる。
+[日本語設定例](../examples/cover_footer.ja.json)では、標準の構図・配色・背景を維持し、
+右欄を「日付・所属・作成者」へ変更している。
+
+```powershell
+python slidegen/generate_from_json.py content.json out/deck-ja.pptx --cover-footer-config examples/cover_footer.ja.json
+python slidegen/check_layout.py out/deck-ja.pptx
+```
+
+設定JSONの内容は次のとおり。`{date}`などの参照名は翻訳せず、`label`だけを変更する。
+
+```json
+{
+  "cover": {
+    "show_date": false,
+    "show_author": false,
+    "show_rail": true,
+    "rail": [
+      {"label": "日付", "value": "{date}"},
+      {"label": "所属", "value": "{organization}"},
+      {"label": "作成者", "value": "{author}"}
+    ]
+  }
+}
+```
+
+`organization`・`author`を参照する値は、日本語ラベルでも既存と同じ最大3行を使用できる。
+会社名・部門名などを分ける場合は`meta.organization`などに`\n`で改行を入れる。
+標準の英語ラベルと既存設定の動作は変更しない。
+
+### 標準ラベルと省略時の動作
+
 - `DATE`: `meta.date`を表示する
 - `ORGANIZATION`: `meta.organization`を表示する
 - `AUTHOR`: `meta.author`を表示する

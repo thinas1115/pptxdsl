@@ -373,7 +373,9 @@ def render_cover(slide, spec, meta, total, config, *, add_text, add_rect,
             label_size = _single_line_size(
                 label, 2.25, 8.8, 7,
                 field=f"cover.rail[{idx}].label", weight="bold")
-            max_lines = 3 if label.strip().upper() in {
+            fields = {name for _, name, _, _ in Formatter().parse(item.value) if name}
+            # 表示ラベルの言語に依存させない。固定値を使う従来英語設定も維持する。
+            max_lines = 3 if fields & {"organization", "author"} or label.strip().upper() in {
                 "ORG", "ORGANIZATION", "AUTHOR", "OWNER"
             } else 1
             value_size, value_lines, value_h = _rail_value_layout(
