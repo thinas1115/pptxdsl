@@ -1,31 +1,23 @@
 """基本rendererの回帰サンプルデッキを生成する。"""
 import argparse
+import json
 from pathlib import Path
-
-from pptx import Presentation
-from pptx.util import Inches
 
 from slidegen import generate
 from tests.fixtures.gallery.content import DECK
+from slidegen.generate_from_json import build_presentation
 
 
 def main(out_path, cover_footer_config=None):
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        generate.configure_cover_footer(cover_footer_config)
+        # 古いPython fixtureのtupleだけをJSON配列へ変換して公開入力検証を通す。
+        fixture = json.loads(json.dumps(DECK, ensure_ascii=False))
+        prs = build_presentation(fixture, cover_footer_config, renderers=generate.RENDER,
+                                 allow_sample_content=True)
     except ValueError as e:
-        raise SystemExit(f"NG: 表紙・フッター設定: {e}") from e
-    generate.DECK = DECK
-    prs = Presentation()
-    prs.slide_width = Inches(generate.SLIDE_W)
-    prs.slide_height = Inches(generate.SLIDE_H)
-    blank = prs.slide_layouts[6]
-    for idx, spec in enumerate(DECK["slides"], 1):
-        slide = prs.slides.add_slide(blank)
-        generate.render_slide(generate.RENDER[spec["type"]], slide, spec, idx)
-        if spec["type"] != "title":
-            generate.footer(slide, idx)
+        raise SystemExit(f"NG: 基本ギャラリー: {e}") from None
     prs.save(out_path)
     print(f"saved: {out_path} ({len(DECK['slides'])} slides)")
 
