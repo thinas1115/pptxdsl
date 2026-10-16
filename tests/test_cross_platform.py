@@ -12,7 +12,15 @@ from tools.quality import cross_platform as c
 class CrossPlatformTests(unittest.TestCase):
     def test_build_collects_all_failed_decks_and_environment(self):
         failed = subprocess.CompletedProcess([], 1, "private diagnostic", "private diagnostic")
-        with TemporaryDirectory() as temporary, patch.object(c.subprocess, "run", return_value=failed) as run:
+        metadata = {"rendering": "not_performed", "powerpoint": {"status": "not_probed"}}
+        # このテストの対象は5 generatorの失敗収集。Office/fontconfig探索まで
+        # subprocessモックへ巻き込み、OSごとの探索回数・成否に依存させない。
+        with TemporaryDirectory() as temporary, \
+                patch.object(c.subprocess, "run", return_value=failed) as run, \
+                patch.object(c, "environment", return_value=metadata), \
+                patch.object(c, "describe", return_value={}), \
+                patch.object(c, "font_face", return_value=None), \
+                patch.object(c, "_font_identity", return_value={}):
             with self.assertRaisesRegex(ValueError, "主要デッキ"):
                 c.build(Path(temporary))
             report = json.loads((Path(temporary) / "manifest.json").read_text(encoding="utf-8"))
