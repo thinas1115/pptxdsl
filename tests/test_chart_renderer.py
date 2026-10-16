@@ -43,6 +43,8 @@ class ChartRendererTests(unittest.TestCase):
                     bars = [shape for shape in slide.shapes if shape.name == "chart:data-bar"]
                     self.assertEqual(len(bars), 0 if kind == "line" else sum(value != 0 for value in values))
                     self.assertTrue(all(shape.width > 0 and shape.height > 0 for shape in bars))
+                    self.assertTrue(all(shape.text_frame.word_wrap is False for shape in slide.shapes
+                                        if shape.has_text_frame and shape.text and shape.name.startswith("chart:")))
                     path = Path(temporary) / f"{kind}.pptx"
                     prs.save(path)
                     self.assertFalse(check(path), (kind, values, check(path)))

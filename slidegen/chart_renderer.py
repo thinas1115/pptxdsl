@@ -377,6 +377,8 @@ def render_chart(slide, chart, area):
         shape.name = "chart:data-dot"
         _no_effect(shape)
     for text, x, y, w, h, bold, color, align, role in plan.texts:
-        shape = g.add_text(slide, x, y, w, h, text, plan.size, bold=bold, color=color, align=align, spacing=1.3)
+        # 折り返しは計画時に確定済み。互換Officeの再組版で系列名や値を分断しない。
+        shape = g.add_text(slide, x, y, w, h, text, plan.size, bold=bold, color=color,
+                           align=align, spacing=1.3, wrap=False)
         shape.name = f"chart:{role}"
     return plan
