@@ -126,6 +126,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m tools.gallery.generate_stress_patterns out\stress_gallery.pptx
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m tools.gallery.generate_chart_cases out\chart-cases.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python slidegen\validate_content.py out\chart-cases.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python slidegen\generate_from_json.py out\chart-cases.json out\chart-cases.pptx
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem out\*.pptx | ForEach-Object {
             python slidegen\check_layout.py $_.FullName
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -174,6 +180,17 @@ jobs:
       - name: 一覧画像を生成
         run: python contact_sheet.py out/libreoffice-smoke
 
+      - name: グラフ数値回帰デッキを生成して実レンダリング
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python -m tools.gallery.generate_chart_cases out/chart-cases.json
+          python slidegen/validate_content.py out/chart-cases.json
+          python slidegen/generate_from_json.py out/chart-cases.json out/chart-cases.pptx
+          python slidegen/check_layout.py out/chart-cases.pptx
+          python .agents/skills/pptxdsl/scripts/render_preview.py out/chart-cases.pptx out/chart-png --backend libreoffice
+          python contact_sheet.py out/chart-png
+
       - name: PNGを検証成果物として保存
         uses: actions/upload-artifact@v4
         with:
@@ -181,6 +198,9 @@ jobs:
           path: |
             out/libreoffice-smoke/*.png
             out/plugin-smoke/*.png
+            out/chart-png/*.png
+            out/chart-cases.json
+            out/chart-cases.pptx
           if-no-files-found: error
 
       - name: Skill・Plugin配布候補を保存

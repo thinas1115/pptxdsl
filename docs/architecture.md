@@ -64,12 +64,18 @@
 | 層 | 責務 | 主な実装 | 再利用範囲 |
 |---|---|---|---|
 | L0 測定・描画部品 | 文字計測、収容候補の選択、矩形、線、矢印、アイコン、ラベル | `textfit.py`、`layout_fit.py`、`generate.py`、`diagrams.py` | 全type |
-| L1 レイアウト計算 | ジャンル固有の位置・サイズ・配線計算 | `diagram_layout.py`、`org_layout.py`、`timeline_layout.py`、`image_slide.py`、`diagrams2.py`、`candidate_renderers.py`、各renderer | 同一ジャンル内 |
+| L1 レイアウト計算 | ジャンル固有の位置・サイズ・配線計算 | `diagram_layout.py`、`org_layout.py`、`timeline_layout.py`、`chart_model.py`、`chart_renderer.py`、`image_slide.py`、`diagrams2.py`、`candidate_renderers.py`、各renderer | 同一ジャンル内 |
 | L2 入力境界 | schema、入力検証、renderer選択 | `CONTENT_SCHEMA.md`、`validate_content.py`、`generate_from_json.py` | 全type |
 | L3 品質保証 | PPTX検査、PNG化、一覧確認 | `check_layout.py`、`render.ps1`、`contact_sheet.py` | 全type |
 
 共通化の中心はL0、L2、L3である。L1はグリッド、ガント、散布、縦詰め、ツリーなど、
 制約の種類ごとに異なるため、ジャンルを越えて無理に統合しない。
+
+グラフは`chart_model.py`で符号付き軸・正負別積み上げ・数値表示形式を計算し、
+`chart_renderer.py`でカテゴリ・凡例・値の文字を実測して描画計画を作る。
+`generate.s_chart()`は公開入口と共通ヘッダー・注記を保ち、専用rendererを遅延読込する。
+指定された数値ラベルは黙って省略せず、標準→余白圧縮→最小10.5ptでも収容できなければ停止する。
+数値ラベルに重なる補助グリッドだけを切り分け、データ線とゼロ軸は欠損させない。
 
 ## レイアウタ・カタログ方式
 
