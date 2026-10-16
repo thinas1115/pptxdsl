@@ -38,7 +38,7 @@ rendererと共通部品の範囲に閉じ込めやすい。
 | カード / KPI | `generate.py` の `s_cards()` | 列数計算、強調カード、背景面、見出しと本文の階層 |
 | 比較表 | `generate.py` の `s_table()` / `_cell()` | ヘッダー、行高、交互色、列見出し、文字位置 |
 | 2カラム比較 | `two_column` (`generate.py` の `s_twocol()`) | 左右のコントラスト、見出し、箇条書き、区切り |
-| グラフ | `generate.py` の `s_chart()` | グラフ面、系列色、凡例、余白、データラベル |
+| グラフ | `chart_renderer.py`の`plan_chart()` / `render_chart()`、`chart_model.py` | 実測した軸・カテゴリ・凡例・値、符号付き数値範囲、段階的収容 |
 | 大判画像 | `slidegen/image_slide.py` の `s_image()` / `fit_image_layout()` | 画像枠、contain/cover、右下影、縮小限界 |
 | 図解共通部品 | `slidegen/diagrams.py` の `LINE` / `add_arrow()` / `arrow_label()` / `container()` / `icon_node()` | アイコンノード、枠、矢印、線上ラベルの見た目 |
 | 体制図 | `org_layout.py` の `OrgLayout` | 階層DAG、関係線、ノードstyle、段階的収容 |
