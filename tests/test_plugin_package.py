@@ -91,6 +91,10 @@ def test_archive_and_runtime() -> None:
         _run(runner, task, "validate", "content.json")
         _run(runner, task, "generate", "content.json", "out/deck.pptx")
         _run(runner, task, "check", "out/deck.pptx")
+        fonts = json.loads(_run(runner, task, "fonts").stdout)
+        assert fonts["regular"]["family"] == fonts["bold"]["family"]
+        assert fonts["regular"]["style"] == "Regular" and fonts["bold"]["style"] == "Bold"
+        assert all("path" not in face for face in fonts.values())
         assert len(Presentation(task / "out/deck.pptx").slides) == len(deck["slides"])
         details = json.loads(_run(runner, task, "probe").stdout)
         # Windowsの一時ディレクトリは短縮名・長い名前のどちらでも同じ場所を指す。

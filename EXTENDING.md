@@ -64,7 +64,7 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/generate_from_json.py` | content.json→PPTX。**新規資料の正式経路** |
 | `tools/gallery/generate_patterns.py` + `tests/fixtures/gallery/content_patterns.py` | 全typeの検証ギャラリー |
 | `slidegen/check_layout.py` | 生成済みPPTXの重なり・はみ出し機械検知 |
-| `slidegen/textfit.py` | フォント実測 (游ゴシックをPillowで測る) |
+| `slidegen/textfit.py` / `font_config.py` | 対応family・face・可変軸をPillow実測とPPTX指定で共有 |
 | `slidegen/layout_fit.py` | 標準→裁量余白圧縮→要素縮小→明示停止の共通契約 |
 | `tests/test_training_renderers.py` | 技術研修rendererの意味検証、標準入力、過密入力、明示停止 |
 | `tools/assets/fetch_fluent_icons.py` / `extract_aws_icons.py` | アイコン素材の追加取得 (`slidegen/assets/icons/fluent/`・`slidegen/assets/icons/aws/` に同梱済み。条件は `slidegen/assets/CREDITS.md`。Fluentは要 svglib+reportlab+rlPyCairo) |

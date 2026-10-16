@@ -26,8 +26,9 @@ cd pptxdsl
 python -m pip install -r requirements.txt
 ```
 
-- Python 3.10以上を前提とします。Windowsでは游ゴシック、非Windowsでは`fontconfig`から検出できる
-  日本語sansフォントを使用します。Noto Sans CJKを推奨します。
+- Python 3.10以上を前提とします。Windowsでは游ゴシック、非Windowsではfontconfigから
+  Noto Sans CJK JPまたはNoto Sans JPを検出します。測定とPPTX指定は同じfamilyへ統一します。
+  可変フォント・TTC・明示指定・再現性の条件は[フォント契約](docs/font-contract.md)を参照してください。
 - 生成結果を再現できるよう、直接・間接依存のバージョンを`requirements.txt`へ固定しています。
 - PPTXの生成にPowerPointは不要です。PNG化と目視確認にだけ使用します。
 - AWS・Fluentアイコンは`slidegen/assets/icons/`へ同梱済みです。
