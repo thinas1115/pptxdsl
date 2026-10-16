@@ -3,8 +3,9 @@
 PPTXへ指定するフォントをPillowで測り、幅と折り返しを推定する。
 実描画の置換・行送り・視認性は、別途レンダリング後の品質ゲートで確認する。
 """
+from functools import lru_cache
 import re
-from slidegen.font_config import font_face, load_font
+from slidegen.font_config import MEASUREMENT_LAYOUT, font_face, load_font
 
 # pt -> px (96dpi)。PowerPoint実測はPillow計測より僅かに広く出ることが
 # あるため安全係数を掛ける。
@@ -21,6 +22,8 @@ def width_safety(weight="regular"):
 
 
 FONT_WEIGHTS = ("regular", "medium", "bold", "code")
+WIDTH_CACHE_ENTRIES = 4096
+WIDTH_CACHE_TEXT_LIMIT = 1024
 
 
 def _font(weight: str, size_pt: float):
@@ -34,19 +37,39 @@ def text_width_in(text: str, size_pt: float, weight: str = "regular") -> float:
     """文字列1行の幅をインチで返す(安全係数込み)。"""
     if not text:
         return 0.0
-    f = _font(weight, size_pt)
+    if weight not in FONT_WEIGHTS:
+        raise ValueError(f"未対応のフォントウェイトです: {weight}")
+    face = font_face(weight)
+    safety = width_safety(weight)
+    measure = _cached_width if len(text) <= WIDTH_CACHE_TEXT_LIMIT else _measure_width
+    return measure(text, size_pt, weight, face, safety, MEASUREMENT_LAYOUT)
+
+
+def _measure_width(text, size_pt, weight, face, safety, engine):
+    # faceはcache keyと実測の両方へ同じ値を渡す。環境変数を再解決して混在させない。
+    f = load_font(face, max(4, round(size_pt * PT_TO_PX)))
     px = f.getlength(text)
     # LibreOfficeの和欧間隔はPillowのadvanceに含まれない。Noto系では
     # 直接隣接する日本語/英数字境界ごとに最大1/4emを確保する。
-    gap = boundary_spacing_in(text, size_pt, weight)
-    return (px / 96.0 + gap) * width_safety(weight)
+    gap = _boundary_spacing(text, size_pt, face.family)
+    return (px / 96.0 + gap) * safety
+
+
+@lru_cache(maxsize=WIDTH_CACHE_ENTRIES)
+def _cached_width(text, size_pt, weight, face, safety, engine):
+    # FontFaceはpath/index/family/style/axesを持つ不変値。weight・安全係数・engineも区別する。
+    return _measure_width(text, size_pt, weight, face, safety, engine)
+
+
+def _boundary_spacing(text, size_pt, family):
+    if family.startswith("Noto Sans"):
+        return len(_CJK_LATIN_BOUNDARY.findall(text)) * size_pt / 72.0 / 4
+    return 0.0
 
 
 def boundary_spacing_in(text: str, size_pt: float, weight: str = "regular") -> float:
     """runの境界にも適用する和欧間隔。単一runの測定と同じ規則を共有する。"""
-    if font_face(weight).family.startswith("Noto Sans"):
-        return len(_CJK_LATIN_BOUNDARY.findall(text)) * size_pt / 72.0 / 4
-    return 0.0
+    return _boundary_spacing(text, size_pt, font_face(weight).family)
 
 
 _BREAK_BEFORE = "、。，．）」』】”？！・：；"  # 行頭に来てはいけない文字

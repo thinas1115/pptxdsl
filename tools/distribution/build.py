@@ -22,6 +22,7 @@ PROJECT_FILES = (
     "examples/authoring/config-checks.json",
     "docs/aws-icon-selection.md",
     "docs/font-contract.md",
+    "docs/text-width-cache.md",
     "docs/text-metrics.md",
     "docs/dependencies.md",
     "docs/generation-api.md",
