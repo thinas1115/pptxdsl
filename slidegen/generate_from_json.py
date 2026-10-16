@@ -7,7 +7,6 @@
 生成AIにそのまま渡して直させられる粒度のメッセージを出して終了する。
 """
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -19,6 +18,7 @@ from pptx import Presentation
 from pptx.util import Inches
 
 from slidegen import generate
+from slidegen.input_io import load_content_json
 from slidegen.aws_vpc_layout import s_aws_vpc_layout
 from slidegen.org_layout import s_org
 from slidegen.diagrams2 import s_matrix, s_process, s_program_roadmap
@@ -32,7 +32,7 @@ from slidegen.training_renderers import (
     s_code_lab, s_concept, s_knowledge_check, s_network, s_protocol_state_flow,
     s_protocol_anatomy,
 )
-from slidegen.validate_content import validate
+from slidegen.validate_content import validate, validation_warnings
 
 
 def s_diagram(slide, spec, page):
@@ -65,24 +65,10 @@ RENDER["references"] = s_references
 def main(json_path, out_path, cover_footer_config=None):
     source = Path(json_path)
     display_name = source.name
-    if not source.is_file():
-        raise SystemExit(
-            f"NG: 入力JSONが見つかりません: {display_name}\n"
-            "  AI_DECK_PROMPT.md と CONTENT_SCHEMA.md に従って"
-            " content.json を新規作成してください。")
-    try:
-        raw = source.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        raise SystemExit(
-            f"NG: {display_name} はUTF-8で保存してください。") from None
-    try:
-        deck = json.loads(raw)
-    except json.JSONDecodeError as error:
-        raise SystemExit(
-            f"NG: {display_name} のJSON構文が不正です "
-            f"(行{error.lineno}, 列{error.colno}): {error.msg}\n"
-            "  指定位置の括弧、カンマ、引用符を修正して再実行してください。") from None
+    deck = load_content_json(source)
     errors = validate(deck)
+    for message in validation_warnings(deck):
+        print(f"警告: {message}", file=sys.stderr)
     if errors:
         print(f"NG: {display_name} に {len(errors)} 件の問題 (生成を中止):",
               file=sys.stderr)
@@ -103,9 +89,9 @@ def main(json_path, out_path, cover_footer_config=None):
         slide = prs.slides.add_slide(blank)
         try:
             renderer = RENDER[spec["type"]]
-        except KeyError as e:
+        except KeyError:
             known = ", ".join(sorted(RENDER))
-            raise SystemExit(f"unknown slide type: {spec['type']!r}. known: {known}") from e
+            raise SystemExit(f"NG: 対応するrendererがありません。typeを次から選んでください: {known}") from None
         generate.render_slide(renderer, slide, spec, idx)
         if spec["type"] != "title":
             generate.footer(slide, idx)

@@ -521,16 +521,12 @@ def _split_metric_head(head):
 
 
 def _normalize_card(card):
-    """旧2要素配列と新しい意味付きobjectを共通形式へ変換する。"""
-    if isinstance(card, dict):
-        return {
-            "heading": card["heading"],
-            "body": card["body"],
-            "value": card.get("value", ""),
-            "emphasis": bool(card.get("emphasis")),
-        }
+    """検証済みの公開object形式から描画用の既定値を補う。"""
     return {
-        "heading": card[0], "body": card[1], "value": "", "emphasis": False,
+        "heading": card["heading"],
+        "body": card["body"],
+        "value": card.get("value", ""),
+        "emphasis": bool(card.get("emphasis")),
     }
 
 
