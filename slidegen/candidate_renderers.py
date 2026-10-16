@@ -104,7 +104,7 @@ def _text_in_box(slide, renderer, field, x, y, w, h, text, max_pt, min_pt,
     )
     return add_text(
         slide, x, y, w, h, "\n".join(lines), size,
-        bold=bold, color=color, align=align, anchor=anchor, spacing=spacing,
+        bold=bold, color=color, align=align, anchor=anchor, spacing=spacing, role=role,
     )
 
 
@@ -789,7 +789,7 @@ def s_sequence(slide, spec, page):
         tb = add_text(slide, label_x - label_w / 2, label_y, label_w, 0.24,
                       "\n".join(lines), label_size, bold=True, color=NAVY,
                       align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
-                      spacing=1.0)
+                      spacing=1.0, role="compact")
         tb.fill.solid()
         tb.fill.fore_color.rgb = message_fill[message["id"]]
         tb.name = f"{SEQUENCE_MESSAGE_LABEL_PREFIX}{message['id']}"
