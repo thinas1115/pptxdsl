@@ -19,6 +19,7 @@ PROJECT_FILES = (
     "docs/type-selection-guide.md", "docs/cover-footer-customization.md",
     "docs/aws-icon-selection.md",
     "docs/font-contract.md",
+    "docs/text-width-cache.md",
     "docs/text-metrics.md",
     "requirements.txt", "render.ps1", "contact_sheet.py",
     "LICENSE", "THIRD_PARTY_NOTICES.md",

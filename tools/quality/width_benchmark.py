@@ -1,4 +1,4 @@
-"""主要5デッキで文字幅キャッシュの導入前と試作を比較する。"""
+"""主要5デッキで文字幅キャッシュの導入前・試作・導入後を比較する。"""
 import argparse
 from functools import lru_cache
 import gc
@@ -28,6 +28,19 @@ def deck_digest(path):
 def benchmark(output, mode, repeats):
     original = textfit.text_width_in
     counters = {"calls": 0, "measurements": 0}
+    installed = hasattr(textfit, "_cached_width")
+    if installed and mode != "installed":
+        raise ValueError("導入前・試作は導入前revisionで計測し、導入後はinstalledを指定してください")
+    if not installed and mode == "installed":
+        raise ValueError("導入後キャッシュが見つかりません")
+    if installed:
+        raw = textfit._measure_width
+
+        def counted_raw(*args):
+            counters["measurements"] += 1
+            return raw(*args)
+
+        textfit._measure_width = counted_raw
 
     def measure(text, size, weight):
         counters["measurements"] += bool(text)
@@ -39,6 +52,8 @@ def benchmark(output, mode, repeats):
 
     def measured(text, size, weight="regular"):
         counters["calls"] += 1
+        if installed:
+            return original(text, size, weight)
         if mode == "prototype" and text and len(text) <= 1024:
             return prototype(text, size, weight, textfit.font_face(weight), textfit.width_safety(weight))
         return measure(text, size, weight)
@@ -65,17 +80,18 @@ def benchmark(output, mode, repeats):
         return decks
 
     rows = []
+    cache = textfit._cached_width if installed else prototype
     for index in range(repeats):
         gc.collect()
-        prototype.cache_clear()
+        cache.cache_clear()
         counters.update(calls=0, measurements=0)
         started = time.perf_counter()
         decks = run(output / f"run-{index + 1}")
         rows.append({"seconds": time.perf_counter() - started, **counters,
-                     "cache": prototype.cache_info()._asdict(), "decks": decks})
+                     "cache": cache.cache_info()._asdict(), "decks": decks})
     # 時間とメモリを別実行にし、tracemalloc自体の負荷を速度測定へ混ぜない。
     gc.collect()
-    prototype.cache_clear()
+    cache.cache_clear()
     tracemalloc.start()
     run(output / "memory")
     current, peak = tracemalloc.get_traced_memory()
@@ -90,7 +106,7 @@ def benchmark(output, mode, repeats):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("current", "prototype"))
+    parser.add_argument("mode", choices=("current", "prototype", "installed"))
     parser.add_argument("output", type=Path)
     parser.add_argument("--repeats", type=int, default=3)
     args = parser.parse_args()

@@ -119,7 +119,8 @@ class FontContractTests(unittest.TestCase):
         measured = unittest.mock.Mock()
         measured.getlength.return_value = 96
         face = config.FontFace("font.ttf", 0, "Noto Sans JP", "Regular")
-        with patch.object(textfit, "_font", return_value=measured), patch.object(textfit, "font_face", return_value=face):
+        textfit._cached_width.cache_clear()
+        with patch.object(textfit, "load_font", return_value=measured), patch.object(textfit, "font_face", return_value=face):
             plain = textfit.text_width_in("ABCDEFG", 16)
             alternating = textfit.text_width_in("A日B本C語D", 16)
             self.assertAlmostEqual(alternating - plain, 6 * 16 / 72 / 4 * textfit.SAFETY)
