@@ -47,7 +47,6 @@ def test_references_renders_visible_clickable_urls():
     without_scope.pop("scope")
     spec = _slide([_entry(1), without_scope])
     assert validate(_deck(spec), allow_sample_content=True) == []
-    generate.DECK = _deck(spec)
     prs = Presentation()
     prs.slide_width = Inches(generate.SLIDE_W)
     prs.slide_height = Inches(generate.SLIDE_H)

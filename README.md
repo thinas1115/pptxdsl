@@ -157,6 +157,7 @@ python contact_sheet.py out\png
 ```
 
 `generate_from_json.py`は生成前にschemaを検証し、不正な入力ではPPTXを生成しません。
+Pythonから組み込む場合は、状態がデッキ間で混ざらない[Python生成API](docs/generation-api.md)を使用します。
 エラーが出た場合は、表示された`slides[番号] (type=種別)`の内容を修正して再実行します。
 
 `out\png\sheet.png`の一覧と各ページの原寸画像を確認してください。レンダリング補助スクリプトは、
