@@ -213,8 +213,8 @@ def _compact_lane_names(labels):
     return " / ".join(labels)
 
 
-def _fit_network(area, lane_count, max_cell_nodes):
-    available = area.height - 0.58
+def _fit_network(area, lane_count, max_cell_nodes, legend_h=0.24):
+    available = area.height - 0.46 - 0.12 - legend_h
 
     def used(values):
         return lane_count * values["lane_h"] + max(0, lane_count - 1) * values["gap"]
@@ -244,29 +244,57 @@ def _fit_network(area, lane_count, max_cell_nodes):
         guidance="論理セグメントまたは機器数を減らし、複数スライドへ分割してください。")
 
 
-def _node_label(slide, x, y, width, text, font, *, sub=None):
+def _node_label(slide, x, y, width, text, font, *, sub=None, fill=CANVAS):
     title_size, title_lines = fit_text_or_raise(
-        "nw_topology", "node.label", text, width, 0.35, font,
+        "nw_topology", "node.label", text, width - 0.08, 0.35, font,
         min_pt=8.5, weight="bold", spacing=1.05, role="compact")
     rendered = "\n".join(title_lines)
+    title_w = min(width, max(text_width_in(line, title_size, "bold") for line in title_lines) + 0.08)
     title_h = len(title_lines) * line_height_in(title_size, 1.05) + 0.02
     box = add_text(
-        slide, x - width / 2, y, width, title_h, rendered, title_size,
+        slide, x - title_w / 2, y, title_w, title_h, rendered, title_size,
         bold=True, color=NAVY, align=PP_ALIGN.CENTER,
-        anchor=MSO_ANCHOR.MIDDLE, spacing=1.05, role="compact")
+        anchor=MSO_ANCHOR.MIDDLE, spacing=1.05, wrap=False, role="compact")
+    box.name = "network-node:label"
     box.fill.solid()
-    box.fill.fore_color.rgb = CANVAS
+    box.fill.fore_color.rgb = fill
     if sub:
         sub_size, sub_lines = fit_text_or_raise(
-            "nw_topology", "node.sub", sub, width, 0.28, font - 1.5,
+            "nw_topology", "node.sub", sub, width - 0.08, 0.28, font - 1.5,
             min_pt=7.5, spacing=1.0, role="compact")
         sub_h = len(sub_lines) * line_height_in(sub_size, 1.0) + 0.01
+        sub_w = min(width, max(text_width_in(line, sub_size) for line in sub_lines) + 0.08)
         sub_box = add_text(
-            slide, x - width / 2, y + title_h + 0.01, width, sub_h,
+            slide, x - sub_w / 2, y + title_h + 0.01, sub_w, sub_h,
             "\n".join(sub_lines), sub_size, color=GRAY,
-            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, role="compact")
+            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, wrap=False, role="compact")
+        sub_box.name = "network-node:sub"
         sub_box.fill.solid()
-        sub_box.fill.fore_color.rgb = CANVAS
+        sub_box.fill.fore_color.rgb = fill
+
+
+_NETWORK_KIND_LABELS = {
+    "access": "Access（単一セグメント）", "trunk": "Trunk（複数セグメント）",
+    "routed": "L3転送", "control": "制御・確認",
+    "broadcast": "ブロードキャスト", "blocked": "境界で停止",
+}
+
+
+def _network_legend(links):
+    kinds = list(dict.fromkeys(link.get("kind", "access") for link in links))
+    if "trunk" in kinds:
+        kinds.insert(0, "physical")
+    rows = [[]]
+    used = 0.0
+    for kind in kinds:
+        label = "物理リンク" if kind == "physical" else _NETWORK_KIND_LABELS[kind]
+        width = text_width_in(label, 9.5) + 0.52
+        if rows[-1] and used + 0.24 + width > BODY_W - 0.16:
+            rows.append([])
+            used = 0.0
+        rows[-1].append((kind, label, width))
+        used += width + 0.24
+    return rows, len(rows) * 0.24 + (len(rows) - 1) * 0.10
 
 
 def s_network(slide, spec, page):
@@ -286,7 +314,8 @@ def s_network(slide, spec, page):
         raise FitError(
             "network.nodes: 同じ列・論理セグメントに3件以上の機器は配置できません。"
             "列を追加するか、複数スライドへ分割してください。")
-    fitted = _fit_network(area, len(lanes), max_cell_nodes)
+    legend_rows, legend_h = _network_legend(links)
+    fitted = _fit_network(area, len(lanes), max_cell_nodes, legend_h)
     lane_h = fitted.values["lane_h"]
     gap = fitted.values["gap"]
     icon_size = fitted.values["icon"]
@@ -294,8 +323,13 @@ def s_network(slide, spec, page):
 
     top = area.top + 0.46
     used_h = len(lanes) * lane_h + max(0, len(lanes) - 1) * gap
-    top += max(0.0, (area.height - 0.55 - used_h) * 0.12)
-    lane_label_w = 1.46
+    top += max(0.0, (fitted.available - used_h) * 0.12)
+    # 長い意味単位を8pt未満へ潰さず、機器領域から見出しレールへ幅を配分する。
+    lane_label_w = max(1.46, min(2.40, max(
+        max(text_width_in(lane["label"], 11.5, "bold"),
+            text_width_in(lane.get("sub", ""), 8.5)) + 0.26
+        for lane in lanes
+    )))
     network_x0 = MARGIN + lane_label_w
     network_x1 = MARGIN + BODY_W - 0.16
     network_w = network_x1 - network_x0
@@ -316,12 +350,22 @@ def s_network(slide, spec, page):
         fill, color = _LANE_PALETTE[index]
         background = add_rect(slide, MARGIN, y, BODY_W, lane_h, fill)
         background.name = f"layout-background:network-lane:{lane['id']}"
-        add_text(slide, MARGIN + 0.16, y + 0.20, lane_label_w - 0.26, 0.27,
-                 lane["label"], 11.5, bold=True, color=color,
-                 anchor=MSO_ANCHOR.MIDDLE)
+        label_w = lane_label_w - 0.26
+        label_size, label_lines = fit_text_or_raise(
+            "nw_topology", "lane.label", lane["label"], label_w, 0.30,
+            11.5, min_pt=10.5, weight="bold", spacing=1.0, role="compact")
+        add_text(slide, MARGIN + 0.16, y + 0.16, label_w, 0.30,
+                 "\n".join(label_lines), label_size, bold=True, color=color,
+                 anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, wrap=False, role="compact")
         if lane.get("sub"):
-            add_text(slide, MARGIN + 0.16, y + 0.49, lane_label_w - 0.26, 0.22,
-                     lane["sub"], 8.5, color=GRAY)
+            sub_h = lane_h - 0.49 - 0.08
+            sub_size, sub_lines = fit_text_or_raise(
+                "nw_topology", "lane.sub", lane["sub"], label_w, sub_h,
+                8.5, min_pt=8.0, spacing=1.0, role="compact")
+            box = add_text(slide, MARGIN + 0.16, y + 0.49, label_w, sub_h,
+                           "\n".join(sub_lines), sub_size, color=GRAY,
+                           spacing=1.0, wrap=False, role="compact")
+            box.name = f"network-lane:sub:{lane['id']}"
 
     for column in columns:
         if column.get("label"):
@@ -424,18 +468,19 @@ def s_network(slide, spec, page):
         grouped_broadcasts.update(index for index, _link in group)
 
     # 配線を先に描き、アイコンとラベルを前面へ置く。
-    legend_kinds = []
     for link_index, link in enumerate(links):
         source_x, source_y = positions[link["from"]]
         target_x, target_y = positions[link["to"]]
         kind = link.get("kind", "access")
         lane_ids = link.get("lanes", [])
-        if kind not in legend_kinds:
-            legend_kinds.append(kind)
         if link_index in grouped_broadcasts:
             continue
         if kind == "trunk":
             active = lane_ids or list(lane_by_id)
+            physical_start = node_edge(link["from"], target_x)
+            physical_end = node_edge(link["to"], source_x)
+            physical = _plain_connector(slide, *physical_start, *physical_end, GRAY, width=1.5)
+            physical.name = f"network-link:physical:{link_index}"
             for lane_id in active:
                 color = _LANE_PALETTE[lane_index[lane_id]][1]
                 start = node_edge(link["from"], target_x, lane_id=lane_id)
@@ -453,12 +498,15 @@ def s_network(slide, spec, page):
                 "nw_topology", "link.trunk.label", trunk_label,
                 label_w - 0.12, 0.34, 8.5, min_pt=7.0,
                 weight="bold", spacing=1.0, role="compact")
+            label_w = min(label_w, max(text_width_in(line, label_size, "bold")
+                                      for line in label_lines) + 0.12)
             label = add_text(
                 slide, (source_x + target_x) / 2 - label_w / 2,
                 min(source_y, target_y) - 0.42, label_w, 0.34,
                 "\n".join(label_lines), label_size, bold=True, color=NAVY,
                 align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
-                spacing=1.0, role="compact")
+                spacing=1.0, wrap=False, role="compact")
+            label.name = "network-link:trunk-label"
             label.fill.solid()
             label.fill.fore_color.rgb = CANVAS
             continue
@@ -515,12 +563,14 @@ def s_network(slide, spec, page):
 
     for node in nodes:
         x, y = positions[node["id"]]
+        node_fill = (_LANE_PALETTE[lane_index[node["lanes"][0]]][0]
+                     if len(node["lanes"]) == 1 else CANVAS)
         halo = slide.shapes.add_shape(
             MSO_SHAPE.OVAL,
             Inches(x - icon_size / 2 - 0.06), Inches(y - icon_size / 2 - 0.06),
             Inches(icon_size + 0.12), Inches(icon_size + 0.12))
         halo.fill.solid()
-        halo.fill.fore_color.rgb = CANVAS
+        halo.fill.fore_color.rgb = node_fill
         halo.line.fill.background()
         halo.shadow.inherit = False
         icon_path = resolve_icon_path(node["icon"])
@@ -533,27 +583,27 @@ def s_network(slide, spec, page):
         _node_label(
             slide, x, y + icon_size / 2 + 0.08,
             label_width, node["label"], font,
-            sub=node.get("sub"))
+            sub=node.get("sub"), fill=node_fill)
 
-    legend_y = area.bottom - 0.25
-    kind_labels = {"access": "Access", "trunk": "Trunk (複数VLAN)",
-                   "routed": "L3転送", "control": "制御・確認",
-                   "broadcast": "ブロードキャスト",
-                   "blocked": "VLAN境界で停止"}
-    x = MARGIN + 0.08
-    for kind in legend_kinds:
-        label = kind_labels[kind]
-        width = text_width_in(label, 8.5) + 0.52
-        color = (CORAL if kind in {"broadcast", "blocked"} else
-                 ACCENT if kind in {"access", "trunk"} else NAVY)
-        _plain_connector(slide, x, legend_y + 0.09, x + 0.28,
-                         legend_y + 0.09, color,
-                         width=2.2 if kind == "broadcast" else 2.0 if kind == "trunk" else 1.5,
-                         arrow=kind in {"access", "routed", "broadcast"},
-                         dash="dash" if kind in {"control", "blocked"} else None)
-        add_text(slide, x + 0.36, legend_y, width - 0.36, 0.20,
-                 label, 8.5, color=GRAY)
-        x += width + 0.24
+    legend_y = area.bottom - legend_h
+    for row_index, row in enumerate(legend_rows):
+        x = MARGIN + 0.08
+        y = legend_y + row_index * 0.34
+        for kind, label, width in row:
+            color = (CORAL if kind in {"broadcast", "blocked"} else
+                     ACCENT if kind in {"access", "trunk"} else GRAY if kind == "physical" else NAVY)
+            if kind == "trunk":
+                for dy, line_color in ((0.05, ACCENT), (0.13, NAVY)):
+                    _plain_connector(slide, x, y + dy, x + 0.28, y + dy, line_color, width=2.0)
+            else:
+                _plain_connector(slide, x, y + 0.09, x + 0.28, y + 0.09, color,
+                                 width=2.2 if kind == "broadcast" else 1.5,
+                                 arrow=kind in {"access", "routed", "broadcast"},
+                                 dash="dash" if kind in {"control", "blocked"} else None)
+            box = add_text(slide, x + 0.36, y, width - 0.36, 0.24,
+                           label, 9.5, color=TEXT, spacing=1.0, wrap=False, role="compact")
+            box.name = f"network-legend:{kind}"
+            x += width + 0.24
 
 
 _PROTOCOL_LEGEND_H = 0.36

@@ -958,6 +958,9 @@ typeではないため、その場合は`process`、`swimlane_flow`、`diagram`�
 - `links[*].label`: 物理インターフェース名などの短いラベル
 - `lead`: 読み方や結論
 
+Trunkでは灰色の物理リンクと、各レーン色の論理セグメントを分けて表示する。
+図内の凡例は実際に使用した接続種別だけを示し、幅が足りない場合は行を分ける。
+
 制約:
 
 - `trunk`は`lanes`を2件以上、`access` / `broadcast` / `blocked`は1件指定する。
