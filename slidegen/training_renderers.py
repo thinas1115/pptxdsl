@@ -155,7 +155,7 @@ def s_concept(slide, spec, page):
         add_text(
             slide, right_x, y + 0.03, right_w, label_h,
             "\n".join(label_lines), label_size, bold=True, color=ACCENT,
-            spacing=1.08,
+            spacing=1.08, role="compact",
         )
         body_y = y + label_h + values["inside_gap"]
         body_size, body_lines = fit_text_or_raise(
@@ -253,7 +253,7 @@ def _node_label(slide, x, y, width, text, font, *, sub=None):
     box = add_text(
         slide, x - width / 2, y, width, title_h, rendered, title_size,
         bold=True, color=NAVY, align=PP_ALIGN.CENTER,
-        anchor=MSO_ANCHOR.MIDDLE, spacing=1.05)
+        anchor=MSO_ANCHOR.MIDDLE, spacing=1.05, role="compact")
     box.fill.solid()
     box.fill.fore_color.rgb = CANVAS
     if sub:
@@ -264,7 +264,7 @@ def _node_label(slide, x, y, width, text, font, *, sub=None):
         sub_box = add_text(
             slide, x - width / 2, y + title_h + 0.01, width, sub_h,
             "\n".join(sub_lines), sub_size, color=GRAY,
-            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0)
+            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, role="compact")
         sub_box.fill.solid()
         sub_box.fill.fore_color.rgb = CANVAS
 
@@ -458,7 +458,7 @@ def s_network(slide, spec, page):
                 min(source_y, target_y) - 0.42, label_w, 0.34,
                 "\n".join(label_lines), label_size, bold=True, color=NAVY,
                 align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
-                spacing=1.0)
+                spacing=1.0, role="compact")
             label.fill.solid()
             label.fill.fore_color.rgb = CANVAS
             continue
@@ -556,9 +556,32 @@ def s_network(slide, spec, page):
         x += width + 0.24
 
 
+_PROTOCOL_LEGEND_H = 0.36
+_PROTOCOL_APPEARANCES = {
+    "plain": "通常の値",
+    "encapsulated": "タグ・ヘッダー付加",
+    "internal": "装置内部処理",
+    "alert": "異常・要確認",
+}
+
+
+def _protocol_changed_stages(stages, states):
+    """位置順で直前の表示値・付加情報と比べる。処理理由や見せ方だけの差は除く。"""
+    by_stage = {state["stage"]: state for state in states}
+    previous = None
+    changed = set()
+    for stage in stages:
+        state = by_stage[stage["id"]]
+        value = (state["label"], state.get("encapsulation"))
+        if previous is not None and value != previous:
+            changed.add(stage["id"])
+        previous = value
+    return changed
+
+
 def _fit_protocol_state_flow(area, stages, flows):
     rail_w = 1.42
-    available = area.height - 0.08
+    available = area.height - 0.08 - _PROTOCOL_LEGEND_H
 
     def measured(values):
         stage_w = (
@@ -669,16 +692,16 @@ def _fit_protocol_state_flow(area, stages, flows):
 
 
 def _protocol_state_marker(
-        slide, cx, y, width, appearance, color, encapsulation=None):
+        slide, cx, y, width, appearance, encapsulation=None):
     marker_w = min(1.02, width * 0.72)
     marker_h = 0.20
     x = cx - marker_w / 2
     if appearance == "internal":
-        marker = add_rect(slide, x, y + 0.08, marker_w, 0.04, color)
+        marker = add_rect(slide, x, y + 0.08, marker_w, 0.04, NAVY)
         marker.name = "protocol-state-flow:marker:internal"
         return marker_w
     fill = RGBColor(0xF9, 0xF8, 0xF4)
-    line = CORAL if appearance == "alert" else color
+    line = CORAL if appearance == "alert" else NAVY
     marker = add_rect(slide, x, y, marker_w, marker_h, fill, line=line)
     marker.name = f"protocol-state-flow:marker:{appearance}"
     if appearance == "encapsulated":
@@ -686,7 +709,7 @@ def _protocol_state_marker(
             marker_w * 0.48,
             max(0.20, text_width_in(encapsulation, 6.5, "bold") + 0.10),
         )
-        tag = add_rect(slide, x, y, tag_w, marker_h, color)
+        tag = add_rect(slide, x, y, tag_w, marker_h, NAVY)
         tag.name = "protocol-state-flow:marker:encapsulated:tag"
         label_size, label_lines = fit_text_or_raise(
             "nw_protocol_flow", "state.encapsulation", encapsulation,
@@ -697,9 +720,35 @@ def _protocol_state_marker(
             slide, x + 0.02, y + 0.01, tag_w - 0.04, marker_h - 0.02,
             "\n".join(label_lines), label_size,
             bold=True, color=WHITE, align=PP_ALIGN.CENTER,
-            anchor=MSO_ANCHOR.MIDDLE, spacing=1.0,
+            anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, role="compact",
         )
     return marker_w
+
+
+def _protocol_legend(slide, states, top):
+    used = {state.get("appearance", "plain") for state in states}
+    x = MARGIN
+    for appearance, label in _PROTOCOL_APPEARANCES.items():
+        if appearance not in used:
+            continue
+        start = len(slide.shapes)
+        _protocol_state_marker(slide, x + 0.21, top, 0.42 / 0.72,
+                               appearance, "＋")
+        for shape in list(slide.shapes)[start:]:
+            shape.name = "protocol-state-flow:legend:" + shape.name
+        width = text_width_in(label, 9.0) + 0.04
+        box = add_text(slide, x + 0.54, top, width, 0.22, label, 9.0,
+                       color=TEXT, spacing=1.0, wrap=False, role="compact")
+        box.name = f"protocol-state-flow:legend:{appearance}"
+        x += 0.54 + width + 0.26
+    label = "下線：直前から値・付加情報が変化"
+    width = BODY_W - (x - MARGIN)
+    size, lines = fit_text_or_raise(
+        "nw_protocol_flow", "legend", label, width, 0.24, 9.0,
+        min_pt=9.0, spacing=1.0, role="compact")
+    box = add_text(slide, x, top, width, 0.24, "\n".join(lines), size,
+                   color=CORAL, spacing=1.0, wrap=False, role="compact")
+    box.name = "protocol-state-flow:legend:change"
 
 
 def s_protocol_state_flow(slide, spec, page):
@@ -719,7 +768,8 @@ def s_protocol_state_flow(slide, spec, page):
         )
         for index, stage in enumerate(stages)
     }
-    top = area.top + 0.08
+    _protocol_legend(slide, [state for flow in flows for state in flow["states"]], area.top + 0.02)
+    top = area.top + 0.08 + _PROTOCOL_LEGEND_H
     rows_top = top + values["header_h"] + 0.18
     rows_bottom = (
         rows_top + sum(values["row_heights"])
@@ -753,7 +803,7 @@ def s_protocol_state_flow(slide, spec, page):
             slide, cx - stage_w / 2 + 0.06, top + icon_size + 0.06,
             stage_w - 0.12, values["header_h"] - icon_size - 0.04,
             "\n".join(label_lines), label_size, bold=True, color=NAVY,
-            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.TOP, spacing=1.0,
+            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.TOP, spacing=1.0, role="compact",
         )
 
     row_y = rows_top
@@ -777,7 +827,7 @@ def s_protocol_state_flow(slide, spec, page):
             slide, MARGIN + 0.10, row_y + 0.20,
             rail_w - 0.20, flow_label_h,
             "\n".join(flow_label_lines), flow_label_size,
-            bold=True, color=color, spacing=1.0,
+            bold=True, color=color, spacing=1.0, role="compact",
         )
         if flow.get("sub"):
             flow_sub_y = row_y + 0.20 + flow_label_h + 0.04
@@ -790,7 +840,7 @@ def s_protocol_state_flow(slide, spec, page):
             add_text(
                 slide, MARGIN + 0.10, flow_sub_y,
                 rail_w - 0.20, row_y + row_h - flow_sub_y - 0.10,
-                "\n".join(sub_lines), sub_size, color=GRAY, spacing=1.0,
+                "\n".join(sub_lines), sub_size, color=GRAY, spacing=1.0, role="compact",
             )
 
         states = sorted(
@@ -800,6 +850,7 @@ def s_protocol_state_flow(slide, spec, page):
                 if stage["id"] == state["stage"]
             ),
         )
+        changed_stages = _protocol_changed_stages(stages, states)
         marker_y = row_y + 0.18
         arrow_y = marker_y + 0.10
         marker_widths = {}
@@ -821,7 +872,7 @@ def s_protocol_state_flow(slide, spec, page):
             cx = stage_centers[state["stage"]]
             _protocol_state_marker(
                 slide, cx, marker_y, stage_w,
-                state.get("appearance", "plain"), color,
+                state.get("appearance", "plain"),
                 state.get("encapsulation"),
             )
             text_w = stage_w - 0.18
@@ -832,11 +883,21 @@ def s_protocol_state_flow(slide, spec, page):
             )
             title_y = marker_y + 0.30
             title_h = len(title_lines) * line_height_in(title_size, 1.0) + 0.03
-            add_text(
+            changed = state["stage"] in changed_stages
+            value_box = add_text(
                 slide, cx - text_w / 2, title_y, text_w, title_h,
-                "\n".join(title_lines), title_size, bold=True, color=NAVY,
-                align=PP_ALIGN.CENTER, spacing=1.0,
+                "\n".join(title_lines), title_size, bold=True,
+                color=CORAL if changed else NAVY,
+                align=PP_ALIGN.CENTER, spacing=1.0, role="compact",
             )
+            value_box.name = (
+                f"protocol-state-flow:value:{'changed' if changed else 'unchanged'}:"
+                f"{flow_index}:{state['stage']}"
+            )
+            if changed:
+                for paragraph in value_box.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.underline = True
             if state.get("detail"):
                 detail_y = title_y + title_h + 0.03
                 detail_h = row_y + row_h - detail_y - 0.10
@@ -848,20 +909,23 @@ def s_protocol_state_flow(slide, spec, page):
                 add_text(
                     slide, cx - text_w / 2, detail_y, text_w, detail_h,
                     "\n".join(detail_lines), detail_size, color=GRAY,
-                    align=PP_ALIGN.CENTER, spacing=1.0,
+                    align=PP_ALIGN.CENTER, spacing=1.0, role="compact",
                 )
         row_y += row_h + values["row_gap"]
 
-def _fit_protocol(area, frames, annotation_count):
+_PROTOCOL_ANNOTATION_GAP = 0.14
+
+
+def _fit_protocol(area, frames):
     available = area.height
-    annotation_rows = math.ceil(annotation_count / 4)
+    annotation_rows = [math.ceil(len(frame.get("annotations", [])) / 4) for frame in frames]
 
     def used(values):
         frame_block = (len(frames) * values["frame_h"]
                        + max(0, len(frames) - 1) * values["gap"])
-        annotation_block = (
-            0.28 + annotation_rows * values["annotation_row_h"]
-            if annotation_rows else 0.0
+        annotation_block = sum(
+            _PROTOCOL_ANNOTATION_GAP + rows * values["annotation_row_h"]
+            for rows in annotation_rows if rows
         )
         return 0.30 + frame_block + annotation_block + 0.08
 
@@ -895,7 +959,7 @@ def s_protocol_anatomy(slide, spec, page):
         for frame_index, frame in enumerate(frames)
         for annotation in frame.get("annotations", [])
     ]
-    fitted = _fit_protocol(area, frames, len(annotations))
+    fitted = _fit_protocol(area, frames)
     values = fitted.values
     frame_h, gap, font = values["frame_h"], values["gap"], values["font"]
     label_w = 1.25
@@ -910,6 +974,11 @@ def s_protocol_anatomy(slide, spec, page):
     bar_x = MARGIN + label_w
     bar_w = BODY_W - label_w - length_label_w
     top = area.top + 0.30
+    scale_note = add_text(
+        slide, MARGIN, area.top + 0.02, BODY_W, 0.22,
+        "幅はbit数に比例しない概念図", 9.0, color=TEXT,
+        spacing=1.0, wrap=False, role="compact")
+    scale_note.name = "protocol-anatomy:scale-note"
 
     minimum_by_bits = {}
     for frame in frames:
@@ -948,8 +1017,16 @@ def s_protocol_anatomy(slide, spec, page):
 
     field_centers = {}
     field_names = {}
+    frame_ys = []
+    cursor_y = top
+    for frame in frames:
+        frame_ys.append(cursor_y)
+        cursor_y += frame_h + gap
+        if frame.get("annotations"):
+            cursor_y += (_PROTOCOL_ANNOTATION_GAP
+                         + math.ceil(len(frame["annotations"]) / 4) * values["annotation_row_h"])
     for frame_index, frame in enumerate(frames):
-        y = top + frame_index * (frame_h + gap)
+        y = frame_ys[frame_index]
         add_text(slide, MARGIN + 0.02, y + 0.20, label_w - 0.18, 0.30,
                  frame["label"], 11, bold=True, color=NAVY,
                  anchor=MSO_ANCHOR.MIDDLE)
@@ -966,7 +1043,7 @@ def s_protocol_anatomy(slide, spec, page):
                 min_pt=7.5, weight="bold", spacing=1.0, role="compact")
             add_text(slide, x + 0.05, y + 0.12, width - 0.10, frame_h * 0.48,
                      "\n".join(name_lines), name_size, bold=True, color=color,
-                     align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0)
+                     align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, role="compact")
             add_text(slide, x + 0.04, y + frame_h - 0.25, width - 0.08, 0.16,
                      field.get("size_label", f"{field['bits']} bit"),
                      max(7.0, font - 2), color=GRAY,
@@ -990,27 +1067,35 @@ def s_protocol_anatomy(slide, spec, page):
                      anchor=MSO_ANCHOR.MIDDLE)
 
     if annotations:
-        annotation_y = top + len(frames) * frame_h + max(0, len(frames) - 1) * gap + 0.28
-        columns = min(4, len(annotations))
-        annotation_w = (BODY_W - 0.22 * (columns - 1)) / columns
-        for index, (frame_index, annotation) in enumerate(annotations):
+        next_index = {}
+        for frame_index, annotation in annotations:
+            index = next_index.get(frame_index, 0)
+            next_index[frame_index] = index + 1
+            columns = min(4, len(frames[frame_index]["annotations"]))
+            annotation_w = (BODY_W - 0.22 * (columns - 1)) / columns
             col = index % columns
             row = index // columns
             x = MARGIN + col * (annotation_w + 0.22)
-            y = annotation_y + row * values["annotation_row_h"]
+            y = (frame_ys[frame_index] + frame_h + _PROTOCOL_ANNOTATION_GAP
+                 + row * values["annotation_row_h"])
             source_x, source_y = field_centers[(frame_index, annotation["field"])]
             target_x = x + 0.20
             target_y = y - 0.06
-            _plain_connector(slide, source_x, source_y + 0.02,
-                             target_x, target_y, RULE, width=0.8)
+            connector = _plain_connector(slide, source_x, source_y + 0.02,
+                                         target_x, target_y, GRAY, width=1.1)
+            connector.name = f"protocol-anatomy:annotation:{frame_index}:{annotation['field']}"
             annotation_label = field_names[(frame_index, annotation["field"])]
             annotation_label_w = min(
-                0.62,
+                annotation_w * 0.42,
                 max(0.42, text_width_in(annotation_label, 8.5, "bold") + 0.08),
             )
-            add_text(slide, x, y, annotation_label_w, 0.22,
-                     annotation_label, 8.5,
-                     bold=True, color=ACCENT)
+            label_size, label_lines = fit_text_or_raise(
+                "nw_frame_anatomy", "annotation.field", annotation_label,
+                annotation_label_w, values["annotation_text_h"], 8.5,
+                min_pt=8.5, weight="bold", spacing=1.08, role="compact")
+            add_text(slide, x, y, annotation_label_w, values["annotation_text_h"],
+                     "\n".join(label_lines), label_size,
+                     bold=True, color=ACCENT, spacing=1.08, wrap=False, role="compact")
             fit_size, lines = fit_text_or_raise(
                 "nw_frame_anatomy", "annotation", annotation["text"],
                 annotation_w - annotation_label_w - 0.06,
@@ -1020,11 +1105,16 @@ def s_protocol_anatomy(slide, spec, page):
             add_text(slide, x + annotation_label_w + 0.06, y,
                      annotation_w - annotation_label_w - 0.06,
                      values["annotation_text_h"],
-                     "\n".join(lines), fit_size, color=TEXT, spacing=1.08)
+                     "\n".join(lines), fit_size, color=TEXT, spacing=1.08, wrap=False, role="compact")
 
 def _fit_code_text(code, width, height):
+    from slidegen.font_config import font_family
+    if font_family("code") == "Consolas" and not code.isascii():
+        raise FitError(
+            "config_lab.code: ConsolasではASCIIのコードだけを扱います。"
+            "日本語コメントは本文へ移すか、PPTXDSL_FONT_CODEでNoto Sans Mono CJK JPを指定してください。")
     for size in stepped(13.0, 9.5, 0.5):
-        widest = max(text_width_in(line or " ", size) for line in code.splitlines())
+        widest = max(text_width_in(line or " ", size, "code") for line in code.splitlines())
         used_h = max(1, len(code.splitlines())) * line_height_in(size, 1.18)
         if widest <= width and used_h <= height:
             return size
@@ -1034,16 +1124,18 @@ def _fit_code_text(code, width, height):
 
 
 def _apply_code_font(textbox):
+    from slidegen.font_config import font_family
+    family = font_family("code")
     for paragraph in textbox.text_frame.paragraphs:
         for run in paragraph.runs:
-            run.font.name = "Consolas"
+            run.font.name = family
             r_pr = run._r.get_or_add_rPr()
             for tag in ("a:ea", "a:cs"):
                 element = r_pr.find(qn(tag))
                 if element is None:
                     element = r_pr.makeelement(qn(tag), {})
                     r_pr.append(element)
-                element.set("typeface", "Consolas")
+                element.set("typeface", family)
 
 
 def s_code_lab(slide, spec, page):
@@ -1069,7 +1161,7 @@ def s_code_lab(slide, spec, page):
         size = _fit_code_text(section["code"], left_w - 0.56, code_h)
         code_box = add_text(
             slide, MARGIN + 0.28, code_y, left_w - 0.56, code_h,
-            section["code"], size, color=WHITE, spacing=1.18, wrap=False)
+            section["code"], size, color=WHITE, spacing=1.18, wrap=False, role="compact")
         _apply_code_font(code_box)
 
     add_text(slide, right_x, top + 0.02, right_w, 0.32,
@@ -1208,7 +1300,7 @@ def s_knowledge_check(slide, spec, page):
                     slide, option_x, option_y, item["width"], item["height"],
                     item["text"], size - 1.5,
                     bold=mode == "answers" and correct,
-                    color=option_color, spacing=1.08,
+                    color=option_color, spacing=1.08, role="body",
                 )
                 option_x += item["width"] + 0.18
             option_y += option_row_h + 0.05
