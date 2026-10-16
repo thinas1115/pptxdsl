@@ -52,7 +52,7 @@ def arrow_label(slide, cx, cy, text, w=1.6, size=9):
     actual_h = line_height_in(actual_size, 1.1) + EDGE_LABEL_PAD_Y
     tb = add_text(slide, cx - actual_w / 2, cy - actual_h / 2, actual_w, actual_h,
                   text, actual_size, color=TEXT, align=PP_ALIGN.CENTER,
-                  anchor=MSO_ANCHOR.MIDDLE)
+                  anchor=MSO_ANCHOR.MIDDLE, role="compact")
     tb.fill.solid()
     tb.fill.fore_color.rgb = CANVAS
     return tb
@@ -93,7 +93,8 @@ def _masked_node_label(slide, cx, y, text, *, max_w, slot_h, size, min_pt,
     tb = add_text(
         slide, cx - actual_w / 2, box_y,
         actual_w, actual_h, rendered, actual_size, bold=bold, color=color,
-        align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.1)
+        align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.1,
+        role="natural" if bold else "compact")
     tb.fill.solid()
     tb.fill.fore_color.rgb = CANVAS
     return tb

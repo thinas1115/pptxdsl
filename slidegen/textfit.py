@@ -1,104 +1,75 @@
 """日本語テキストの実測折り返し・自動フィットエンジン。
 
-PowerPointに置く前にPillowで日本語フォントの実寸を測り、
-「テキストボックスから溢れない」ことを生成時点で保証する。
+PPTXへ指定するフォントをPillowで測り、幅と折り返しを推定する。
+実描画の置換・行送り・視認性は、別途レンダリング後の品質ゲートで確認する。
 """
-import os
-import re
-import shutil
-import subprocess
 from functools import lru_cache
-from pathlib import Path
-
-from PIL import ImageFont
+import re
+from slidegen.font_config import MEASUREMENT_LAYOUT, font_face, load_font
 
 # pt -> px (96dpi)。PowerPoint実測はPillow計測より僅かに広く出ることが
 # あるため安全係数を掛ける。
 PT_TO_PX = 96 / 72
 SAFETY = 1.08
+_CJK_LATIN_BOUNDARY = re.compile(
+    r"(?<=[\u3040-\u30ff\u3400-\u9fff])(?=[A-Za-z0-9])"
+    r"|(?<=[A-Za-z0-9])(?=[\u3040-\u30ff\u3400-\u9fff])")
 
 
-def _configured_font(weight: str) -> str | None:
-    value = os.environ.get(f"PPTXDSL_FONT_{weight.upper()}")
-    if not value:
-        return None
-    path = Path(value).expanduser()
-    if not path.is_file():
-        raise RuntimeError(
-            f"PPTXDSL_FONT_{weight.upper()}で指定したフォントが見つかりません"
-        )
-    return str(path)
+def width_safety(weight="regular"):
+    """境界字間を含む推定幅に掛ける、描画差とpx丸めの余裕。"""
+    return SAFETY
 
 
-def _fontconfig_match(style: str) -> str | None:
-    executable = shutil.which("fc-match")
-    if not executable:
-        return None
-    result = subprocess.run(
-        [executable, "-f", "%{file}\n", f"sans-serif:lang=ja:style={style}"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-        errors="replace",
-        check=False,
-    )
-    if result.returncode:
-        return None
-    for line in result.stdout.splitlines():
-        path = Path(line.strip())
-        if path.is_file():
-            return str(path)
-    return None
+FONT_WEIGHTS = ("regular", "medium", "bold", "code")
+WIDTH_CACHE_ENTRIES = 4096
+WIDTH_CACHE_TEXT_LIMIT = 1024
 
 
-@lru_cache(maxsize=1)
-def _font_paths() -> dict[str, str]:
-    configured = {weight: _configured_font(weight) for weight in FONT_WEIGHTS}
-    if "WINDIR" in os.environ:
-        font_dir = Path(os.environ["WINDIR"]) / "Fonts"
-        windows = {
-            "regular": font_dir / "YuGothR.ttc",
-            "medium": font_dir / "YuGothM.ttc",
-            "bold": font_dir / "YuGothB.ttc",
-        }
-        resolved = {
-            weight: configured[weight] or (str(path) if path.is_file() else None)
-            for weight, path in windows.items()
-        }
-    else:
-        regular = configured["regular"] or _fontconfig_match("Regular")
-        medium = configured["medium"] or _fontconfig_match("Medium") or regular
-        bold = configured["bold"] or _fontconfig_match("Bold") or medium or regular
-        resolved = {"regular": regular, "medium": medium, "bold": bold}
-
-    missing = [weight for weight, path in resolved.items() if not path]
-    if missing:
-        raise RuntimeError(
-            "日本語フォントを検出できません。Windowsでは游ゴシックを用意し、"
-            "非Windowsではfontconfigで日本語sansフォントを利用可能にするか、"
-            "PPTXDSL_FONT_REGULAR/MEDIUM/BOLDでフォントを指定してください"
-        )
-    return {weight: str(path) for weight, path in resolved.items() if path}
-
-
-FONT_WEIGHTS = ("regular", "medium", "bold")
-
-
-@lru_cache(maxsize=64)
-def _font(weight: str, size_pt: float) -> ImageFont.FreeTypeFont:
+def _font(weight: str, size_pt: float):
     if weight not in FONT_WEIGHTS:
         raise ValueError(f"未対応のフォントウェイトです: {weight}")
     px = max(4, round(size_pt * PT_TO_PX))
-    return ImageFont.truetype(_font_paths()[weight], px, index=0)
+    return load_font(font_face(weight), px)
 
 
 def text_width_in(text: str, size_pt: float, weight: str = "regular") -> float:
     """文字列1行の幅をインチで返す(安全係数込み)。"""
     if not text:
         return 0.0
-    f = _font(weight, size_pt)
+    if weight not in FONT_WEIGHTS:
+        raise ValueError(f"未対応のフォントウェイトです: {weight}")
+    face = font_face(weight)
+    safety = width_safety(weight)
+    measure = _cached_width if len(text) <= WIDTH_CACHE_TEXT_LIMIT else _measure_width
+    return measure(text, size_pt, weight, face, safety, MEASUREMENT_LAYOUT)
+
+
+def _measure_width(text, size_pt, weight, face, safety, engine):
+    # faceはcache keyと実測の両方へ同じ値を渡す。環境変数を再解決して混在させない。
+    f = load_font(face, max(4, round(size_pt * PT_TO_PX)))
     px = f.getlength(text)
-    return px * SAFETY / 96.0
+    # LibreOfficeの和欧間隔はPillowのadvanceに含まれない。Noto系では
+    # 直接隣接する日本語/英数字境界ごとに最大1/4emを確保する。
+    gap = _boundary_spacing(text, size_pt, face.family)
+    return (px / 96.0 + gap) * safety
+
+
+@lru_cache(maxsize=WIDTH_CACHE_ENTRIES)
+def _cached_width(text, size_pt, weight, face, safety, engine):
+    # FontFaceはpath/index/family/style/axesを持つ不変値。weight・安全係数・engineも区別する。
+    return _measure_width(text, size_pt, weight, face, safety, engine)
+
+
+def _boundary_spacing(text, size_pt, family):
+    if family.startswith("Noto Sans"):
+        return len(_CJK_LATIN_BOUNDARY.findall(text)) * size_pt / 72.0 / 4
+    return 0.0
+
+
+def boundary_spacing_in(text: str, size_pt: float, weight: str = "regular") -> float:
+    """runの境界にも適用する和欧間隔。単一runの測定と同じ規則を共有する。"""
+    return _boundary_spacing(text, size_pt, font_face(weight).family)
 
 
 _BREAK_BEFORE = "、。，．）」』】”？！・：；"  # 行頭に来てはいけない文字
