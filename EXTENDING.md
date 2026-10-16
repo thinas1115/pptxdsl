@@ -64,7 +64,8 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/generate_from_json.py` | content.json→PPTX。**新規資料の正式経路** |
 | `tools/gallery/generate_patterns.py` + `tests/fixtures/gallery/content_patterns.py` | 全typeの検証ギャラリー |
 | `slidegen/check_layout.py` | 生成済みPPTXの重なり・はみ出し機械検知 |
-| `slidegen/textfit.py` | フォント実測 (游ゴシックをPillowで測る) |
+| `slidegen/text_metrics.py` / `text_roles.py` | 保存run・段落書式からの行矩形推定とrendererの文章役割の保存 |
+| `slidegen/textfit.py` / `font_config.py` | 対応family・face・可変軸をPillow実測とPPTX指定で共有 |
 | `slidegen/layout_fit.py` | 標準→裁量余白圧縮→要素縮小→明示停止の共通契約 |
 | `tests/test_training_renderers.py` | 技術研修rendererの意味検証、標準入力、過密入力、明示停止 |
 | `tools/assets/fetch_fluent_icons.py` / `extract_aws_icons.py` | アイコン素材の追加取得 (`slidegen/assets/icons/fluent/`・`slidegen/assets/icons/aws/` に同梱済み。条件は `slidegen/assets/CREDITS.md`。Fluentは要 svglib+reportlab+rlPyCairo) |
@@ -86,6 +87,8 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 7. **日本語runは set_run() 経由で作る**(lang="ja-JP" を自動設定。忘れると行頭に「、。」が来る)。
 8. **同じ意味の値を2箇所で定義しない**: 行間計算と描画で別々の余白値を持つと
    「計算上は収まるのに実際は重なる」状態になる。
+   `fit_text_or_raise(..., role=...)`の役割は`add_text(..., role=...)`にも同じ値を渡す。
+   [保存PPTXの文字領域検査](docs/text-metrics.md)と真値付きテストを合わせて確認する。
 9. **エラーメッセージは日本語+対処方法つき**: このリポジトリのエラーは「生成AIに
    そのまま渡して直させる」前提。スタックトレースを見せない
    (validate_content.py / diagram_layout.py の既存メッセージの粒度に合わせる)。
