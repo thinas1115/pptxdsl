@@ -1,13 +1,10 @@
 """名称のみ・役割・長い役割・メンバー・多階層の体制図を実描画で検証する。"""
 from copy import deepcopy
 from pathlib import Path
+from slidegen.generate_from_json import build_presentation
 import sys
 
-from pptx import Presentation
-from pptx.util import Inches
 
-from slidegen import generate
-from slidegen.org_layout import s_org
 from slidegen.validate_content import validate
 from tests.fixtures.gallery.content_patterns import PATTERN_DECK
 from tests.fixtures.gallery.content_lead_patterns import LEAD_PATTERN_DECK
@@ -49,14 +46,7 @@ def main(output):
     errors = validate(deck, allow_sample_content=True)
     if errors:
         raise ValueError("\n".join(errors))
-    generate.configure_cover_footer()
-    generate.DECK = deck
-    prs = Presentation()
-    prs.slide_width, prs.slide_height = Inches(generate.SLIDE_W), Inches(generate.SLIDE_H)
-    for page, spec in enumerate(deck["slides"], 1):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        generate.render_slide(s_org, slide, spec, page)
-        generate.footer(slide, page)
+    prs = build_presentation(deck, allow_sample_content=True)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     prs.save(output)

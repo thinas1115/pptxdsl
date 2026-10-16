@@ -1,13 +1,10 @@
 """点とラベルの対応を、近接点・長名・端・疎・通常/leadで検証する。"""
 from copy import deepcopy
 from pathlib import Path
+from slidegen.generate_from_json import build_presentation
 import sys
 
-from pptx import Presentation
-from pptx.util import Inches
 
-from slidegen import generate
-from slidegen.diagrams2 import s_matrix
 from slidegen.validate_content import validate
 from tests.fixtures.gallery.content_patterns import PATTERN_DECK
 from tests.fixtures.gallery.content_lead_patterns import LEAD_PATTERN_DECK
@@ -43,14 +40,7 @@ def main(output):
     errors = validate(deck, allow_sample_content=True)
     if errors:
         raise ValueError("\n".join(errors))
-    generate.configure_cover_footer()
-    generate.DECK = deck
-    prs = Presentation()
-    prs.slide_width, prs.slide_height = Inches(generate.SLIDE_W), Inches(generate.SLIDE_H)
-    for page, spec in enumerate(deck["slides"], 1):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        generate.render_slide(s_matrix, slide, spec, page)
-        generate.footer(slide, page)
+    prs = build_presentation(deck, allow_sample_content=True)
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     prs.save(output)

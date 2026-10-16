@@ -6,7 +6,7 @@ from pptx.util import Inches
 
 from slidegen import generate
 from tests.fixtures.gallery.content_lead_patterns import LEAD_PATTERN_DECK, LEADS
-from slidegen.generate_from_json import RENDER
+from slidegen.generate_from_json import RENDER, build_presentation
 from slidegen.layout_fit import FitError
 from slidegen.validate_content import validate
 
@@ -32,9 +32,8 @@ def main():
     errors = validate(deepcopy(LEAD_PATTERN_DECK), allow_sample_content=True)
     assert not errors, "\n".join(errors)
 
-    generate.DECK = LEAD_PATTERN_DECK
-    for idx, spec in enumerate(LEAD_PATTERN_DECK["slides"], 1):
-        generate.render_slide(RENDER[spec["type"]], _slide(), spec, idx)
+    built = build_presentation(LEAD_PATTERN_DECK, allow_sample_content=True)
+    assert len(built.slides) == len(LEAD_PATTERN_DECK["slides"])
 
     invalid = deepcopy(LEAD_PATTERN_DECK)
     invalid["slides"][0]["lead"] = ""

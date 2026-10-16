@@ -24,6 +24,7 @@ PROJECT_FILES = (
     "docs/font-contract.md",
     "docs/text-metrics.md",
     "docs/dependencies.md",
+    "docs/generation-api.md",
     "requirements.txt", "render.ps1", "contact_sheet.py",
     "LICENSE", "THIRD_PARTY_NOTICES.md",
 )

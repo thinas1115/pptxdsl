@@ -9,6 +9,7 @@ from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 from slidegen import generate
+from slidegen.generate_from_json import build_presentation
 from slidegen.candidate_renderers import _fit_rows, s_sequence
 from slidegen.check_layout import check
 from slidegen.layout_fit import FitError
@@ -18,12 +19,9 @@ from tools.gallery.generate_sequence_cases import main, make_deck
 
 
 def render(spec):
-    generate.configure_cover_footer()
-    generate.DECK = {"meta": {"title": "シーケンス検証"}, "slides": [spec]}
-    prs = Presentation()
-    prs.slide_width, prs.slide_height = Inches(generate.SLIDE_W), Inches(generate.SLIDE_H)
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    s_sequence(slide, spec, 1)
+    deck = {"meta": {"title": "シーケンス検証"}, "slides": [spec]}
+    prs = build_presentation(deck, allow_sample_content=True)
+    slide = prs.slides[0]
     return prs, slide
 
 

@@ -1,12 +1,10 @@
 """プロトコル図の意味表示・最大件数を実描画する回帰デッキ。"""
 from copy import deepcopy
 from pathlib import Path
+from slidegen.generate_from_json import build_presentation
 import sys
 
-from pptx import Presentation
-from pptx.util import Inches
 
-from slidegen import generate
 from slidegen.generate_from_json import RENDER
 from slidegen.validate_content import validate
 from tests.fixtures.gallery.content_patterns import PATTERN_DECK
@@ -68,14 +66,7 @@ def main(output):
     errors = validate(deck, allow_sample_content=True)
     if errors:
         raise ValueError("\n".join(errors))
-    generate.configure_cover_footer()
-    generate.DECK = deck
-    prs = Presentation()
-    prs.slide_width, prs.slide_height = Inches(generate.SLIDE_W), Inches(generate.SLIDE_H)
-    for index, spec in enumerate(deck["slides"], 1):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        generate.render_slide(RENDER[spec["type"]], slide, spec, index)
-        generate.footer(slide, index)
+    prs = build_presentation(deck, allow_sample_content=True, renderers=RENDER)
     prs.save(output)
     print(f"プロトコル回帰デッキ: {output}（{len(deck['slides'])}ページ）")
 

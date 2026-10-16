@@ -7,6 +7,7 @@
 生成AIにそのまま渡して直させられる粒度のメッセージを出して終了する。
 """
 import argparse
+from copy import deepcopy
 import sys
 from pathlib import Path
 
@@ -34,6 +35,8 @@ from slidegen.training_renderers import (
 )
 from slidegen.font_config import FontConfigError, font_faces
 from slidegen.validate_content import validate, validation_warnings
+from slidegen.generation_context import bind_context, make_context
+from slidegen.layout_fit import FitError
 
 
 def s_diagram(slide, spec, page):
@@ -63,6 +66,30 @@ RENDER = dict(generate.RENDER,
 RENDER["references"] = s_references
 
 
+def build_presentation(deck, cover_footer_config=None, *, renderers=None,
+                       allow_sample_content=False):
+    """入力を独立コピーして検証・生成する。保存やモジュール状態の書換えはしない。"""
+    snapshot = deepcopy(deck)
+    errors = validate(snapshot, allow_sample_content=allow_sample_content)
+    if errors:
+        raise ValueError("入力に問題があります:\n  - " + "\n  - ".join(errors))
+    context = make_context(snapshot, cover_footer_config)
+    registry = dict(RENDER if renderers is None else renderers)
+    prs = Presentation()
+    prs.slide_width = Inches(context.theme.SLIDE_W)
+    prs.slide_height = Inches(context.theme.SLIDE_H)
+    with bind_context(context):
+        for idx, spec in enumerate(snapshot["slides"], 1):
+            renderer = registry.get(spec["type"])
+            if renderer is None:
+                raise FitError(f"未対応のスライド種別です: {spec['type']!r}")
+            slide = prs.slides.add_slide(prs.slide_layouts[6])
+            generate.render_slide(renderer, slide, spec, idx)
+            if spec["type"] != "title":
+                generate.footer(slide, idx)
+    return prs
+
+
 def main(json_path, out_path, cover_footer_config=None):
     source = Path(json_path)
     display_name = source.name
@@ -76,30 +103,14 @@ def main(json_path, out_path, cover_footer_config=None):
         for e in errors:
             print(f"  - {e}", file=sys.stderr)
         raise SystemExit(1)
-    generate.DECK = deck
     try:
         font_faces()
     except FontConfigError as error:
         raise SystemExit(f"NG: フォント設定: {error}") from None
     try:
-        generate.configure_cover_footer(cover_footer_config)
+        prs = build_presentation(deck, cover_footer_config)
     except ValueError as e:
-        raise SystemExit(f"NG: 表紙・フッター設定: {e}") from None
-
-    prs = Presentation()
-    prs.slide_width = Inches(generate.SLIDE_W)
-    prs.slide_height = Inches(generate.SLIDE_H)
-    blank = prs.slide_layouts[6]
-    for idx, spec in enumerate(deck["slides"], 1):
-        slide = prs.slides.add_slide(blank)
-        try:
-            renderer = RENDER[spec["type"]]
-        except KeyError:
-            known = ", ".join(sorted(RENDER))
-            raise SystemExit(f"NG: 対応するrendererがありません。typeを次から選んでください: {known}") from None
-        generate.render_slide(renderer, slide, spec, idx)
-        if spec["type"] != "title":
-            generate.footer(slide, idx)
+        raise SystemExit(f"NG: {e}") from None
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     prs.save(out_path)

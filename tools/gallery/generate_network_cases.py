@@ -1,13 +1,10 @@
 """公開研修のネットワーク図だけを集め、背景・配線・凡例を回帰検証する。"""
 import json
 from pathlib import Path
+from slidegen.generate_from_json import build_presentation
 import sys
 
-from pptx import Presentation
-from pptx.util import Inches
 
-from slidegen import generate
-from slidegen.training_renderers import s_network
 from slidegen.validate_content import validate
 
 
@@ -25,14 +22,7 @@ def main(output):
     errors = validate(deck, allow_sample_content=True)
     if errors:
         raise ValueError("\n".join(errors))
-    generate.configure_cover_footer()
-    generate.DECK = deck
-    prs = Presentation()
-    prs.slide_width, prs.slide_height = Inches(generate.SLIDE_W), Inches(generate.SLIDE_H)
-    for index, spec in enumerate(deck["slides"], 1):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        generate.render_slide(s_network, slide, spec, index)
-        generate.footer(slide, index)
+    prs = build_presentation(deck, allow_sample_content=True)
     prs.save(output)
     print(f"ネットワーク回帰デッキ: {output}（{len(deck['slides'])}ページ）")
 

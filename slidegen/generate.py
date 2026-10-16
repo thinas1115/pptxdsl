@@ -7,15 +7,13 @@ if __name__ == "__main__":
 import math
 import re
 from dataclasses import dataclass
-from contextvars import ContextVar
 
-from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
-from slidegen.cover_footer import load_cover_footer_config, render_cover, render_footer
+from slidegen.cover_footer import render_cover, render_footer
 from slidegen.layout_fit import (
     FitError,
     fit_text_or_raise,
@@ -27,34 +25,22 @@ from slidegen.textfit import line_height_in, text_width_in, wrap_natural, wrap_t
 from slidegen.slide_footnote import fit_footnote
 from slidegen.text_roles import set_text_role
 from slidegen.font_config import font_family
-
-# 入力デッキは生成入口から設定する。回帰用データを初期値として読み込まない。
-DECK = {"meta": {}, "slides": []}
+from slidegen.generation_context import STANDARD_THEME, bind_context, current_context
 
 # ---- テーマ ----
-NAVY = RGBColor(0x18, 0x2C, 0x43)
-ACCENT = RGBColor(0x0D, 0x78, 0x70)
-CORAL = RGBColor(0xC7, 0x58, 0x3E)
-LIGHT = RGBColor(0xDF, 0xEB, 0xE8)
-TEXT = RGBColor(0x20, 0x27, 0x29)
-GRAY = RGBColor(0x66, 0x6E, 0x70)
-DONE_TEXT = RGBColor(0x56, 0x60, 0x62)
-WHITE = RGBColor(0xFF, 0xFF, 0xFC)
-SURFACE = RGBColor(0xFA, 0xF9, 0xF5)
-ZEBRA = RGBColor(0xEC, 0xEA, 0xE4)
-CANVAS = RGBColor(0xF7, 0xF5, 0xEF)
-RULE = RGBColor(0xD1, 0xCF, 0xC8)
-SLIDE_W, SLIDE_H = 13.333, 7.5
-MARGIN = 0.55
+NAVY, ACCENT, CORAL = STANDARD_THEME.NAVY, STANDARD_THEME.ACCENT, STANDARD_THEME.CORAL
+LIGHT, TEXT, GRAY = STANDARD_THEME.LIGHT, STANDARD_THEME.TEXT, STANDARD_THEME.GRAY
+DONE_TEXT, WHITE = STANDARD_THEME.DONE_TEXT, STANDARD_THEME.WHITE
+SURFACE, ZEBRA, CANVAS, RULE = STANDARD_THEME.SURFACE, STANDARD_THEME.ZEBRA, STANDARD_THEME.CANVAS, STANDARD_THEME.RULE
+SLIDE_W, SLIDE_H = STANDARD_THEME.SLIDE_W, STANDARD_THEME.SLIDE_H
+MARGIN = STANDARD_THEME.MARGIN
 BODY_W = SLIDE_W - MARGIN * 2
-BODY_TOP, BODY_BOTTOM = 1.58, 6.85
+BODY_TOP, BODY_BOTTOM = STANDARD_THEME.BODY_TOP, STANDARD_THEME.BODY_BOTTOM
 LEAD_Y, LEAD_MAX_H = 1.58, 0.56
 TABLE_HEADER_H = 0.72
 TABLE_TOP_GAP = 0.38
 TABLE_BOTTOM_GAP = 0.15
 TABLE_NOTE_H = 0.30
-COVER_FOOTER = load_cover_footer_config()
-_CONTENT_BOTTOM = ContextVar("slide_content_bottom", default=BODY_BOTTOM)
 
 
 @dataclass(frozen=True)
@@ -75,12 +61,6 @@ class ContentArea:
             return y
         scale = self.height / (BODY_BOTTOM - BODY_TOP)
         return self.top + (y - BODY_TOP) * scale
-
-
-def configure_cover_footer(path=None):
-    """表紙・フッター設定を切り替える。未指定なら標準設定へ戻す。"""
-    global COVER_FOOTER
-    COVER_FOOTER = load_cover_footer_config(path)
 
 
 def set_run(run, size, *, bold=False, color=TEXT):
@@ -152,7 +132,7 @@ def header(slide, kicker, title, lead=None):
     add_text(slide, 0.72, 0.67, 11.9, 0.86, "\n".join(lines), size,
              bold=True, color=NAVY, spacing=1.12)
     if not lead:
-        bottom = _CONTENT_BOTTOM.get()
+        bottom = current_context().content_bottom
         return ContentArea(bottom=bottom, shifted=bottom != BODY_BOTTOM)
 
     lead_size, lead_lines = fit_text_or_raise(
@@ -162,19 +142,19 @@ def header(slide, kicker, title, lead=None):
     add_text(slide, 0.72, LEAD_Y, 11.9, lead_h, "\n".join(lead_lines),
              lead_size, color=GRAY, spacing=1.18)
     return ContentArea(top=LEAD_Y + lead_h + 0.17,
-                       bottom=_CONTENT_BOTTOM.get(), shifted=True)
+                       bottom=current_context().content_bottom, shifted=True)
 
 
 def page_label(page):
     """Return a stable page marker shared by every generator entry point."""
-    total = len(DECK["slides"])
+    total = current_context().slide_count
     digits = max(2, len(str(total)))
     return f"{page:0{digits}d} / {total:0{digits}d}"
 
 
 def footer(slide, page):
-    total = len(DECK["slides"])
-    render_footer(slide, page, DECK["meta"], total, COVER_FOOTER,
+    context = current_context()
+    render_footer(slide, page, context.metadata, context.slide_count, context.cover_footer,
                   add_text=add_text, add_rect=add_rect)
 
 
@@ -184,7 +164,7 @@ def note_line(slide, note, link=None):
     size, _ = fit_text_or_raise(
         "note", "text", display_text, BODY_W, 0.25, 8.5,
         min_pt=7, spacing=1.1)
-    tb = add_text(slide, MARGIN, _CONTENT_BOTTOM.get() - 0.23, BODY_W, 0.25, note, size,
+    tb = add_text(slide, MARGIN, current_context().content_bottom - 0.23, BODY_W, 0.25, note, size,
                   color=GRAY, align=PP_ALIGN.RIGHT)
     if link:
         p = tb.text_frame.paragraphs[0]
@@ -197,11 +177,10 @@ def note_line(slide, note, link=None):
 
 # ---- スライド種別 ----
 def s_title(slide, spec, page):
-    meta = DECK["meta"]
-    total = len(DECK["slides"])
-    render_cover(slide, spec, meta, total, COVER_FOOTER,
+    context = current_context()
+    render_cover(slide, spec, context.metadata, context.slide_count, context.cover_footer,
                  add_text=add_text, add_rect=add_rect,
-                 content_bottom=_CONTENT_BOTTOM.get())
+                 content_bottom=context.content_bottom)
 
 
 # 中扉は共通ヘッダーではなく、章ラベル・章タイトル・leadだけを置く専用構図。
@@ -291,7 +270,7 @@ def _section_divider_candidate_values(spec):
 def s_section_divider(slide, spec, page):
     """章ラベル、章タイトル、任意leadだけの控えめな中扉。"""
     add_rect(slide, 0, 0, SLIDE_W, SLIDE_H, CANVAS)
-    available = min(SECTION_DIVIDER_BOTTOM, _CONTENT_BOTTOM.get()) - SECTION_DIVIDER_TOP
+    available = min(SECTION_DIVIDER_BOTTOM, current_context().content_bottom) - SECTION_DIVIDER_TOP
     fit = select_fit(
         "section_divider", available,
         _section_divider_candidate_values(spec),
@@ -770,16 +749,24 @@ RENDER = {"title": s_title, "section_divider": s_section_divider,
 
 def render_slide(renderer, slide, spec, idx):
     """rendererの収容エラーをスライド位置つきの運用メッセージへ変換する。"""
-    token = None
+    context = current_context()
+    footnote = spec.get("footnote")
     try:
-        footnote = spec.get("footnote")
         layout = fit_footnote(footnote, BODY_W) if footnote else None
-        if layout:
-            reserve = layout.height + layout.padding * 2 + 0.12
-            token = _CONTENT_BOTTOM.set(BODY_BOTTOM - reserve)
+    except ValueError as error:
+        raise FitError(f"slides[{idx - 1}] (type={spec['type']}) の生成に失敗:\n  {error}") from error
+    if layout:
+        reserve = layout.height + layout.padding * 2 + 0.12
+        context = context.with_bottom(context.content_bottom - reserve)
+    with bind_context(context):
+        return _render_slide(renderer, slide, spec, idx, layout)
+
+
+def _render_slide(renderer, slide, spec, idx, layout):
+    try:
         renderer(slide, spec, idx)
         if layout:
-            y = _CONTENT_BOTTOM.get() + 0.12
+            y = current_context().content_bottom + 0.12
             if spec["type"] == "title":
                 panel = add_rect(slide, MARGIN - 0.08, y - 0.04,
                                  BODY_W + 0.16, BODY_BOTTOM - y + 0.08, CANVAS)
@@ -799,9 +786,6 @@ def render_slide(renderer, slide, spec, idx):
                             color=TEXT, spacing=1.12)
             text.name = "slide-footnote:text"
     except (ValueError, FileNotFoundError) as e:
-        raise SystemExit(
-            f"NG: slides[{idx - 1}] (type={spec['type']}) の生成に失敗:\n"
+        raise FitError(
+            f"slides[{idx - 1}] (type={spec['type']}) の生成に失敗:\n"
             f"  {e}") from e
-    finally:
-        if token is not None:
-            _CONTENT_BOTTOM.reset(token)

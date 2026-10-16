@@ -62,6 +62,7 @@ content.json ──→ validate_content.py ──→ generate_from_json.py ─�
 | `slidegen/training_renderers.py` | concept / nw_topology / nw_frame_anatomy / config_lab / knowledge_check renderer |
 | `slidegen/validate_content.py` | content.json の生成前検証。typeごとの `_v_*` 関数 |
 | `slidegen/generate_from_json.py` | content.json→PPTX。**新規資料の正式経路** |
+| `slidegen/generation_context.py` | デッキ単位のmetadata・設定・標準テーマ・本文下端を束縛・復元する不変Context |
 | `tools/gallery/generate_patterns.py` + `tests/fixtures/gallery/content_patterns.py` | 全typeの検証ギャラリー |
 | `slidegen/check_layout.py` | 生成済みPPTXの重なり・はみ出し機械検知 |
 | `slidegen/text_metrics.py` / `text_roles.py` | 保存run・段落書式からの行矩形推定とrendererの文章役割の保存 |

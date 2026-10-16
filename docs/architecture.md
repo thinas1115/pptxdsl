@@ -78,6 +78,14 @@
 指定された数値ラベルは黙って省略せず、標準→余白圧縮→最小10.5ptでも収容できなければ停止する。
 数値ラベルに重なる補助グリッドだけを切り分け、データ線とゼロ軸は欠損させない。
 
+## デッキ単位の生成状態
+
+公開Python入口は`generate_from_json.build_presentation()`とする。
+`generation_context.py`の不変な`GenerationContext`へmetadata・総ページ数・表紙とフッター設定・
+標準テーマ・本文下端をまとめ、ContextVarで生成処理の範囲にだけ束縛する。
+モジュールの`DECK`や`COVER_FOOTER`を書き換えない。補足欄と入れ子生成も同じ束縛・復元規則に従う。
+API・例外・旧コードからの移行は[Python生成API](generation-api.md)を参照する。
+
 ## レイアウタ・カタログ方式
 
 カタログの単位はrenderer関数の数ではなく、独立した制約を持つスライドジャンルである。
