@@ -65,7 +65,7 @@ class NodeBox:
         return self.cy + self.icon_size / 2 + 0.06
 
 
-def _frame(slide, box, label, *, color, name, width=1.2):
+def _frame(slide, box, label, *, color, name, width=1.2, label_color=None):
     shape = slide.shapes.add_shape(
         MSO_SHAPE.RECTANGLE, Inches(box.x), Inches(box.y),
         Inches(box.w), Inches(box.h))
@@ -75,7 +75,8 @@ def _frame(slide, box, label, *, color, name, width=1.2):
     shape.line.width = Pt(width)
     shape.shadow.inherit = False
     _box_label(slide, box.x + 0.13, box.y + 0.07, box.w - 0.26, label,
-               color=color, name=f"{name}:label")
+               color=color if label_color is None else label_color,
+               name=f"{name}:label")
     return shape
 
 
@@ -338,7 +339,8 @@ def s_aws_vpc_layout(slide, spec, page):
             if subnet.get("cidr"):
                 label = f"{label} {subnet['cidr']}"
             _frame(slide, subnet_box, label, color=SUBNET_LINE,
-                   name=f"aws-vpc-layout:subnet:{subnet['id']}", width=0.9)
+                   name=f"aws-vpc-layout:subnet:{subnet['id']}", width=0.9,
+                   label_color=generate.NAVY)
             resources = subnet.get("resources", [])
             for index, resource in enumerate(resources):
                 slot = _resource_slot(

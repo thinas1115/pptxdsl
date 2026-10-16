@@ -45,6 +45,7 @@ rendererと共通部品の範囲に閉じ込めやすい。
 | 工程 / ロードマップ / 2軸図 | `slidegen/diagrams2.py` の各 `s_*()` | 各ジャンル固有の線、帯、点、ラベル、余白 |
 | 構成図の色名 | `slidegen/diagram_layout.py` の `COLORS` | diagram specで指定できる離散的な色名と実色の対応 |
 | 構成図レイアウト | `diagram_layout.py` の `Layout` / `render_diagram()` | 座標、行間、配線、コンテナ。色だけの変更では触らない |
+| VPC階層図 | `aws_vpc_layout.py` の `_frame()` / `s_aws_vpc_layout()` | Subnetの境界は薄い罫線、Subnet名・CIDRは濃い文字色として分離する。VPC・AZ・Subnetの階層を保ち、通信線やアイコンは変更しない |
 | アイコン | `slidegen/assets/icons/` / `slidegen/assets/CREDITS.md` | 素材の追加とクレジット。AWSアイコン自体の色・比率・形状は変更禁止 |
 | デザイン検証一覧 | `tests/fixtures/gallery/content_patterns.py` | 全rendererを1デッキで確認するためのサンプル内容 |
 | 品質検証 | `check_layout.py` / `render.ps1` / `contact_sheet.py` | 衝突検査、PowerPoint実レンダリング、一覧目視 |
