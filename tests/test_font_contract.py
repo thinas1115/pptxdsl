@@ -20,6 +20,15 @@ class FontContractTests(unittest.TestCase):
         config._code_face.cache_clear()
         config.load_font.cache_clear()
 
+    def test_measurement_engine_is_explicit_across_pillow_builds(self):
+        face = config.FontFace("font.ttf", 2, "Noto Sans JP", "Regular", (400,))
+        fake = unittest.mock.Mock()
+        with patch.object(config.ImageFont, "truetype", return_value=fake) as factory:
+            self.assertIs(config.load_font(face, 16), fake)
+            factory.assert_called_once_with("font.ttf", 16, index=2,
+                                            layout_engine=config.ImageFont.Layout.BASIC)
+            fake.set_variation_by_axes.assert_called_once_with([400])
+
     def test_pptx_uses_measured_family_for_all_scripts(self):
         prs = Presentation()
         slide = prs.slides.add_slide(prs.slide_layouts[6])

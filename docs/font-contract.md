@@ -82,6 +82,11 @@ LibreOfficeではPowerPointと異なる線・図形の影が見られるため�
 既存の画像比較、グラフ、パケット図、ギャラリー文言などの課題は別Issueの対象であり、
 この校正はそれらのデザイン・内容の完成を意味しない。
 
+OS間の検査では、同じPillow版とフォントでも既定エンジンが異なることが分かった。
+WindowsのBASICとUbuntuのRAQMによる18文字枠の照合で、幅の差は最大約0.027インチだった。
+以後、測定用フォントは`ImageFont.Layout.BASIC`を明示し、RAQMの有無で測定方法を変えない。
+上表のNoto校正値は変更前のRAQMでの観測であり、BASICの実描画校正はCIの構造化記録で別途確認する。
+
 Notoの全テスト、測定値、フォントSHA-256、PPTX、PNGは
 [検証実行38851559009](https://github.com/thinas1115/pptxdsl/actions/runs/38851559009)の
 `font-contract-noto-cjk`／`font-contract-noto-jp-variable`成果物に保存している。

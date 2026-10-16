@@ -12,6 +12,8 @@ from PIL import ImageFont
 
 
 SUPPORTED_FAMILIES = ("Yu Gothic", "Noto Sans CJK JP", "Noto Sans JP")
+# Pillow wheelのRAQM同梱有無で既定エンジンが変わるため、対応OSで共通のものを使う。
+MEASUREMENT_LAYOUT = ImageFont.Layout.BASIC
 _ENV_KEYS = tuple(f"PPTXDSL_FONT_{weight}{suffix}"
                   for weight in ("REGULAR", "BOLD", "MEDIUM", "CODE") for suffix in ("", "_INDEX")) + ("WINDIR",)
 
@@ -180,7 +182,7 @@ def font_family(weight="regular"):
 @lru_cache(maxsize=64)
 def load_font(face, px):
     try:
-        font = ImageFont.truetype(face.path, px, index=face.index)
+        font = ImageFont.truetype(face.path, px, index=face.index, layout_engine=MEASUREMENT_LAYOUT)
         if face.axes:
             font.set_variation_by_axes(list(face.axes))
         return font

@@ -63,6 +63,7 @@ python -m tools.quality.text_metrics_cases build out/text-cases
 `report.json`へ記録する。真値付き単体テストは、保存・再読込したPPTXの書式と設計値を比較する。
 
 CIでは同じSHA256の固定Noto Sans JPを使用し、WindowsとUbuntuでそれぞれPPTXと基準値を生成する。
+Pillowの測定エンジンはBASICを明示する。wheelのRAQM同梱有無によって既定値が変わることに依存しない。
 続いて両OSが双方のPPTXを読み直し、行数、文言、幅、高さ、配置、診断結果、書体識別情報を比較する。
 数値の許容差は0.00001インチ。OS／Pythonバージョン、最大差、差の所在は成果物へ残す。
 これは同一入力の検査再現性のテストであり、異なるOffice backendの描画一致を意味しない。
