@@ -25,6 +25,7 @@ PROJECT_FILES = (
     "docs/text-metrics.md",
     "docs/dependencies.md",
     "docs/generation-api.md",
+    "examples/cover_footer.ja.json",
     "requirements.txt", "render.ps1", "contact_sheet.py",
     "LICENSE", "THIRD_PARTY_NOTICES.md",
 )
