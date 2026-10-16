@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PROJECT_FILES = (
     "AI_DECK_PROMPT.md", "CONTENT_SCHEMA.md", "DESIGN_CUSTOMIZATION.md",
     "docs/type-selection-guide.md", "docs/cover-footer-customization.md",
+    "examples/authoring/README.md", "examples/authoring/type-selection.json",
     "docs/aws-icon-selection.md",
     "docs/font-contract.md",
     "docs/text-metrics.md",

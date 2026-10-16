@@ -88,6 +88,12 @@ def test_archive_and_runtime() -> None:
         deck = _plugin_smoke_deck()
         (task / "content.json").write_text(json.dumps(deck, ensure_ascii=False), encoding="utf-8")
         runner = skill / "scripts/run.py"
+        example = project / "examples/authoring/type-selection.json"
+        assert example.read_bytes() == (ROOT / "examples/authoring/type-selection.json").read_bytes()
+        _run(runner, task, "validate", str(example))
+        _run(runner, task, "generate", str(example), "out/authoring.pptx")
+        _run(runner, task, "check", "out/authoring.pptx")
+        assert len(Presentation(task / "out/authoring.pptx").slides) == 4
         _run(runner, task, "validate", "content.json")
         _run(runner, task, "generate", "content.json", "out/deck.pptx")
         _run(runner, task, "check", "out/deck.pptx")

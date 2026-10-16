@@ -291,6 +291,10 @@ python slidegen/validate_content.py content.json
 
 用途: Before/After、比較、メリット/注意点。
 
+共通の評価軸ごとに左右を対応させる場合は`paired_comparison`を使う。
+`two_column`は左右の項目が1対1に対応しない整理に使う。
+動作する入力例は[type選定例](examples/authoring/README.md)を参照する。
+
 必須:
 
 - `type`: `"two_column"`
@@ -671,6 +675,10 @@ python slidegen/validate_content.py content.json
 ### scope_boundary
 
 用途: 実施範囲と対象外を左右に分け、責任境界を明確にする。成立条件や前提は`lead`に記載する。
+
+左右へ共通に適用する条件は`lead`で「左右共通の前提」と明記できる。
+複数条件の[入力例](examples/authoring/type-selection.json)を参照する。
+廃止済みの`preconditions`を追加せず、長い条件は別ページへ分ける。
 
 必須:
 
