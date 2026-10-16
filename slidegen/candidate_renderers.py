@@ -4,6 +4,7 @@ from collections import defaultdict
 from itertools import permutations
 
 from pptx.dml.color import RGBColor
+from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
@@ -720,17 +721,26 @@ def s_sequence(slide, spec, page):
             y2 = next_center - 0.29
         else:
             y2 = lifeline_bottom
-        phase_x = participant_x0 - 0.48
-        phase_w = participant_x1 - participant_x0 + 0.96
+        # 左端ライフラインより手前をフェーズ名専用のレールにする。
+        # 矢印上のラベル背景へ重ねず、参加者の中心位置・メッセージ行高も保つ。
+        phase_x = participant_x0 - 1.50
+        phase_w = participant_x1 - phase_x + 0.48
         phase_fill = LIGHT if phase_index % 2 == 0 else ZEBRA
         _flat_rect(slide, phase_x, y1, phase_w, y2 - y1,
                    phase_fill)
         for message in messages[start_index:end_index + 1]:
             message_fill[message["id"]] = phase_fill
+        phase_h = min(0.56, y2 - y1 - 0.08)
+        phase_size, phase_lines = fit_text_or_raise(
+            "message_sequence", f"phases[{phase_index}].label", phase["label"],
+            1.20, phase_h, 10.5, min_pt=9.5,
+            weight="bold", spacing=1.05, role="compact")
         phase_box = add_text(
-            slide, phase_x + 0.14, y1 + 0.02, 1.12, 0.22,
-            phase["label"], 8.5, bold=True, color=ACCENT,
-            align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.MIDDLE)
+            slide, phase_x + 0.12, y1 + 0.04, 1.20, phase_h,
+            "\n".join(phase_lines), phase_size, bold=True, color=ACCENT,
+            align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP,
+            spacing=1.05, role="compact", wrap=False)
+        phase_box.name = f"sequence-phase-label:{phase_index}"
         phase_box.fill.solid()
         phase_box.fill.fore_color.rgb = LIGHT if phase_index % 2 == 0 else ZEBRA
     for index, (participant, x) in enumerate(zip(participants, xs)):
@@ -751,6 +761,8 @@ def s_sequence(slide, spec, page):
     for index, message in enumerate(messages):
         y = message_y[message["id"]] + fitted.values["row_h"] / 2
         sx, tx = x_by_id[message["from"]], x_by_id[message["to"]]
+        kind = message.get("kind", "request")
+        message_color = ACCENT if kind == "async" else GRAY if kind == "return" else NAVY
         if sx == tx:
             loop_w, loop_h = 0.54, max(0.26, fitted.values["row_h"] * 0.76)
             dash = "dash" if message.get("kind") == "return" else None
@@ -760,26 +772,30 @@ def s_sequence(slide, spec, page):
             route_right = sx + loop_w
             outgoing = plain_line(
                 slide, sx, route_top, route_right, route_top,
-                width=1.25, dash=dash)
+                color=message_color, width=1.25)
             turn = plain_line(
                 slide, route_right, route_top, route_right, route_bottom,
-                width=1.25, dash=dash)
+                color=message_color, width=1.25)
             returned = add_arrow(
                 slide, route_right, route_bottom, sx, route_bottom,
-                color=GRAY, width=1.05, dash=dash)
+                color=message_color, width=1.25)
             self_route = (outgoing, turn, returned)
             for segment, role in zip(self_route, ("out", "turn", "return")):
                 segment.name = f"{SEQUENCE_SELF_ROUTE_PREFIX}{message['id']}:{role}"
+                if dash:
+                    segment.line.dash_style = MSO_LINE_DASH_STYLE.DASH
             # ラベルをループ外へ置き、自己処理を示す3辺を背景マスクで隠さない。
             label_w = 1.10
             label_left = route_right + 0.10
             label_x = label_left + label_w / 2
         else:
-            kind = message.get("kind", "request")
-            add_arrow(slide, sx, y, tx, y,
-                      color=ACCENT if kind == "async" else GRAY,
-                      width=1.20 if kind == "async" else 1.05,
-                      dash="dash" if kind == "return" else None)
+            arrow = add_arrow(slide, sx, y, tx, y,
+                              color=message_color, width=1.25)
+            if kind == "return":
+                # 公開APIでsolidFill→prstDashの順序を守る。逆順では
+                # PowerPointが明示色を無視してテーマ色の青へ戻す場合がある。
+                arrow.line.dash_style = MSO_LINE_DASH_STYLE.DASH
+            arrow.name = f"sequence-message-line:{message['id']}"
             label_x, label_w = (sx + tx) / 2, min(1.72, abs(tx - sx) - 0.10)
         label_y = y - 0.27
         label_size, lines = fit_text_or_raise(
@@ -798,12 +814,14 @@ def s_sequence(slide, spec, page):
         legend_x = MARGIN + 0.10
         add_text(slide, legend_x, legend_y, 0.38, 0.18, "凡例", 7.5,
                  bold=True, color=GRAY, anchor=MSO_ANCHOR.MIDDLE)
-        entries = [("要求", GRAY, None), ("応答", GRAY, "dash")]
+        entries = [("要求", NAVY, None), ("応答", GRAY, "dash")]
         if "async" in kinds:
             entries.append(("非同期", ACCENT, None))
         for index, (label, color, dash) in enumerate(entries):
             x = legend_x + 0.48 + index * 1.05
-            add_arrow(slide, x, legend_y + 0.09, x + 0.28, legend_y + 0.09,
-                      color=color, width=1.0, dash=dash)
+            legend_line = add_arrow(slide, x, legend_y + 0.09, x + 0.28, legend_y + 0.09,
+                                    color=color, width=1.0)
+            if dash:
+                legend_line.line.dash_style = MSO_LINE_DASH_STYLE.DASH
             add_text(slide, x + 0.34, legend_y, 0.56, 0.18, label, 7.5,
                      color=TEXT, anchor=MSO_ANCHOR.MIDDLE)
