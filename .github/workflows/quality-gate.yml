@@ -371,6 +371,7 @@ jobs:
           python -m tools.quality.line_styles build out/fonts-qa/line-styles.pptx
           python -m tools.gallery.generate_checklist_cases out/fonts-qa/checklist.pptx
           python -m tools.gallery.generate_table_cases out/fonts-qa/tables.pptx
+          python -m tools.gallery.generate_matrix_cases out/fonts-qa/matrix.pptx
           for deck in out/fonts-qa/*.pptx; do python -m slidegen.check_layout "$deck"; done
           python -m tools.quality.cross_platform environment out/fonts-qa/environment.json
       - name: 実レンダリングと幅の校正
@@ -381,7 +382,7 @@ jobs:
           pdffonts out/fonts-qa/metrics/metrics.pdf
           pdftotext -bbox-layout out/fonts-qa/metrics/metrics.pdf out/fonts-qa/metrics/actual.xhtml
           python -m tools.quality.font_metrics compare out/fonts-qa/metrics/expected.json out/fonts-qa/metrics/actual.xhtml --backend poppler --pdf out/fonts-qa/metrics/metrics.pdf --report out/fonts-qa/metrics/report.json
-          for name in basic extended patterns lead stress protocol network sequence subnets line-styles checklist tables; do
+          for name in basic extended patterns lead stress protocol network sequence subnets line-styles checklist tables matrix; do
             python .agents/skills/pptxdsl/scripts/render_preview.py "out/fonts-qa/$name.pptx" "out/fonts-qa/$name-png" --backend libreoffice
             python contact_sheet.py "out/fonts-qa/$name-png"
           done
