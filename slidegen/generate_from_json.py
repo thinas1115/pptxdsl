@@ -33,6 +33,7 @@ from slidegen.training_renderers import (
     s_protocol_anatomy,
 )
 from slidegen.validate_content import validate
+from slidegen.font_config import FontConfigError, font_faces
 
 
 def s_diagram(slide, spec, page):
@@ -90,6 +91,10 @@ def main(json_path, out_path, cover_footer_config=None):
             print(f"  - {e}", file=sys.stderr)
         raise SystemExit(1)
     generate.DECK = deck
+    try:
+        font_faces()
+    except FontConfigError as error:
+        raise SystemExit(f"NG: フォント設定: {error}") from None
     try:
         generate.configure_cover_footer(cover_footer_config)
     except ValueError as e:

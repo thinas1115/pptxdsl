@@ -1,0 +1,29 @@
+{
+  "meta": {"title": "画像の表示範囲と用途", "footer": "架空画面による表示例・実操作は行いません"},
+  "slides": [
+    {
+      "type": "image", "kicker": "全体把握", "title": "通知設定の画面内位置",
+      "lead": "containで画面全体を残します。緑枠①の位置を示す図であり、細かな操作文字は次ページで確認します。",
+      "image": "images/demo-request-overview.png", "fit": "contain",
+      "alt": "架空の受付画面全体。左にナビゲーション、中央の緑枠①に通知設定があります。"
+    },
+    {
+      "type": "image", "kicker": "操作箇所", "title": "通知先とイベントの確認箇所",
+      "lead": "前ページの緑枠①を拡大した別画像です。TargetがDemo team、EventがRequest receivedであることを確認してSaveを選びます。",
+      "image": "images/demo-request-focus.png", "fit": "contain",
+      "alt": "緑枠①の通知設定。TargetはDemo team、EventはRequest received、右下にSaveボタン。実操作は行いません。"
+    },
+    {
+      "type": "image", "kicker": "表示方法の比較", "title": "抽象画像の全体表示",
+      "lead": "containは元画像の端を残し、枠と縦横比が異なる分を余白にします。次ページは同じ画像をcoverで表示します。",
+      "image": "cover/cover-background.png", "fit": "contain",
+      "alt": "濃紺と青緑の抽象画像。画像の四辺を残した全体表示。"
+    },
+    {
+      "type": "image", "kicker": "表示方法の比較", "title": "抽象画像の枠を埋める表示",
+      "lead": "coverは枠を埋めるため、中央基準で上下を切り落とします。この例は背景表現用です。端の文字や操作ボタンを残す必要がある画面には使いません。",
+      "image": "cover/cover-background.png", "fit": "cover",
+      "alt": "前ページと同じ抽象画像。上下を中央基準で切り落として本文枠を埋めた表示。"
+    }
+  ]
+}
