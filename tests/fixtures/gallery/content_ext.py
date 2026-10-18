@@ -74,7 +74,7 @@ EXTRA_SLIDES = [
                               "start": 0, "end": 2}],
              "milestone": {"at": 2, "label": "効果判定"}},
             {"name": "横展開", "goal": "対象資料の拡大",
-             "activities": [{"label": "5部門・テンプレ3種に拡大",
+             "activities": [{"label": "5部門・3書式へ展開",
                               "start": 2, "end": 4.5}],
              "milestone": {"at": 4.5, "label": "展開判定"}},
             {"name": "定着化", "goal": "標準業務フロー化",
