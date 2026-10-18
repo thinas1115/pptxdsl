@@ -603,9 +603,20 @@ def _fit_table(rows, widths, avail):
     return fitted, row_hs
 
 
+_TABLE_NUMBER = re.compile(r"[+\-−]?(?:0|[1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+)(?:\.[0-9]+)?%?")
+
+
+def _table_column_alignments(columns, rows):
+    """項目名列を保ち、全セルが数値表記の本文列だけ末尾を揃える。"""
+    return [PP_ALIGN.RIGHT if index > 0 and rows
+            and all(_TABLE_NUMBER.fullmatch(row[index]) for row in rows)
+            else PP_ALIGN.LEFT for index in range(len(columns))]
+
+
 def s_table(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     cols, rows = spec["columns"], spec["rows"]
+    alignments = _table_column_alignments(cols, rows)
     widths = spec.get("col_widths") or _auto_table_widths(cols, rows)
     assert abs(sum(widths) - BODY_W) < 0.6, f"列幅合計={sum(widths)}"
     hdr_h = TABLE_HEADER_H
@@ -633,18 +644,18 @@ def s_table(slide, spec, page):
             "table", f"columns[{j}]", name, widths[j] - 0.18, hdr_h - 0.08,
             size, min_pt=10.5, weight="bold", spacing=1.15)
         _cell(table.cell(0, j), name, header_size, bold=True, color=WHITE, fill=NAVY,
-              center=False)
+              alignment=alignments[j])
     for i, row in enumerate(rows):
         fill = SURFACE if i % 2 else ZEBRA
         for j, val in enumerate(row):
             _cell(table.cell(i + 1, j), val, size,
                   bold=(j == 0), color=NAVY if j == 0 else TEXT, fill=fill,
-                  center=False)
+                  alignment=alignments[j])
     if spec.get("note"):
         note_line(slide, spec["note"], spec.get("note_link"))
 
 
-def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=False):
+def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=False, alignment=None):
     cell.fill.solid()
     cell.fill.fore_color.rgb = fill
     cell.vertical_anchor = MSO_ANCHOR.MIDDLE
@@ -655,7 +666,7 @@ def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=Fals
     tf.word_wrap = True
     for i, line in enumerate(text.split("\n")):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.alignment = PP_ALIGN.CENTER if center else PP_ALIGN.LEFT
+        p.alignment = alignment if alignment is not None else PP_ALIGN.CENTER if center else PP_ALIGN.LEFT
         p.line_spacing = 1.15
         set_run(p.add_run(), size, bold=bold, color=color)
         p.runs[0].text = line
