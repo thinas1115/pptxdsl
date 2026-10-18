@@ -9,7 +9,7 @@ from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 from slidegen.asset_paths import resolve_icon_path
-from slidegen.diagrams import add_arrow, arrow_label
+from slidegen.diagrams import add_arrow, arrow_label, set_line_dash
 from slidegen.generate import (
     ACCENT,
     BODY_W,
@@ -173,12 +173,11 @@ def s_concept(slide, spec, page):
 
 def _set_connector_arrow(connector, *, both=False, dash=None):
     ln = connector.line._get_or_add_ln()
-    for tag, enabled in (("a:tailEnd", True), ("a:headEnd", both)):
+    for tag, enabled in (("a:headEnd", both), ("a:tailEnd", True)):
         if enabled:
             ln.append(ln.makeelement(
                 qn(tag), {"type": "triangle", "w": "med", "len": "med"}))
-    if dash:
-        ln.insert(0, ln.makeelement(qn("a:prstDash"), {"val": dash}))
+    set_line_dash(connector, dash)
 
 
 def _plain_connector(slide, x1, y1, x2, y2, color, *, width=1.6,
@@ -192,8 +191,7 @@ def _plain_connector(slide, x1, y1, x2, y2, color, *, width=1.6,
     if arrow:
         _set_connector_arrow(conn, dash=dash)
     elif dash:
-        ln = conn.line._get_or_add_ln()
-        ln.insert(0, ln.makeelement(qn("a:prstDash"), {"val": dash}))
+        set_line_dash(conn, dash)
     return conn
 
 

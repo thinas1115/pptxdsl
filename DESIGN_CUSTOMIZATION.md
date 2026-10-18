@@ -50,6 +50,11 @@ rendererと共通部品の範囲に閉じ込めやすい。
 | デザイン検証一覧 | `tests/fixtures/gallery/content_patterns.py` | 全rendererを1デッキで確認するためのサンプル内容 |
 | 品質検証 | `check_layout.py` / `render.ps1` / `contact_sheet.py` | 衝突検査、PowerPoint実レンダリング、一覧目視 |
 
+`diagram`では実線の主経路を濃色1.6pt、破線の補助経路を灰色1.1pt、配置境界を0.85ptとする。
+線上ラベルは標準10pt、下限9ptで実測し、収まらないときは説明を分割する。
+破線は`set_line_dash()`から公開APIを使う。OOXMLの`prstDash`を塗り指定より前へ挿入すると、
+PowerPointが指定色を無視することがあるため、手動で順序を入れ替えない。
+
 ## 変更内容別の最小修正範囲
 
 ### 配色だけ変える
