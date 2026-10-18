@@ -9,6 +9,146 @@ permissions:
   contents: read
 
 jobs:
+  regression-origin:
+    name: 主要5デッキと全テスト (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      PYTHONIOENCODING: utf-8
+      PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/cross-fonts/NotoSansJP-VF.ttf
+      PPTXDSL_FONT_CODE: ${{ github.workspace }}/out/cross-fonts/NotoSansMonoCJKjp-Regular.otf
+      PPTXDSL_TEST_VARIABLE_FONT: ${{ github.workspace }}/out/cross-fonts/NotoSansJP-VF.ttf
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Office互換ソフトのバージョンを記録できる環境を準備
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libreoffice-impress
+      - name: 依存と固定書体を準備
+        run: |
+          python -m pip install -r requirements.txt
+          python -m tools.quality.cross_platform prepare-fonts out/cross-fonts
+      - name: 全テストを実行
+        run: python -m tests --report out/regression/tests.json
+      - name: 主要5デッキの生成と検査基準値を記録
+        if: always()
+        run: python -m tools.quality.cross_platform build out/regression/decks
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-origin-${{ matrix.os }}
+          path: out/regression
+          if-no-files-found: error
+
+  regression-cross:
+    name: 主要5デッキの相互検査 (${{ matrix.os }})
+    needs: regression-origin
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      PYTHONIOENCODING: utf-8
+      PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/cross-fonts/NotoSansJP-VF.ttf
+      PPTXDSL_FONT_CODE: ${{ github.workspace }}/out/cross-fonts/NotoSansMonoCJKjp-Regular.otf
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: 依存と固定書体を準備
+        run: |
+          python -m pip install -r requirements.txt
+          python -m tools.quality.cross_platform prepare-fonts out/cross-fonts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: regression-origin-*
+          path: out/inbound
+      - name: 双方の生成PPTXを全件再検査
+        run: python -m tools.quality.cross_platform cross out/inbound out/regression-cross
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-cross-${{ matrix.os }}
+          path: out/regression-cross
+          if-no-files-found: error
+
+  text-metrics-origin:
+    name: 文字矩形の入力と基準値 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      PYTHONIOENCODING: utf-8
+      PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/fonts/NotoSansJP-VF.ttf
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: 依存と固定書体を準備
+        run: |
+          python -m pip install -r requirements.txt
+          python -m tools.quality.text_metrics_cases prepare-font out/fonts/NotoSansJP-VF.ttf
+      - name: 真値付きテストと検査基準値を生成
+        run: |
+          python -m tests.test_text_metrics
+          python -m tools.quality.text_metrics_cases build out/text-cases
+      - uses: actions/upload-artifact@v4
+        with:
+          name: text-metrics-${{ matrix.os }}
+          path: out/text-cases
+          if-no-files-found: error
+
+  text-metrics-cross:
+    name: 同一PPTXの文字検査 (${{ matrix.os }})
+    needs: text-metrics-origin
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      PYTHONIOENCODING: utf-8
+      PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/fonts/NotoSansJP-VF.ttf
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: 依存と固定書体を準備
+        run: |
+          python -m pip install -r requirements.txt
+          python -m tools.quality.text_metrics_cases prepare-font out/fonts/NotoSansJP-VF.ttf
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: text-metrics-*
+          path: out/inbound
+      - name: 双方のPPTXを同じ書体で再検査
+        run: |
+          python -m tools.quality.text_metrics_cases compare out/inbound/text-metrics-windows-latest/cases.pptx out/inbound/text-metrics-windows-latest/report.json out/cross/windows-origin.json
+          python -m tools.quality.text_metrics_cases compare out/inbound/text-metrics-ubuntu-latest/cases.pptx out/inbound/text-metrics-ubuntu-latest/report.json out/cross/ubuntu-origin.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: text-cross-${{ matrix.os }}
+          path: out/cross
+          if-no-files-found: error
+
   verify:
     name: Python ${{ matrix.python-version }}
     runs-on: windows-latest
@@ -46,6 +186,14 @@ jobs:
           python -m tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: 全件テストの詳細結果を保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: out/test-results.json
+          if-no-files-found: warn
+
       - name: 主要デッキを生成して機械検証
         shell: pwsh
         run: |
@@ -59,6 +207,12 @@ jobs:
           python -m tools.gallery.generate_lead_patterns out\lead_gallery.pptx
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m tools.gallery.generate_stress_patterns out\stress_gallery.pptx
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m tools.gallery.generate_chart_cases out\chart-cases.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python slidegen\validate_content.py out\chart-cases.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python slidegen\generate_from_json.py out\chart-cases.json out\chart-cases.pptx
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem out\*.pptx | ForEach-Object {
             python slidegen\check_layout.py $_.FullName
@@ -108,6 +262,42 @@ jobs:
       - name: 一覧画像を生成
         run: python contact_sheet.py out/libreoffice-smoke
 
+      - name: PNG実画素の正常と既知NGを検証
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python -m tools.quality.raster_smoke build out/raster-qa
+          for case in good text_oob line_gap; do
+            python .agents/skills/pptxdsl/scripts/render_preview.py "out/raster-qa/$case.pptx" "out/raster-qa/$case" --backend libreoffice --width 800
+          done
+          python -m tools.quality.raster_smoke verify out/raster-qa --backend libreoffice --version "$(soffice --version)"
+
+      - name: グラフ数値回帰デッキを生成して実レンダリング
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python -m tools.gallery.generate_chart_cases out/chart-cases.json
+          python slidegen/validate_content.py out/chart-cases.json
+          python slidegen/generate_from_json.py out/chart-cases.json out/chart-cases.pptx
+          python slidegen/check_layout.py out/chart-cases.pptx
+          python .agents/skills/pptxdsl/scripts/render_preview.py out/chart-cases.pptx out/chart-png --backend libreoffice
+          python contact_sheet.py out/chart-png
+
+      - name: type選定例を通常入力として生成して実レンダリング
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python slidegen/validate_content.py examples/authoring/type-selection.json
+          python slidegen/generate_from_json.py examples/authoring/type-selection.json out/authoring/type-selection.pptx
+          python slidegen/check_layout.py out/authoring/type-selection.pptx
+          python .agents/skills/pptxdsl/scripts/render_preview.py out/authoring/type-selection.pptx out/authoring/png --backend libreoffice
+          python contact_sheet.py out/authoring/png
+          python slidegen/validate_content.py examples/authoring/image-reading.json
+          python slidegen/generate_from_json.py examples/authoring/image-reading.json out/authoring/image-reading.pptx
+          python slidegen/check_layout.py out/authoring/image-reading.pptx
+          python .agents/skills/pptxdsl/scripts/render_preview.py out/authoring/image-reading.pptx out/authoring/image-reading-png --backend libreoffice
+          python contact_sheet.py out/authoring/image-reading-png
+
       - name: PNGを検証成果物として保存
         uses: actions/upload-artifact@v4
         with:
@@ -115,6 +305,11 @@ jobs:
           path: |
             out/libreoffice-smoke/*.png
             out/plugin-smoke/*.png
+            out/chart-png/*.png
+            out/chart-cases.json
+            out/chart-cases.pptx
+            out/raster-qa
+            out/authoring
           if-no-files-found: error
 
       - name: Skill・Plugin配布候補を保存
@@ -125,4 +320,80 @@ jobs:
             out/release/*.zip
             out/release/pattern_gallery.pptx
             out/release/SHA256SUMS.txt
+          if-no-files-found: error
+
+  font-contract:
+    name: フォント契約 (${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [noto-cjk, noto-jp-variable]
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v7
+      - name: Pythonを準備
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: 描画環境を準備
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libreoffice-impress poppler-utils fonts-noto-cjk
+          python -m pip install -r requirements.txt
+      - name: 固定したNoto Sans JP可変フォントを準備
+        if: matrix.profile == 'noto-jp-variable'
+        run: |
+          mkdir -p out/fonts
+          curl --fail --location 'https://raw.githubusercontent.com/google/fonts/66a36c8c94b1a5d992ee4e7f392fccfe4945767c/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf' -o out/fonts/NotoSansJP-VF.ttf
+          echo 'c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f  out/fonts/NotoSansJP-VF.ttf' | sha256sum --check
+          mkdir -p "$HOME/.local/share/fonts/pptxdsl-tests"
+          cp out/fonts/NotoSansJP-VF.ttf "$HOME/.local/share/fonts/pptxdsl-tests/"
+          fc-cache -f
+          echo "PPTXDSL_FONT_REGULAR=$PWD/out/fonts/NotoSansJP-VF.ttf" >> "$GITHUB_ENV"
+          echo "PPTXDSL_TEST_VARIABLE_FONT=$PWD/out/fonts/NotoSansJP-VF.ttf" >> "$GITHUB_ENV"
+      - name: 全テストと対応書体の生成・検査
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python -m slidegen.font_config
+          python -m tests
+          python -m tools.gallery.generate_basic out/fonts-qa/basic.pptx
+          python -m tools.gallery.generate_extended out/fonts-qa/extended.pptx
+          python -m tools.gallery.generate_patterns out/fonts-qa/patterns.pptx
+          python -m tools.gallery.generate_lead_patterns out/fonts-qa/lead.pptx
+          python -m tools.gallery.generate_stress_patterns out/fonts-qa/stress.pptx
+          python -m tools.gallery.generate_protocol_cases out/fonts-qa/protocol.pptx
+          python -m tools.gallery.generate_network_cases out/fonts-qa/network.pptx
+          python -m tools.gallery.generate_sequence_cases out/fonts-qa/sequence.pptx
+          python -m tools.gallery.generate_aws_vpc_cases out/fonts-qa/subnets.pptx
+          python -m tools.quality.line_styles build out/fonts-qa/line-styles.pptx
+          python -m tools.gallery.generate_checklist_cases out/fonts-qa/checklist.pptx
+          python -m tools.gallery.generate_table_cases out/fonts-qa/tables.pptx
+          python -m tools.gallery.generate_matrix_cases out/fonts-qa/matrix.pptx
+          python -m tools.gallery.generate_org_cases out/fonts-qa/org.pptx
+          python -m tools.gallery.generate_process_cases out/fonts-qa/process.pptx
+          python -m tools.gallery.generate_roadmap_cases out/fonts-qa/roadmap.pptx
+          for deck in out/fonts-qa/*.pptx; do python -m slidegen.check_layout "$deck"; done
+          python -m tools.quality.cross_platform environment out/fonts-qa/environment.json
+      - name: 実レンダリングと幅の校正
+        run: |
+          soffice --version | tee out/fonts-qa/backend.txt
+          python -m tools.quality.font_metrics build out/fonts-qa/metrics
+          soffice --headless --convert-to pdf --outdir out/fonts-qa/metrics out/fonts-qa/metrics/metrics.pptx
+          pdffonts out/fonts-qa/metrics/metrics.pdf
+          pdftotext -bbox-layout out/fonts-qa/metrics/metrics.pdf out/fonts-qa/metrics/actual.xhtml
+          python -m tools.quality.font_metrics compare out/fonts-qa/metrics/expected.json out/fonts-qa/metrics/actual.xhtml --backend poppler --pdf out/fonts-qa/metrics/metrics.pdf --report out/fonts-qa/metrics/report.json
+          for name in basic extended patterns lead stress protocol network sequence subnets line-styles checklist tables matrix org process roadmap; do
+            python .agents/skills/pptxdsl/scripts/render_preview.py "out/fonts-qa/$name.pptx" "out/fonts-qa/$name-png" --backend libreoffice
+            python contact_sheet.py "out/fonts-qa/$name-png"
+          done
+          python -m tools.quality.line_styles verify out/fonts-qa/line-styles-png --backend libreoffice --version "$(soffice --version)"
+      - name: 描画と測定記録を保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: font-contract-${{ matrix.profile }}
+          path: out/fonts-qa
           if-no-files-found: error

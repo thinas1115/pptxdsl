@@ -11,6 +11,7 @@ from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 from slidegen.check_layout import check
+from slidegen.generate import set_run
 from slidegen.quality_markers import (
     SEQUENCE_LIFELINE_PREFIX,
     SEQUENCE_MESSAGE_LABEL_PREFIX,
@@ -20,6 +21,17 @@ from slidegen.quality_markers import (
 
 
 def save(prs, path):
+    # 真値付きNG fixtureは測定可能な書体を明示する。テーマ書体の推測に依存しない。
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            frames = ([cell.text_frame for row in shape.table.rows for cell in row.cells]
+                      if shape.has_table else [shape.text_frame] if shape.has_text_frame else [])
+            for frame in frames:
+                for paragraph in frame.paragraphs:
+                    for run in paragraph.runs:
+                        if run.font.name is None:
+                            set_run(run, run.font.size.pt if run.font.size else 11,
+                                    bold=bool(run.font.bold))
     prs.save(path)
     return check(path)
 
