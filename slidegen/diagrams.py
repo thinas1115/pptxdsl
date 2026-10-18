@@ -1,6 +1,7 @@
 """構成図で共有する描画部品。"""
 
 from pptx.dml.color import RGBColor
+from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
@@ -19,6 +20,13 @@ NODE_LABEL_PAD_X = 0.10  # 左右0.05in。配線以外を隠さない最小限�
 NODE_LABEL_PAD_Y = 0.04  # 上下0.02in。文字のアンチエイリアス分だけ確保
 EDGE_LABEL_PAD_X = 0.10
 EDGE_LABEL_PAD_Y = 0.04
+BOUNDARY_LINE_PT = 0.85
+
+
+def set_line_dash(shape, dash):
+    """公開APIで塗り・破線・矢印のOOXML順序を保ち、指定色を維持する。"""
+    if dash:
+        shape.line.dash_style = MSO_LINE_DASH_STYLE.from_xml(dash)
 
 
 def add_arrow(slide, x1, y1, x2, y2, *, color=LINE, width=1.5, both=False,
@@ -29,30 +37,29 @@ def add_arrow(slide, x1, y1, x2, y2, *, color=LINE, width=1.5, both=False,
     conn.line.width = Pt(width)
     conn.shadow.inherit = False
     ln = conn.line._get_or_add_ln()
-    heads = [("a:tailEnd", True), ("a:headEnd", both)]
+    heads = [("a:headEnd", both), ("a:tailEnd", True)]
     for tag, on in heads:
         if on:
             el = ln.makeelement(qn(tag), {"type": "triangle", "w": "med", "len": "med"})
             ln.append(el)
-    if dash:
-        d = ln.makeelement(qn("a:prstDash"), {"val": dash})
-        ln.insert(0, d)
+    set_line_dash(conn, dash)
     return conn
 
 
-def arrow_label(slide, cx, cy, text, w=1.6, size=9):
+def arrow_label(slide, cx, cy, text, w=1.6, size=9, *, min_size=None):
     """線をまたぐラベル。白背景マスクは実測テキスト幅に合わせ、wは上限として扱う
     (固定幅だと短い文字列ほど余計な範囲まで線を隠してしまうため)。
     """
     box_h = line_height_in(size, 1.1) + EDGE_LABEL_PAD_Y
     actual_size, _ = fit_text_or_raise(
         "arrow_label", "text", text, w - EDGE_LABEL_PAD_X, box_h, size,
-        min_pt=max(7, size - 2), spacing=1.1, role="compact")
+        min_pt=max(7, size - 2) if min_size is None else min_size,
+        spacing=1.1, role="compact")
     actual_w = min(w, text_width_in(text, actual_size) + EDGE_LABEL_PAD_X)
     actual_h = line_height_in(actual_size, 1.1) + EDGE_LABEL_PAD_Y
     tb = add_text(slide, cx - actual_w / 2, cy - actual_h / 2, actual_w, actual_h,
                   text, actual_size, color=TEXT, align=PP_ALIGN.CENTER,
-                  anchor=MSO_ANCHOR.MIDDLE)
+                  anchor=MSO_ANCHOR.MIDDLE, role="compact")
     tb.fill.solid()
     tb.fill.fore_color.rgb = CANVAS
     return tb
@@ -63,11 +70,9 @@ def container(slide, x, y, w, h, label, color=LINE, dash=None):
                                 Inches(w), Inches(h))
     sp.fill.background()
     sp.line.color.rgb = color
-    sp.line.width = Pt(1.25)
+    sp.line.width = Pt(BOUNDARY_LINE_PT)
     sp.shadow.inherit = False
-    if dash:
-        ln = sp.line._get_or_add_ln()
-        ln.insert(0, ln.makeelement(qn("a:prstDash"), {"val": dash}))
+    set_line_dash(sp, dash)
     label_size, _ = fit_text_or_raise(
         "container", "label", label, w - 0.3, 0.28, 10.5,
         min_pt=8.5, weight="bold", spacing=1.1, role="natural")
@@ -93,7 +98,8 @@ def _masked_node_label(slide, cx, y, text, *, max_w, slot_h, size, min_pt,
     tb = add_text(
         slide, cx - actual_w / 2, box_y,
         actual_w, actual_h, rendered, actual_size, bold=bold, color=color,
-        align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.1)
+        align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.1,
+        role="natural" if bold else "compact")
     tb.fill.solid()
     tb.fill.fore_color.rgb = CANVAS
     return tb
