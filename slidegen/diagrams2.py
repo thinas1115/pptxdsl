@@ -10,7 +10,7 @@ from slidegen.generate import (ACCENT, CORAL, GRAY, LIGHT, NAVY, RULE, SURFACE, 
 from slidegen.diagrams import add_arrow, arrow_label
 from slidegen.diagrams3 import plain_line, route
 from slidegen.layout_fit import FitError, ensure_within, fit_text_or_raise, select_fit
-from slidegen.textfit import text_width_in
+from slidegen.textfit import line_height_in, text_width_in
 from slidegen.timeline_layout import (centered_label_box, fit_program_roadmap,
                              pack_activities, resolve_marker)
 
@@ -212,32 +212,44 @@ def s_process(slide, spec, page):
         name_size, name_lines = fit_text_or_raise(
             "process", f"steps[{i}].name", st["name"], w - 0.2, 0.42,
             15.5, min_pt=12.5, weight="bold", spacing=1.1)
-        add_text(slide, x + 0.1, y(2.94), w - 0.2, 0.42,
-                 st["name"], name_size,
+        name_box = add_text(slide, x + 0.1, y(2.94), w - 0.2, 0.42,
+                 "\n".join(name_lines), name_size,
                  bold=True, color=NAVY, align=PP_ALIGN.CENTER)
+        name_box.name = f"process:name:{i}"
+        name_box.text_frame.word_wrap = False
         attribute = _process_attribute(st)
         desc_h = 1.35 if attribute else 1.95
         size, desc_lines = fit_text_or_raise(
             "process", f"steps[{i}].desc", st["desc"],
             w - 0.34, desc_h, 13.5, min_pt=11.5, spacing=1.2)
-        add_text(slide, x + 0.17, y(3.56), w - 0.34, desc_h,
-                 st["desc"], size,
+        desc_h = len(desc_lines) * line_height_in(size, 1.2) + 0.03
+        desc_box = add_text(slide, x + 0.17, y(3.56), w - 0.34, desc_h,
+                 "\n".join(desc_lines), size,
                  color=TEXT, align=PP_ALIGN.CENTER, spacing=1.2)
+        desc_box.name = f"process:desc:{i}"
+        desc_box.text_frame.word_wrap = False
         if attribute:
             label, value = attribute
-            label_size, _ = fit_text_or_raise(
+            attribute_y = y(3.56) + desc_h + 0.20
+            label_size, label_lines = fit_text_or_raise(
                 "process", f"steps[{i}].attribute.label", label,
-                w - 0.3, 0.22, 9.5, min_pt=7.5,
+                w - 0.3, 0.22, 10.5, min_pt=9.5,
                 weight="bold", spacing=1.05)
-            add_text(slide, x + 0.15, y(5.27), w - 0.3, 0.22, label,
-                     label_size, bold=True, color=GRAY,
+            label_box = add_text(slide, x + 0.15, attribute_y, w - 0.3, 0.22,
+                     "\n".join(label_lines), label_size, bold=True, color=TEXT,
                      align=PP_ALIGN.CENTER)
+            label_box.name = f"process:attribute-label:{i}"
+            label_box.text_frame.word_wrap = False
             value_size, value_lines = fit_text_or_raise(
                 "process", f"steps[{i}].attribute.value", value,
                 w - 0.3, 0.3, 11.5, min_pt=9.5, weight="bold", spacing=1.1)
-            add_text(slide, x + 0.15, y(5.56), w - 0.3, 0.3,
-                     value, value_size,
+            value_box = add_text(slide, x + 0.15, attribute_y + 0.27, w - 0.3, 0.3,
+                     "\n".join(value_lines), value_size,
                      bold=True, color=color, align=PP_ALIGN.CENTER)
+            value_box.name = f"process:attribute-value:{i}"
+            value_box.text_frame.word_wrap = False
+            ensure_within("process.attribute", attribute_y + 0.57 - area.top,
+                          area.height, guidance="工程説明または補足を短くしてください。")
     ensure_within(
         "process", y(5.86) - area.top, area.height,
         guidance="工程説明を短くしてください。")
@@ -278,7 +290,7 @@ def _s_process_flow(slide, spec, page):
     left, usable_w = 0.72, 11.90
     level_count = len(levels)
     # 分岐ラベルを箱に重ねず置けるよう、列数に応じて必要な間隔を確保する。
-    gap_x = 0.56 if level_count <= 5 else 0.52
+    gap_x = 0.90 if level_count <= 5 else 0.52
     node_w = (usable_w - gap_x * (level_count - 1)) / level_count
     if node_w < 1.55:
         raise FitError(
@@ -358,7 +370,8 @@ def _s_process_flow(slide, spec, page):
                      node["actor"], actor_size, bold=True, color=ACCENT,
                      align=PP_ALIGN.CENTER)
 
-    for edge, points in routed:
+    placed_labels = []
+    for edge_index, (edge, points) in enumerate(routed):
         if not edge.get("label"):
             continue
         if edge.get("kind") == "feedback":
@@ -369,17 +382,37 @@ def _s_process_flow(slide, spec, page):
                 + abs(segment[1][1] - segment[0][1]),
             )
             label_x, label_y, label_w = (
-                (start[0] + end[0]) / 2, (start[1] + end[1]) / 2, 1.35)
+                (start[0] + end[0]) / 2, (start[1] + end[1]) / 2 + 0.20, 1.35)
         else:
             sx, _sy, sw, _sh = rects[edge["from"]]
             tx, _ty, _tw, _th = rects[edge["to"]]
             end = points[-1]
-            label_w = min(1.20, max(0.32, tx - (sx + sw) - 0.06))
-            # 分岐元と接続先の間へ置き、どちらの枠も背景マスクで欠かさない。
+            label_w = min(1.20, tx - (sx + sw) - 0.06)
+            # 縦の分岐線が延びていない側へ避け、接続経路を一切マスクしない。
             label_x = (sx + sw + tx) / 2
-            label_y = end[1]
-        arrow_label(slide, label_x, label_y, edge["label"],
-                    w=label_w, size=8.5)
+            label_y = end[1] + (0.20 if end[1] > points[0][1] + 0.03 else -0.20)
+        size = _fit_single_line("process.flow", f"edges[{edge_index}].label",
+                                edge["label"], label_w, 10.5, 9.5)
+        label_w = text_width_in(edge["label"], size) + 0.02
+        label_h = line_height_in(size, 1.1) + 0.03
+        bounds = (label_x - label_w / 2, label_y - label_h / 2,
+                  label_x + label_w / 2, label_y + label_h / 2)
+        obstacles = [(x, yy, x + w, yy + h) for x, yy, w, h in rects.values()]
+        obstacles.extend(placed_labels)
+        for _other, path in routed:
+            obstacles.extend((min(a[0], b[0]), min(a[1], b[1]),
+                              max(a[0], b[0]), max(a[1], b[1]))
+                             for a, b in zip(path, path[1:]))
+        if (bounds[1] < area.top or bounds[3] > area.bottom
+                or any(_rects_overlap(bounds, obstacle, 0.025) for obstacle in obstacles)):
+            raise FitError("process.flow: 分岐条件を線や工程に重ねず配置できません。"
+                           "条件を短くするかフローを分割してください。")
+        label_box = add_text(slide, bounds[0], bounds[1], label_w, label_h,
+                             edge["label"], size, color=TEXT, spacing=1.1,
+                             align=PP_ALIGN.CENTER, role="compact")
+        label_box.name = f"process:condition:{edge_index}"
+        label_box.text_frame.word_wrap = False
+        placed_labels.append(bounds)
     if spec.get("note"):
         note_line(slide, spec["note"])
 
