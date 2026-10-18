@@ -25,5 +25,30 @@ python slidegen/check_layout.py out/authoring/type-selection.pptx
 ```
 
 提出品質の確認にはPNG化と全ページの一覧・原寸確認も必要です。
+
+## 画像の表示範囲
+
+[image-reading.json](image-reading.json)は、全体の位置を示す図と、操作文字を読む図を分けた4ページ例です。
+
+| ページ | 表示範囲と用途 |
+|---|---|
+| 1 | 架空画面全体を`contain`で表示し、緑枠①の位置を確認 |
+| 2 | 同じ緑枠①の別画像を`contain`で拡大し、Target・Event・Saveを確認 |
+| 3 | 抽象画像を`contain`で表示し、端を残す |
+| 4 | 同じ抽象画像を`cover`で表示し、枠を埋める代わりに上下が切れることを確認 |
+
+`cover`は中央基準のトリミングであり、操作対象へ自動的に寄る機能ではありません。
+必須の文字やボタンが端にある画像には使わず、注目領域を含む画像を別途用意します。
+切り抜きで操作の前提が消えないよう全体図と対応記号を残し、原寸で必要な文字が読めるか確認してください。
+画面はコードで作った図版であり、実在サービスの仕様や操作手順を示しません。
+再生成元は`tools/assets/build_image_examples.py`です。実行には開発用の`rlPyCairo`が必要ですが、
+生成済みPNGは同梱され、通常のPPTX生成に追加依存は不要です。
+
+```powershell
+python slidegen/validate_content.py examples/authoring/image-reading.json
+python slidegen/generate_from_json.py examples/authoring/image-reading.json out/authoring/image-reading.pptx
+python slidegen/check_layout.py out/authoring/image-reading.pptx
+```
+
 選び方は[type選定ガイド](../../docs/type-selection-guide.md)、
 合否とbackend差の扱いは導入済みSkillの`references/visual-acceptance.md`を参照してください。

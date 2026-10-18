@@ -292,6 +292,11 @@ jobs:
           python slidegen/check_layout.py out/authoring/type-selection.pptx
           python .agents/skills/pptxdsl/scripts/render_preview.py out/authoring/type-selection.pptx out/authoring/png --backend libreoffice
           python contact_sheet.py out/authoring/png
+          python slidegen/validate_content.py examples/authoring/image-reading.json
+          python slidegen/generate_from_json.py examples/authoring/image-reading.json out/authoring/image-reading.pptx
+          python slidegen/check_layout.py out/authoring/image-reading.pptx
+          python .agents/skills/pptxdsl/scripts/render_preview.py out/authoring/image-reading.pptx out/authoring/image-reading-png --backend libreoffice
+          python contact_sheet.py out/authoring/image-reading-png
 
       - name: PNGを検証成果物として保存
         uses: actions/upload-artifact@v4

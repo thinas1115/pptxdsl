@@ -94,6 +94,11 @@ def test_archive_and_runtime() -> None:
         _run(runner, task, "generate", str(example), "out/authoring.pptx")
         _run(runner, task, "check", "out/authoring.pptx")
         assert len(Presentation(task / "out/authoring.pptx").slides) == 4
+        image_example = project / "examples/authoring/image-reading.json"
+        _run(runner, task, "validate", str(image_example))
+        _run(runner, task, "generate", str(image_example), "out/image-reading.pptx")
+        _run(runner, task, "check", "out/image-reading.pptx")
+        assert len(Presentation(task / "out/image-reading.pptx").slides) == 4
         _run(runner, task, "validate", "content.json")
         _run(runner, task, "generate", "content.json", "out/deck.pptx")
         _run(runner, task, "check", "out/deck.pptx")
