@@ -554,9 +554,10 @@ PATTERN_DECK = {
             "kicker": "言葉の定義",
             "title": "RTOは、障害発生から業務再開までの目標時間を表す",
             "term": "RTO",
-            "definition": "Recovery Time Objectiveの略です。障害が起きてから、業務やサービスを再開するまでに許容する目標時間を定めます。",
+            "definition": "障害発生から、業務やサービスの再開までに許容する目標時間です。",
             "icon": "icons/fluent/clock.png",
             "points": [
+                {"label": "名称", "text": "Recovery Time Objectiveの略。"},
                 {"label": "起点", "text": "業務やサービスへ影響する障害が発生した時点。"},
                 {"label": "終点", "text": "利用者が必要な業務を再開できる状態へ戻った時点。"},
                 {"label": "設計への反映", "text": "復旧手順、冗長化、バックアップ方式の要求へ落とし込む。"},

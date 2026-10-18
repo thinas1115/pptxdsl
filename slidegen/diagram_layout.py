@@ -36,6 +36,11 @@ MIN_SEG_CLAMP = {
     "bottom": lambda c, p1: (c[0], max(c[1], p1[1] + MIN_SEG)),
 }
 COLORS = {"line": LINE, "navy": NAVY, "accent": ACCENT}
+MAIN_PATH_PT = 1.6
+AUXILIARY_PATH_PT = 1.1
+PATH_LABEL_PT = 10.0
+PATH_LABEL_MIN_PT = 9.0
+PATH_LABEL_MAX_W = 1.9
 
 
 def _linspace(a, b, n):
@@ -694,6 +699,43 @@ class Layout:
                              + "\n  ".join(errors))
 
 
+def _path_label_center(cx, cy, width, height, frames):
+    """線上ラベルのマスクが近傍の配置境界を消さない位置を選ぶ。"""
+    gap = 0.02
+    xs, ys = {cx}, {cy}
+    for left, top, right, bottom in frames:
+        xs.update(edge + direction * (width / 2 + gap)
+                  for edge in (left, right) for direction in (-1, 1))
+        ys.update(edge + direction * (height / 2 + gap)
+                  for edge in (top, bottom) for direction in (-1, 1))
+
+    def clear(x, y):
+        l, r, t, b = x - width / 2, x + width / 2, y - height / 2, y + height / 2
+        for left, top, right, bottom in frames:
+            if t < bottom and b > top and any(l - gap / 2 < edge < r + gap / 2 for edge in (left, right)):
+                return False
+            if l < right and r > left and any(t - gap / 2 < edge < b + gap / 2 for edge in (top, bottom)):
+                return False
+        return True
+
+    candidates = [(x, y) for x in xs for y in ys
+                  if abs(x - cx) <= 0.35 and abs(y - cy) <= 0.25 and clear(x, y)]
+    if not candidates:
+        raise FitError("diagram: 線上ラベルと配置境界を分離できません。"
+                       "ラベルを短くするか、構成を複数ページへ分割してください。")
+    return min(candidates, key=lambda point: ((point[0] - cx) ** 2 + (point[1] - cy) ** 2,
+                                               abs(point[1] - cy), point))
+
+
+def _path_label(slide, layout, cx, cy, text, width):
+    height = line_height_in(PATH_LABEL_PT, 1.1) + EDGE_LABEL_PAD_Y
+    cx, cy = _path_label_center(cx, cy, width, height, list(layout.cont_rect.values()))
+    label = arrow_label(slide, cx, cy, text, w=width,
+                        size=PATH_LABEL_PT, min_size=PATH_LABEL_MIN_PT)
+    label.name = "diagram:path-label"
+    return label
+
+
 def render_diagram(slide, spec, note=None, content_area=None):
     lay = Layout(spec, reserve_note=bool(note), content_area=content_area)
     edges = spec.get("edges", [])
@@ -706,10 +748,12 @@ def render_diagram(slide, spec, note=None, content_area=None):
     # コネクタを先に描き、ノードと実測幅マスク付きラベルを前面に置く。
     # 経路検証は描画前に済ませるため、マスクで不正な貫通を隠すことはない。
     for e, pts in zip(edges, routed):
+        style = {"color": LINE if e.get("dash") else NAVY,
+                 "width": AUXILIARY_PATH_PT if e.get("dash") else MAIN_PATH_PT}
         if len(pts) == 2 and e.get("both"):
-            add_arrow(slide, *pts[0], *pts[1], dash=e.get("dash"), both=True)
+            add_arrow(slide, *pts[0], *pts[1], dash=e.get("dash"), both=True, **style)
         else:
-            route(slide, pts, dash=e.get("dash"))
+            route(slide, pts, dash=e.get("dash"), **style)
     for name, n in spec["nodes"].items():
         cx, cy = lay.node_center(name)
         icon_node(slide, cx, cy, n["icon"], n["title"], n.get("sub"),
@@ -720,19 +764,18 @@ def render_diagram(slide, spec, note=None, content_area=None):
             a, b = max(segs, key=lambda s: abs(s[1][0] - s[0][0])
                        + abs(s[1][1] - s[0][1]))
             mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
-            label_w = min(1.6, max(0.32,
-                          text_width_in(e["label"], 9) + EDGE_LABEL_PAD_X))
+            label_w = min(PATH_LABEL_MAX_W, max(0.32,
+                          text_width_in(e["label"], PATH_LABEL_PT) + EDGE_LABEL_PAD_X))
             # dxとdyの大小で判定する(片方の絶対量だけでの閾値判定だと、
             # 極端に短い垂直区間のdyが閾値未満になり「水平」と誤判定して
             # 横並び用の描画分岐に入ってしまう。実際にr53<->cfの0.005in区間
             # で発生し、ラベルが自ノードのタイトルと重なる不具合になった)。
             horizontal = abs(b[1] - a[1]) < abs(b[0] - a[0])
             seg_len = abs(b[1] - a[1]) if not horizontal else abs(b[0] - a[0])
-            label_h = line_height_in(9, 1.1) + EDGE_LABEL_PAD_Y
+            label_h = line_height_in(PATH_LABEL_PT, 1.1) + EDGE_LABEL_PAD_Y
             if horizontal:
                 # 水平セグメント: 線の上側にずらす(近接ノードとの干渉回避)。
-                arrow_label(slide, mx, my - 0.17, e["label"],
-                           w=label_w, size=9)
+                _path_label(slide, lay, mx, my - 0.17, e["label"], label_w)
             elif seg_len >= label_h:
                 # ノード名のマスク区間を除き、ラベルが収まる最長の空き区間を使う。
                 # 上下ポートはアイコン外周にあるため、単純な線分中央はノード名と
@@ -760,8 +803,7 @@ def render_diagram(slide, spec, note=None, content_area=None):
                               if hi - lo >= label_h]
                 if candidates:
                     _length, safe_y = max(candidates)
-                    arrow_label(slide, mx, safe_y, e["label"],
-                               w=label_w, size=9)
+                    _path_label(slide, lay, mx, safe_y, e["label"], label_w)
                     continue
                 if free:
                     _length, my = max((hi - lo, (lo + hi) / 2)
@@ -773,6 +815,6 @@ def render_diagram(slide, spec, note=None, content_area=None):
                 # 空き区間が不足する場合のフォールバック。
                 lw = label_w
                 cx = mx - lay.icon_r - EDGE_GAP - 0.04 - lw / 2
-                arrow_label(slide, cx, my, e["label"], w=lw, size=9)
+                _path_label(slide, lay, cx, my, e["label"], lw)
     if note:
         note_line(slide, note)
