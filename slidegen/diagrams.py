@@ -73,12 +73,16 @@ def container(slide, x, y, w, h, label, color=LINE, dash=None):
     sp.line.width = Pt(BOUNDARY_LINE_PT)
     sp.shadow.inherit = False
     set_line_dash(sp, dash)
-    label_size, _ = fit_text_or_raise(
+    label_size, label_lines = fit_text_or_raise(
         "container", "label", label, w - 0.3, 0.28, 10.5,
         min_pt=8.5, weight="bold", spacing=1.1, role="natural")
-    label_w = min(w - 0.3, text_width_in(label, label_size, "bold") + 0.08)
-    add_text(slide, x + 0.12, y + 0.06, label_w, 0.28, label, label_size, bold=True,
-             color=color)
+    rendered = "\n".join(label_lines)
+    label_w = min(w - 0.3, text_width_in(rendered, label_size, "bold") + 0.08)
+    label_h = line_height_in(label_size, 1.1) * len(label_lines) + 0.02
+    label_box = add_text(slide, x + 0.12, y + 0.025, label_w, label_h, rendered,
+                         label_size, bold=True, color=color, spacing=1.1, role="natural")
+    label_box.name = "diagram:container-label"
+    label_box.text_frame.word_wrap = False
 
 
 def _masked_node_label(slide, cx, y, text, *, max_w, slot_h, size, min_pt,

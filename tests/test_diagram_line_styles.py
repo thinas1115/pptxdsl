@@ -75,6 +75,14 @@ class DiagramLineStyleTests(unittest.TestCase):
                         self.assertFalse(any(l < edge < r for edge in (left, right)), shape.text)
                     if l < right and r > left:
                         self.assertFalse(any(t < edge < b for edge in (top, bottom)), shape.text)
+            if shape.name == "diagram:container-label":
+                l, t = shape.left.inches, shape.top.inches
+                r, b = l + shape.width.inches, t + shape.height.inches
+                for line in lines:
+                    ll, tt = line.left.inches, line.top.inches
+                    rr, bb = ll + line.width.inches, tt + line.height.inches
+                    self.assertFalse(l < rr and r > ll and t < bb and b > tt,
+                                     f"配置境界名へ通信線が重なる: {shape.text}")
 
     def test_label_clearance_without_shapes_and_explicit_stop(self):
         x, y = _path_label_center(1.01, 2, 0.5, 0.2, [(1, 1, 5, 4)])
