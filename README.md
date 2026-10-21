@@ -26,8 +26,9 @@ cd pptxdsl
 python -m pip install -r requirements.txt
 ```
 
-- Python 3.10以上を前提とします。Windowsでは游ゴシック、非Windowsでは`fontconfig`から検出できる
-  日本語sansフォントを使用します。Noto Sans CJKを推奨します。
+- Python 3.10以上を前提とします。Windowsでは游ゴシック、非Windowsではfontconfigから
+  Noto Sans CJK JPまたはNoto Sans JPを検出します。測定とPPTX指定は同じfamilyへ統一します。
+  可変フォント・TTC・明示指定・再現性の条件は[フォント契約](docs/font-contract.md)を参照してください。
 - 生成結果を再現できるよう、直接・間接依存のバージョンを`requirements.txt`へ固定しています。
 - PPTXの生成にPowerPointは不要です。PNG化と目視確認にだけ使用します。
 - AWS・Fluentアイコンは`slidegen/assets/icons/`へ同梱済みです。
@@ -208,6 +209,12 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 テストや開発ツールはリポジトリルートからmoduleとして実行します。
 単体実行例は`python -m tests.test_check_layout`、ギャラリー生成は
 `python -m tools.gallery.generate_patterns out/pattern_gallery.pptx`です。
+全件実行は失敗後も最後まで続け、各モジュールの成功・失敗・所要時間と、明示された任意検証の
+skip理由を表示します。詳細ログは`out/test-results.json`へ保存します。
+保存先は`python -m tests --report out/test-results-next.json`で変更できます。
+assertを使用する既存テストの最適化実行は拒否します。新規テストには標準のunittestを使い、
+既存テストは対象機能の変更時にモジュール単位でTestCaseへ移行します。
+各モジュールの`python -m tests.test_xxx`入口とプロセス分離は維持します。
 通常のJSON生成・検証は従来のファイル実行とmodule実行の両方に対応します。
 
 ## ライセンス
