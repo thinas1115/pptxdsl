@@ -222,7 +222,9 @@ def s_process(slide, spec, page):
         desc_h = 1.35 if attribute else 1.95
         size, desc_lines = fit_text_or_raise(
             "process", f"steps[{i}].desc", st["desc"],
-            w - 0.34, desc_h, 13.5, min_pt=11.5, spacing=1.2)
+            # LibreOffice 26.2はwrap=Falseでも和欧混在行を再折り返す場合がある。
+            # 計画幅と実際の文字枠の間に余裕を残し、説明が補足欄へ伸びるのを防ぐ。
+            w - 0.34 - 0.12, desc_h, 13.5, min_pt=11.5, spacing=1.2)
         desc_h = len(desc_lines) * line_height_in(size, 1.2) + 0.03
         desc_box = add_text(slide, x + 0.17, y(3.56), w - 0.34, desc_h,
                  "\n".join(desc_lines), size,

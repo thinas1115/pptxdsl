@@ -11,6 +11,7 @@ from slidegen.diagrams2 import s_process
 from slidegen.validate_content import validate
 from tests.fixtures.gallery.content_patterns import PATTERN_DECK
 from tests.fixtures.gallery.content_lead_patterns import LEAD_PATTERN_DECK
+from tests.fixtures.gallery.content_ext import EXTRA_SLIDES
 
 
 def make_deck():
@@ -42,8 +43,10 @@ def make_deck():
                               {"from": "check", "to": "review", "label": "確認済"},
                               {"from": "review", "to": "execute", "label": "承認"},
                               {"from": "review", "to": "revise", "label": "要修正"}]
+    mixed = deepcopy(next(s for s in EXTRA_SLIDES if s["type"] == "process" and "steps" in s))
+    mixed["title"] = "和欧混在の工程説明と担当欄"
     return {"meta": {"title": "工程補足の回帰検証", "footer": "架空の工程による表示検証"},
-            "slides": [serial, short, dense, plain, flow, lead, up]}
+            "slides": [serial, short, dense, plain, flow, lead, up, mixed]}
 
 
 def main(output):

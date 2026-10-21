@@ -11,6 +11,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from slidegen.check_layout import check
 from slidegen.diagrams2 import _fit_process_flow, _rects_overlap, s_process
 from slidegen.layout_fit import FitError
+from slidegen.textfit import text_width_in
 from tools.gallery.generate_process_cases import main, make_deck
 
 
@@ -24,6 +25,13 @@ class ProcessAnnotationTests(unittest.TestCase):
                 shapes = {s.name: s for s in slide.shapes}
                 if "steps" in spec:
                     for i, step in enumerate(spec["steps"]):
+                        desc = shapes[f"process:desc:{i}"]
+                        self.assertFalse(desc.text_frame.word_wrap)
+                        for paragraph in desc.text_frame.paragraphs:
+                            size = paragraph.runs[0].font.size.pt
+                            self.assertGreaterEqual(size, 11.5)
+                            self.assertLessEqual(text_width_in(paragraph.text, size),
+                                                 desc.width / 914400 - .119)
                         key = f"process:attribute-label:{i}"
                         if not step.get("attribute") and not step.get("actor"):
                             self.assertNotIn(key, shapes)
