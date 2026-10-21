@@ -19,6 +19,7 @@ PROJECT_FILES = (
     "docs/type-selection-guide.md", "docs/cover-footer-customization.md",
     "examples/authoring/README.md", "examples/authoring/type-selection.json",
     "examples/authoring/image-reading.json",
+    "examples/authoring/config-checks.json",
     "docs/aws-icon-selection.md",
     "docs/font-contract.md",
     "docs/text-metrics.md",

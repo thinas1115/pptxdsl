@@ -50,5 +50,23 @@ python slidegen/generate_from_json.py examples/authoring/image-reading.json out/
 python slidegen/check_layout.py out/authoring/image-reading.pptx
 ```
 
+## 設定箇所と確認事項の対応
+
+[config-checks.json](config-checks.json)は、Pythonの設定キー・期待値・確認コードを対応づけた1ページ例です。
+左の`replicas`、`health_path`、`timeout_s`を右の同名キーで追えます。
+上の区画から下の区画へ続けて実行すると3つの`assert`が成功します。
+これは設定値の照合例であり、サービスの稼働数・疎通・応答時間を実測した証拠ではありません。
+
+`sections[].code`と`checks[]`に同じ識別子と期待値を書き、行位置や色だけで対応を伝えないようにします。
+新たな座標・行強調フィールドは使いません。コード内の改行・インデントを保ち、
+9.5ptでも収まらない長文は分割案内付きの`FitError`で停止します。
+区画ごとに16行以内でも横幅や高さに収まるとは限らないため、長い実習は別ページへ分けます。
+
+```powershell
+python slidegen/validate_content.py examples/authoring/config-checks.json
+python slidegen/generate_from_json.py examples/authoring/config-checks.json out/authoring/config-checks.pptx
+python slidegen/check_layout.py out/authoring/config-checks.pptx
+```
+
 選び方は[type選定ガイド](../../docs/type-selection-guide.md)、
 合否とbackend差の扱いは導入済みSkillの`references/visual-acceptance.md`を参照してください。
