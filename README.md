@@ -18,6 +18,10 @@ PowerPointで確認・編集できる実物は
 研修資料の構成例は[VLAN基礎研修](examples/training/vlan/README.md)で確認できます。
 [AWSネットワーク資料の入力例](examples/training/aws-network/README.md)も収録しています。
 
+理解度チェックの問題・解答、2〜4選択肢、長い選択肢、leadありの専用ギャラリー（8ページ）は、
+`python -m tools.gallery.generate_knowledge_cases out/knowledge_gallery.pptx`で生成できます。
+同じ内容の問題と正答・解説を隣接ページで比較し、選択肢の列位置と長文の縦並びを確認できます。
+
 ## セットアップ
 
 ```powershell

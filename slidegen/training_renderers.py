@@ -1235,36 +1235,37 @@ def s_code_lab(slide, spec, page):
             add_rect(slide, right_x + 0.44, y + row_h - 0.04,
                      right_w - 0.44, 0.008, RULE)
 
-def _layout_options(question, size, mode, width):
+def _layout_options(question, size, mode, width, columns=None):
     option_size = size - 1.5
-    rows = []
-    current = []
-    current_width = 0.0
+    columns = columns or len(question["options"])
+    column_w = (width - .18 * (columns - 1)) / columns
+    # 設問をまたいでA/B/Cの列位置を共有する。正答の太字も先に測り、
+    # 問題・解答モードや収容時の縮小で横並び/縦並びが変わらないようにする。
+    horizontal = all(
+        "\n" not in option and text_width_in(
+            f"{chr(65 + i)}. {option}", 13.5,
+            "bold" if i == question["answer"] else "regular") + .12 <= column_w
+        for i, option in enumerate(question["options"]))
+    item_width = column_w if horizontal else width
+    items = []
     for option_index, option in enumerate(question["options"]):
         correct = option_index == question["answer"]
         weight = "bold" if mode == "answers" and correct else "regular"
         option_text = f"{chr(65 + option_index)}. {option}"
-        lines = wrap_compact(option_text, width, option_size, weight)
-        natural_width = max(
-            text_width_in(line or " ", option_size, weight) for line in lines
-        ) + 0.28
-        item_width = min(width, natural_width)
+        _, lines = fit_text_or_raise(
+            "knowledge_check", f"options[{option_index}]", option_text,
+            item_width - .12, 5.0, option_size, min_pt=option_size,
+            weight=weight, spacing=1.08, role="compact")
         item_height = max(
             0.28, len(lines) * line_height_in(option_size, 1.08) + 0.02
         )
-        if current and current_width + 0.18 + item_width > width:
-            rows.append(current)
-            current = []
-            current_width = 0.0
-        current.append({
+        items.append({
             "index": option_index,
             "text": "\n".join(lines),
             "width": item_width,
             "height": item_height,
         })
-        current_width += (0.18 if len(current) > 1 else 0.0) + item_width
-    if current:
-        rows.append(current)
+    rows = [items] if horizontal else [[item] for item in items]
     height = sum(max(item["height"] for item in row) for row in rows)
     height += max(0, len(rows) - 1) * 0.05
     return rows, height
@@ -1272,6 +1273,7 @@ def _layout_options(question, size, mode, width):
 
 def _fit_questions(area, questions, mode):
     available = area.height - 0.36
+    columns = max(len(question["options"]) for question in questions)
 
     def measure(size, gap):
         heights = []
@@ -1279,7 +1281,7 @@ def _fit_questions(area, questions, mode):
             question_h = len(wrap_text(question["question"], 10.25, size, "bold")) \
                 * line_height_in(size, 1.12)
             _option_rows, option_h = _layout_options(
-                question, size, mode, 10.85)
+                question, size, mode, 10.85, columns)
             explanation_h = 0.0
             if mode == "answers":
                 explanation_h = len(wrap_text(
@@ -1289,16 +1291,24 @@ def _fit_questions(area, questions, mode):
         return heights, sum(heights) + max(0, len(heights) - 1) * gap
 
     def candidates():
-        for gap in stepped(0.24, 0.10, 0.035):
-            _heights, used = measure(15.0, gap)
-            yield "standard" if gap == 0.24 else "gap", {"size": 15.0, "gap": gap}, used
-        for size in stepped(14.5, 11.5, 0.5):
-            _heights, used = measure(size, 0.10)
-            yield "font", {"size": size, "gap": 0.10}, used
+        profiles = [("standard" if gap == .24 else "gap", 15.0, gap)
+                    for gap in stepped(.24, .10, .035)]
+        profiles += [("font", size, .10) for size in stepped(14.5, 11.5, .5)]
+        generated, width_error = False, None
+        for stage, size, gap in profiles:
+            try:
+                _heights, used = measure(size, gap)
+            except FitError as error:
+                width_error = error
+                continue
+            generated = True
+            yield stage, {"size": size, "gap": gap}, used
+        if not generated and width_error:
+            raise FitError(f"{width_error} 設問を分割してください。") from None
 
     fitted = select_fit(
         "knowledge_check", available, candidates(),
-        guidance="設問を減らすか、選択肢と解説を短くしてください。")
+        guidance="設問を分割するか、選択肢と解説を短くしてください。")
     heights, _used = measure(fitted.values["size"], fitted.values["gap"])
     return fitted, heights
 
@@ -1308,6 +1318,7 @@ def s_knowledge_check(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     questions = spec["questions"]
     mode = spec["mode"]
+    columns = max(len(question["options"]) for question in questions)
     fitted, heights = _fit_questions(area, questions, mode)
     size, gap = fitted.values["size"], fitted.values["gap"]
     top = area.top + 0.22
@@ -1332,24 +1343,26 @@ def s_knowledge_check(slide, spec, page):
             question["question"], 10.85, 0.56, size,
             min_pt=11.5, weight="bold", spacing=1.12, role="natural")
         q_h = len(question_lines) * line_height_in(question_size, 1.12)
-        add_text(slide, x, top, 10.85, q_h + 0.04,
+        question_box = add_text(slide, x, top, 10.85, q_h + 0.04,
                  "\n".join(question_lines), question_size,
-                 bold=True, color=NAVY, spacing=1.12)
+                 bold=True, color=NAVY, spacing=1.12, wrap=False)
+        question_box.name = f"knowledge:question:{index}"
         option_y = top + q_h + 0.10
         option_rows, option_h = _layout_options(
-            question, size, mode, 10.85)
+            question, size, mode, 10.85, columns)
         for row in option_rows:
             option_x = x
             option_row_h = max(item["height"] for item in row)
             for item in row:
                 correct = item["index"] == question["answer"]
                 option_color = ACCENT if mode == "answers" and correct else GRAY
-                add_text(
+                option_box = add_text(
                     slide, option_x, option_y, item["width"], item["height"],
                     item["text"], size - 1.5,
                     bold=mode == "answers" and correct,
-                    color=option_color, spacing=1.08, role="body",
+                    color=option_color, spacing=1.08, role="compact", wrap=False,
                 )
+                option_box.name = f"knowledge:option:{index}:{item['index']}"
                 option_x += item["width"] + 0.18
             option_y += option_row_h + 0.05
         if mode == "answers":
@@ -1360,9 +1373,10 @@ def s_knowledge_check(slide, spec, page):
                 "knowledge_check", f"questions[{index}].explanation",
                 question["explanation"], 9.90, row_h - (explanation_y - top),
                 size - 2.0, min_pt=9.5, spacing=1.10, role="body")
-            add_text(slide, x + 0.68, explanation_y, 9.90,
+            explanation_box = add_text(slide, x + 0.68, explanation_y, 9.90,
                      row_h - (explanation_y - top), "\n".join(exp_lines),
-                     exp_size, color=TEXT, spacing=1.10)
+                     exp_size, color=TEXT, spacing=1.10, wrap=False)
+            explanation_box.name = f"knowledge:explanation:{index}"
         if index < len(questions) - 1:
             add_rect(slide, x, top + row_h + gap / 2,
                      BODY_W - 0.72, 0.008, RULE)
