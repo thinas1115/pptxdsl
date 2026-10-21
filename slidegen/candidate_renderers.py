@@ -37,14 +37,14 @@ from slidegen.quality_markers import (
     SEQUENCE_SELF_ROUTE_PREFIX,
     SURFACE_ON_CANVAS_PREFIX,
 )
-from slidegen.textfit import text_width_in, wrap_natural
+from slidegen.textfit import text_width_in, wrap_compact, wrap_natural
 
 
 # 参照デザインから採取したswimlane本文用パレット。背景とヘッダーは全体テーマを使う。
 SWIMLANE_ACCENT = RGBColor(0x10, 0x84, 0x90)
 SWIMLANE_NAVY = RGBColor(0x0F, 0x2A, 0x46)
 SWIMLANE_LIGHT = RGBColor(0xEA, 0xF0, 0xEF)
-SWIMLANE_RULE = RGBColor(0xBB, 0xBA, 0xBA)
+SWIMLANE_RULE = RGBColor(0x8F, 0x97, 0x9B)
 
 
 def _flatten_shape(shape):
@@ -482,7 +482,7 @@ def _swimlane_step_rects(spec, x0, y0, stage_w, lane_h):
         elif len(spec["stages"]) <= 3:
             max_node_w = 1.92
         else:
-            max_node_w = 1.55
+            max_node_w = min(2.20, stage_w - 0.28)
         available_w = stage_w - 0.28 - gap * (len(steps) - 1)
         widths = [
             min(max_node_w, max(
@@ -524,13 +524,30 @@ def _swimlane_header(slide, spec):
     return header(slide, spec["kicker"], spec["title"], spec.get("lead"))
 
 
+def _swimlane_label(slide, field, x, y, w, h, text, max_pt, min_pt):
+    """標準文字で2行へ折り返してから縮小し、最小値でも入らなければ停止する。"""
+    try:
+        size, lines = fit_text_or_raise(
+            "swimlane_flow", field, text, w, h - 0.04, max_pt,
+            min_pt=min_pt, weight="bold", spacing=1.10, wrapper=wrap_compact,
+            line_validator=lambda candidate: len(candidate) <= 2,
+            role="compact")
+    except FitError as error:
+        raise FitError(f"{error} 担当・工程を複数スライドへ分割してください。") from None
+    return add_text(slide, x, y, w, h, "\n".join(lines), size,
+                    bold=True, color=SWIMLANE_NAVY, align=PP_ALIGN.CENTER,
+                    anchor=MSO_ANCHOR.MIDDLE, spacing=1.10, wrap=False)
+
+
 def s_swimlane(slide, spec, page):
     """担当レーンと工程フェーズを持つ業務フローを描く。"""
     area = _swimlane_header(slide, spec)
     lanes, stages = spec["lanes"], spec["stages"]
     frame_x, frame_w = 0.37, 12.59
     top = area.top + 0.06
-    stage_h, lane_label_w = 0.37, 1.27
+    stage_h = 0.37
+    lane_label_w = min(1.85, max(1.27, max(
+        text_width_in(lane["label"], 13.0, "bold") + 0.22 for lane in lanes)))
     stage_index = {stage["id"]: index for index, stage in enumerate(stages)}
     step_by_id = {step["id"]: step for step in spec["steps"]}
     has_feedback = any(
@@ -570,9 +587,10 @@ def s_swimlane(slide, spec, page):
         shape.name = (
             f"{SURFACE_ON_CANVAS_PREFIX}swimlane-stage:{stage['id']}")
         _flatten_shape(shape)
-        add_text(slide, x + 0.14, top + 0.06, stage_w - 0.28, 0.26,
-                 stage["label"], 10.5, bold=True, color=SWIMLANE_NAVY,
-                 align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+        caption = _swimlane_label(slide, f"stages[{index}].label",
+                                 x + 0.14, top + 0.025, stage_w - 0.28, 0.32,
+                                 stage["label"], 10.5, 9.5)
+        caption.name = f"swimlane:stage-label:{stage['id']}"
     if show_line_legend:
         legend_x = frame_x + 0.08
         add_text(slide, legend_x, top + 0.01, 0.28, 0.18,
@@ -593,33 +611,21 @@ def s_swimlane(slide, spec, page):
     lane_index = {lane["id"]: index for index, lane in enumerate(lanes)}
     for index, lane in enumerate(lanes):
         y = lane_y0 + index * lane_h
-        _flat_rect(slide, frame_x, y, lane_label_w, lane_h, SWIMLANE_LIGHT)
-        _flat_rect(slide, x0, y, frame_w - lane_label_w, lane_h, CANVAS)
+        label_bg = _flat_rect(slide, frame_x, y, lane_label_w, lane_h, SWIMLANE_LIGHT)
+        label_bg.name = f"swimlane:lane-background:label:{lane['id']}"
+        canvas_bg = _flat_rect(slide, x0, y, frame_w - lane_label_w, lane_h, CANVAS)
+        canvas_bg.name = f"swimlane:lane-background:canvas:{lane['id']}"
         lane_text_w = lane_label_w - 0.22
-        lane_font = 13.0
-        while (lane_font > 8.0
-               and text_width_in(lane["label"], lane_font, "bold") > lane_text_w):
-            lane_font -= 0.5
-        if text_width_in(lane["label"], lane_font, "bold") <= lane_text_w:
-            lane_lines = [lane["label"]]
-        else:
-            lane_font = 12.0
-            lane_lines = wrap_natural(
-                lane["label"], lane_text_w, lane_font, "bold")
-            while len(lane_lines) > 2 and lane_font > 8.0:
-                lane_font -= 0.5
-                lane_lines = wrap_natural(
-                    lane["label"], lane_text_w, lane_font, "bold")
-        if len(lane_lines) > 2:
-            raise FitError(
-                f"swimlane: lanes[{index}].label を2行以内へ収容できません。"
-                "担当名を短くしてください。")
-        add_text(slide, frame_x + 0.12, y, lane_text_w, lane_h,
-                 "\n".join(lane_lines), lane_font, bold=True,
-                 color=SWIMLANE_NAVY,
-                 anchor=MSO_ANCHOR.MIDDLE)
-        plain_line(slide, frame_x, y + lane_h, frame_x + frame_w, y + lane_h,
-                   color=SWIMLANE_RULE, width=0.65)
+        label = _swimlane_label(slide, f"lanes[{index}].label",
+                               frame_x + 0.12, y, lane_text_w, lane_h,
+                               lane["label"], 13.0, 10.5)
+        label.name = f"swimlane:lane-label:{lane['id']}"
+    # 後続レーンの背景で前レーンの下罫線が隠れないよう、境界は全背景の後に描く。
+    for index, lane in enumerate(lanes):
+        y = lane_y0 + (index + 1) * lane_h
+        boundary = plain_line(slide, frame_x, y, frame_x + frame_w, y,
+                              color=SWIMLANE_RULE, width=0.8)
+        boundary.name = f"swimlane:lane-boundary:{lane['id']}"
     # レーン背景が矢羽根の下辺を覆うため、工程帯の境界を最後に引き直す。
     plain_line(slide, x0, lane_y0, frame_x + frame_w, lane_y0,
                color=SWIMLANE_RULE, width=0.85)
@@ -630,7 +636,7 @@ def s_swimlane(slide, spec, page):
         plain_line(slide, x, lane_y0, x, lane_y0 + len(lanes) * lane_h,
                    color=SWIMLANE_RULE, width=0.55)
     # 接続線を先に描き、ノードを上から重ねて線の貫通を隠す。
-    for edge in spec["edges"]:
+    for edge_index, edge in enumerate(spec["edges"]):
         sx, sy, sw, sh = rects[edge["from"]]
         tx, ty, tw, th = rects[edge["to"]]
         source_stage = stage_index[step_by_id[edge["from"]]["stage"]]
@@ -674,35 +680,32 @@ def s_swimlane(slide, spec, page):
             if channel_y > body_bottom - 0.08:
                 raise FitError("swimlane: 差戻し線の配線領域が不足しています。工程を分割してください。")
             start = (sx + sw / 2, sy + sh)
-            end = (tx + tw / 2, ty + th)
-            points = [start, (start[0], channel_y), (end[0], channel_y), end]
+            end = (tx + tw / 2, ty)
+            source_channel = x0 + (source_stage + 1) * stage_w - 0.08
+            target_channel = x0 + target_stage * stage_w + 0.08
+            points = [start, (start[0], start[1] + 0.035),
+                      (source_channel, start[1] + 0.035),
+                      (source_channel, channel_y), (target_channel, channel_y),
+                      (target_channel, end[1] - 0.035),
+                      (end[0], end[1] - 0.035), end]
+        before_route = len(slide.shapes)
         route(slide, points,
               dash="dash" if edge.get("kind") == "feedback" else None,
               width=1.10, color=SWIMLANE_ACCENT)
+        for part, shape in enumerate(list(slide.shapes)[before_route:]):
+            shape.name = f"swimlane:edge:{edge_index}:{part}"
     for index, step in enumerate(spec["steps"]):
         x, y, w, h = rects[step["id"]]
-        _flat_rect(slide, x, y, w, h,
+        box = _flat_rect(slide, x, y, w, h,
                    SWIMLANE_LIGHT if step.get("style") == "accent"
                    else SURFACE,
                    line=SWIMLANE_ACCENT)
+        box.name = f"swimlane:step:{step['id']}"
         display_name = _swimlane_step_label(step, index)
-        one_line_size = min(11.5, fitted.values["font"])
-        text_x = x + 0.06
-        text_w = w - 0.12
-        while (one_line_size >= 7.5
-               and text_width_in(display_name, one_line_size, "bold") > text_w):
-            one_line_size -= 0.5
-        if one_line_size >= 7.5:
-            add_text(slide, text_x, y, text_w, h, display_name,
-                     one_line_size, bold=True, color=SWIMLANE_NAVY,
-                     align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-        else:
-            _text_in_box(slide, "swimlane_flow", f"steps[{index}].name",
-                         text_x, y, text_w, h, display_name,
-                         fitted.values["font"], 7.5, bold=True,
-                         color=SWIMLANE_NAVY,
-                         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
-                         role="compact")
+        label = _swimlane_label(slide, f"steps[{index}].name",
+                               x + 0.06, y, w - 0.12, h, display_name,
+                               max(9.5, min(11.5, fitted.values["font"])), 9.5)
+        label.name = f"swimlane:step-label:{step['id']}"
 def s_sequence(slide, spec, page):
     """参加者間のメッセージを上から下へ時系列表示する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
