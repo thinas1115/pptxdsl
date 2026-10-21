@@ -4,10 +4,9 @@
 貫通しうるため、ウェイポイント明示のroute()で配線レーンを決める。
 """
 from pptx.enum.shapes import MSO_CONNECTOR
-from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
-from slidegen.diagrams import LINE, add_arrow
+from slidegen.diagrams import LINE, add_arrow, set_line_dash
 
 
 def plain_line(slide, x1, y1, x2, y2, *, color=LINE, width=1.25, dash=None):
@@ -16,9 +15,7 @@ def plain_line(slide, x1, y1, x2, y2, *, color=LINE, width=1.25, dash=None):
     conn.line.color.rgb = color
     conn.line.width = Pt(width)
     conn.shadow.inherit = False
-    if dash:
-        ln = conn.line._get_or_add_ln()
-        ln.insert(0, ln.makeelement(qn("a:prstDash"), {"val": dash}))
+    set_line_dash(conn, dash)
     return conn
 
 
