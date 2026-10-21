@@ -23,14 +23,19 @@ python <Skill>/scripts/run.py sheet out/png
 
 `generate`の出力先、`render`のPNG保存先は省略できない。`render`は`--backend`、`--width`、
 `--slides`を、`generate`は`--cover-footer-config`を受け付ける。
+回帰用PNG検査仕様がある場合は、`python <Skill>/scripts/run.py raster out/raster-checks.json out/png --report out/raster-report.json`も使える。
+合否・目視・人の承認は[PNGの合否基準](visual-acceptance.md)に従って別々に記録する。
 
 ## 前提条件と停止条件
 
 Python 3.10以上、`project/requirements.txt`のPython依存、実行環境で利用できる日本語フォントが必要。
 必要な依存だけでなくバージョンも確認し、環境への導入が許可されていれば同梱の依存一覧を使う。
 ツールの配置やインターネット接続を仮定しない。導入できない場合は不足を報告して停止する。
-非Windowsではfontconfigと日本語sansフォント、または`PPTXDSL_FONT_REGULAR`、
-`PPTXDSL_FONT_MEDIUM`、`PPTXDSL_FONT_BOLD`で指定する利用可能なフォントファイルが必要。
+Windowsでは游ゴシック、非WindowsではfontconfigとNoto Sans CJK JP/Noto Sans JP、
+または`PPTXDSL_FONT_REGULAR`と`PPTXDSL_FONT_BOLD`で明示する対応フォントが必要。
+可変フォントはRegular/Boldを明示選択する。詳細は同梱の`project/docs/font-contract.md`を読み、
+`python <Skill>/scripts/run.py fonts`でfamily・style・indexを確認する。
+同じフォントをPPTXの表示・レンダリング環境にも用意し、置換が起きた出力を確認済みとしない。
 
 PNG化にはPowerPoint、またはLibreOfficeとpdftoppm/PyMuPDFなどが必要。
 `probe`の結果を確認し、未対応の環境では利用可能な代替手段を調査する。
