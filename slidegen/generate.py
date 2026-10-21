@@ -25,6 +25,8 @@ from slidegen.layout_fit import (
 )
 from slidegen.textfit import line_height_in, text_width_in, wrap_natural, wrap_text
 from slidegen.slide_footnote import fit_footnote
+from slidegen.text_roles import set_text_role
+from slidegen.font_config import font_family
 
 # 入力デッキは生成入口から設定する。回帰用データを初期値として読み込まない。
 DECK = {"meta": {}, "slides": []}
@@ -42,7 +44,6 @@ SURFACE = RGBColor(0xFA, 0xF9, 0xF5)
 ZEBRA = RGBColor(0xEC, 0xEA, 0xE4)
 CANVAS = RGBColor(0xF7, 0xF5, 0xEF)
 RULE = RGBColor(0xD1, 0xCF, 0xC8)
-FONT = "Yu Gothic"
 SLIDE_W, SLIDE_H = 13.333, 7.5
 MARGIN = 0.55
 BODY_W = SLIDE_W - MARGIN * 2
@@ -86,7 +87,8 @@ def set_run(run, size, *, bold=False, color=TEXT):
     run.font.size = Pt(size)
     run.font.bold = bold
     run.font.color.rgb = color
-    run.font.name = FONT
+    family = font_family()
+    run.font.name = family
     rPr = run._r.get_or_add_rPr()
     rPr.set("lang", "ja-JP")
     for tag in ("a:ea", "a:cs"):
@@ -94,14 +96,15 @@ def set_run(run, size, *, bold=False, color=TEXT):
         if el is None:
             el = rPr.makeelement(qn(tag), {})
             rPr.append(el)
-        el.set("typeface", FONT)
+        el.set("typeface", family)
 
 
 def add_text(slide, x, y, w, h, text, size, *, bold=False, color=TEXT,
              align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP, spacing=1.3,
-             wrap=True):
+             wrap=True, role=None):
     tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
     tf = tb.text_frame
+    set_text_role(tf, role or ("natural" if bold else "body"))
     tf.word_wrap = wrap
     tf.vertical_anchor = anchor
     tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
@@ -600,9 +603,20 @@ def _fit_table(rows, widths, avail):
     return fitted, row_hs
 
 
+_TABLE_NUMBER = re.compile(r"[+\-−]?(?:0|[1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+)(?:\.[0-9]+)?%?")
+
+
+def _table_column_alignments(columns, rows):
+    """項目名列を保ち、全セルが数値表記の本文列だけ末尾を揃える。"""
+    return [PP_ALIGN.RIGHT if index > 0 and rows
+            and all(_TABLE_NUMBER.fullmatch(row[index]) for row in rows)
+            else PP_ALIGN.LEFT for index in range(len(columns))]
+
+
 def s_table(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     cols, rows = spec["columns"], spec["rows"]
+    alignments = _table_column_alignments(cols, rows)
     widths = spec.get("col_widths") or _auto_table_widths(cols, rows)
     assert abs(sum(widths) - BODY_W) < 0.6, f"列幅合計={sum(widths)}"
     hdr_h = TABLE_HEADER_H
@@ -630,28 +644,29 @@ def s_table(slide, spec, page):
             "table", f"columns[{j}]", name, widths[j] - 0.18, hdr_h - 0.08,
             size, min_pt=10.5, weight="bold", spacing=1.15)
         _cell(table.cell(0, j), name, header_size, bold=True, color=WHITE, fill=NAVY,
-              center=False)
+              alignment=alignments[j])
     for i, row in enumerate(rows):
         fill = SURFACE if i % 2 else ZEBRA
         for j, val in enumerate(row):
             _cell(table.cell(i + 1, j), val, size,
                   bold=(j == 0), color=NAVY if j == 0 else TEXT, fill=fill,
-                  center=False)
+                  alignment=alignments[j])
     if spec.get("note"):
         note_line(slide, spec["note"], spec.get("note_link"))
 
 
-def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=False):
+def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=False, alignment=None):
     cell.fill.solid()
     cell.fill.fore_color.rgb = fill
     cell.vertical_anchor = MSO_ANCHOR.MIDDLE
     cell.margin_left = cell.margin_right = Inches(0.09)
     cell.margin_top = cell.margin_bottom = Inches(0.04)
     tf = cell.text_frame
+    set_text_role(tf, "compact")
     tf.word_wrap = True
     for i, line in enumerate(text.split("\n")):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.alignment = PP_ALIGN.CENTER if center else PP_ALIGN.LEFT
+        p.alignment = alignment if alignment is not None else PP_ALIGN.CENTER if center else PP_ALIGN.LEFT
         p.line_spacing = 1.15
         set_run(p.add_run(), size, bold=bold, color=color)
         p.runs[0].text = line
@@ -726,42 +741,10 @@ def s_chart(slide, spec, page):
         raise FitError(
             "chart: 描画可能範囲はカテゴリ1〜12件、系列1〜4件です。"
             "カテゴリまたは系列を減らしてください。")
-    _s_chart_modern(slide, spec, area, categories, series, kind)
+    from slidegen.chart_renderer import render_chart
+    render_chart(slide, spec["chart"], area)
     if spec.get("note"):
         note_line(slide, spec["note"])
-
-
-def _s_chart_modern(slide, spec, area, categories, series, kind):
-    show_legend = spec["chart"].get("show_legend", len(series) > 1)
-    bounds = _modern_chart_bounds(area, show_legend=show_legend)
-    palette = _modern_chart_palette(len(series))
-    if kind == "bar":
-        _modern_bar_chart(slide, bounds, categories, series, palette, stacked=False)
-    elif kind == "stacked_bar":
-        _modern_bar_chart(slide, bounds, categories, series, palette, stacked=True)
-    elif kind == "column":
-        _modern_column_chart(slide, bounds, categories, series, palette, stacked=False)
-    elif kind == "stacked_column":
-        _modern_column_chart(slide, bounds, categories, series, palette, stacked=True)
-    elif kind == "line":
-        _modern_line_chart(slide, bounds, categories, series, palette)
-    if show_legend:
-        _modern_legend(slide, bounds, series, palette)
-
-
-def _modern_chart_palette(count):
-    return [ACCENT, NAVY, CORAL, GRAY][:count]
-
-
-def _modern_chart_bounds(area, *, show_legend):
-    legend_h = 0.42 if show_legend else 0.0
-    return {
-        "x": 0.95,
-        "y": area.top + 0.25,
-        "w": 11.55,
-        "h": max(2.65, area.height - 0.62 - legend_h),
-        "legend_h": legend_h,
-    }
 
 
 def _chart_line(slide, x1, y1, x2, y2, color=RULE, width=0.8):
@@ -782,162 +765,6 @@ def _chart_dot(slide, x, y, color, size=0.08, *, line_color=None):
     dot.line.color.rgb = line_color or color
     dot.line.width = Pt(0.6)
     return dot
-
-
-def _format_chart_value(value):
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    if isinstance(value, float):
-        return f"{value:.1f}"
-    return str(value)
-
-
-def _modern_axis_scale(values):
-    vmax = max([0.0] + [float(v) for v in values])
-    if vmax <= 0:
-        return 1.0, [0, 0.25, 0.5, 0.75, 1.0]
-    raw = vmax / 4
-    magnitude = 10 ** math.floor(math.log10(raw))
-    step = next(s * magnitude for s in (1, 2, 5, 10) if s * magnitude >= raw)
-    axis_max = step * 4
-    return axis_max, [step * i for i in range(5)]
-
-
-def _all_values(series, *, stacked, category_count):
-    if stacked:
-        return [
-            sum(float(vals[i]) for _, vals in series)
-            for i in range(category_count)
-        ]
-    return [float(v) for _, vals in series for v in vals]
-
-
-def _modern_value_axis(slide, plot_x, plot_y, plot_w, plot_h, axis_max, ticks):
-    for tick in ticks:
-        ratio = 0 if axis_max == 0 else tick / axis_max
-        y = plot_y + plot_h - plot_h * ratio
-        _chart_line(slide, plot_x, y, plot_x + plot_w, y, RULE, 0.55)
-        add_text(slide, plot_x - 0.46, y - 0.09, 0.36, 0.18,
-                 _format_chart_value(tick), 7.8, color=GRAY, align=PP_ALIGN.RIGHT)
-    _chart_line(slide, plot_x, plot_y, plot_x, plot_y + plot_h, GRAY, 0.8)
-    _chart_line(slide, plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h, GRAY, 0.8)
-
-
-def _modern_horizontal_axis(slide, plot_x, plot_y, plot_w, plot_h, axis_max, ticks):
-    for tick in ticks:
-        ratio = 0 if axis_max == 0 else tick / axis_max
-        x = plot_x + plot_w * ratio
-        _chart_line(slide, x, plot_y, x, plot_y + plot_h, RULE, 0.55)
-        add_text(slide, x - 0.18, plot_y + plot_h + 0.08, 0.36, 0.18,
-                 _format_chart_value(tick), 7.8, color=GRAY, align=PP_ALIGN.CENTER)
-    _chart_line(slide, plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h, GRAY, 0.8)
-
-
-def _modern_bar_chart(slide, bounds, categories, series, palette, *, stacked):
-    cat_count = len(categories)
-    values = _all_values(series, stacked=stacked, category_count=cat_count)
-    axis_max, ticks = _modern_axis_scale(values)
-    label_w = 1.52
-    plot_x = bounds["x"] + label_w + 0.20
-    plot_y = bounds["y"] + 0.12
-    plot_w = bounds["w"] - label_w - 0.35
-    plot_h = bounds["h"] - 0.18
-    row_h = plot_h / cat_count
-    _modern_horizontal_axis(slide, plot_x, plot_y, plot_w, plot_h, axis_max, ticks)
-    for i, cat in enumerate(categories):
-        y_mid = plot_y + row_h * i + row_h / 2
-        add_text(slide, bounds["x"], y_mid - 0.15, label_w, 0.30,
-                 str(cat), 9.4, bold=True, color=NAVY, align=PP_ALIGN.RIGHT)
-        if stacked:
-            x_cursor = plot_x
-            for sidx, (_, vals) in enumerate(series):
-                val = float(vals[i])
-                bw = plot_w * val / axis_max if axis_max else 0
-                add_rect(slide, x_cursor, y_mid - 0.13, max(0.02, bw), 0.26, palette[sidx])
-                if bw > 0.42:
-                    add_text(slide, x_cursor + 0.04, y_mid - 0.10, bw - 0.08, 0.20,
-                             _format_chart_value(val), 7.8, bold=True, color=WHITE,
-                             align=PP_ALIGN.CENTER)
-                x_cursor += bw
-        else:
-            bar_gap = 0.04
-            bar_h = min(0.22, (row_h - 0.16) / len(series) - bar_gap)
-            group_y = y_mid - (bar_h * len(series) + bar_gap * (len(series) - 1)) / 2
-            for sidx, (_, vals) in enumerate(series):
-                val = float(vals[i])
-                y = group_y + sidx * (bar_h + bar_gap)
-                bw = plot_w * val / axis_max if axis_max else 0
-                add_rect(slide, plot_x, y, max(0.02, bw), bar_h, palette[sidx])
-                add_text(slide, plot_x + bw + 0.06, y - 0.02, 0.56, bar_h + 0.04,
-                         _format_chart_value(val), 7.6, color=GRAY)
-
-
-def _modern_column_chart(slide, bounds, categories, series, palette, *, stacked):
-    cat_count = len(categories)
-    values = _all_values(series, stacked=stacked, category_count=cat_count)
-    axis_max, ticks = _modern_axis_scale(values)
-    plot_x = bounds["x"] + 0.60
-    plot_y = bounds["y"] + 0.12
-    plot_w = bounds["w"] - 0.78
-    plot_h = bounds["h"] - 0.56
-    _modern_value_axis(slide, plot_x, plot_y, plot_w, plot_h, axis_max, ticks)
-    cluster_w = plot_w / cat_count
-    for i, cat in enumerate(categories):
-        x0 = plot_x + cluster_w * i
-        add_text(slide, x0 + 0.03, plot_y + plot_h + 0.10, cluster_w - 0.06, 0.26,
-                 str(cat), 8.2, color=GRAY, align=PP_ALIGN.CENTER)
-        if stacked:
-            bar_w = min(0.58, cluster_w * 0.44)
-            x = x0 + (cluster_w - bar_w) / 2
-            y_base = plot_y + plot_h
-            for sidx, (_, vals) in enumerate(series):
-                val = float(vals[i])
-                h = plot_h * val / axis_max if axis_max else 0
-                add_rect(slide, x, y_base - h, bar_w, max(0.02, h), palette[sidx])
-                y_base -= h
-        else:
-            gap = 0.035
-            bar_w = min(0.28, (cluster_w * 0.64 - gap * (len(series) - 1)) / len(series))
-            group_w = bar_w * len(series) + gap * (len(series) - 1)
-            for sidx, (_, vals) in enumerate(series):
-                val = float(vals[i])
-                h = plot_h * val / axis_max if axis_max else 0
-                x = x0 + (cluster_w - group_w) / 2 + sidx * (bar_w + gap)
-                add_rect(slide, x, plot_y + plot_h - h, bar_w, max(0.02, h), palette[sidx])
-
-
-def _modern_line_chart(slide, bounds, categories, series, palette):
-    values = _all_values(series, stacked=False, category_count=len(categories))
-    axis_max, ticks = _modern_axis_scale(values)
-    plot_x = bounds["x"] + 0.60
-    plot_y = bounds["y"] + 0.12
-    plot_w = bounds["w"] - 0.78
-    plot_h = bounds["h"] - 0.56
-    _modern_value_axis(slide, plot_x, plot_y, plot_w, plot_h, axis_max, ticks)
-    step = plot_w / max(1, len(categories) - 1)
-    for i, cat in enumerate(categories):
-        x = plot_x + step * i if len(categories) > 1 else plot_x + plot_w / 2
-        add_text(slide, x - 0.34, plot_y + plot_h + 0.10, 0.68, 0.24,
-                 str(cat), 8.0, color=GRAY, align=PP_ALIGN.CENTER)
-    for sidx, (_, vals) in enumerate(series):
-        points = []
-        for i, val in enumerate(vals):
-            x = plot_x + step * i if len(categories) > 1 else plot_x + plot_w / 2
-            y = plot_y + plot_h - plot_h * float(val) / axis_max
-            points.append((x, y))
-        for (x1, y1), (x2, y2) in zip(points, points[1:]):
-            _chart_line(slide, x1, y1, x2, y2, palette[sidx], 1.8)
-        for x, y in points:
-            _chart_dot(slide, x, y, palette[sidx], 0.10, line_color=WHITE)
-
-
-def _modern_legend(slide, bounds, series, palette):
-    y = bounds["y"] + bounds["h"] + 0.20
-    x = bounds["x"] + 0.62
-    for idx, (name, _) in enumerate(series):
-        lx = x + idx * 2.05
-        add_rect(slide, lx, y + 0.07, 0.12, 0.12, palette[idx])
-        add_text(slide, lx + 0.18, y, 1.72, 0.26, name, 8.2, color=GRAY)
 
 
 RENDER = {"title": s_title, "section_divider": s_section_divider,
