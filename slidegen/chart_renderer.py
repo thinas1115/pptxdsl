@@ -89,7 +89,9 @@ def _legend(plan, names, width, gap):
     entries, row, cursor, row_h = [], 0, 0.0, 0.0
     heights = []
     for index, name in enumerate(names):
-        label_w = min(2.8, max(0.5, text_width_in(name, plan.size)))
+        # 互換Officeではwrap=Falseでも実測幅ちょうどの系列名が再改行される。
+        # 語尾の単位を次行へ送らないよう、文字幅に組版差の余裕を持たせる。
+        label_w = min(2.8, max(0.5, text_width_in(name, plan.size) + 0.12))
         text, height = _wrapped(name, label_w, plan.size)
         item_w = label_w + 0.22 + gap
         if cursor and cursor + item_w > width:

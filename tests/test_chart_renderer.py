@@ -119,6 +119,20 @@ class ChartRendererTests(unittest.TestCase):
         self.assertEqual([text.replace("\n", "") for text in labels], names)
         self.assertTrue(any("\n" in label for label in labels))
 
+    def test_short_legend_units_have_backend_width_reserve(self):
+        from slidegen.textfit import text_width_in
+        data = {"kind": "bar", "categories": ["資料作成"],
+                "series": [["従来 (分)", [30]], ["AI活用後 (分)", [5]]]}
+        plan = plan_chart(data, g.ContentArea())
+        labels = [item for item in plan.texts if item[-1] == "legend"]
+        self.assertEqual([item[0] for item in labels], [s[0] for s in data["series"]])
+        for text, _x, y, width, height, *_ in labels:
+            self.assertGreaterEqual(width, text_width_in(text, plan.size) + .119)
+            self.assertLessEqual(y + height, g.BODY_BOTTOM - .10)
+        _, slide = render(data)
+        self.assertTrue(all(shape.text_frame.word_wrap is False for shape in slide.shapes
+                            if shape.name == "chart:legend"))
+
     def test_four_series_values_include_zero_in_stacks(self):
         with TemporaryDirectory() as temporary:
             for kind in KINDS:
