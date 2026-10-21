@@ -225,6 +225,15 @@ def s_scope(slide, spec, page):
 
 
 
+def _paired_column_widths(rows, criterion_label="評価軸"):
+    """評価軸は実測幅へ絞り、残りを左右本文へ等分する。入力に位置指定を持たせない。"""
+    needed = max([text_width_in(row["criterion"], 11, "bold") for row in rows]
+                 + [text_width_in(criterion_label, 10, "bold")]) + 0.12
+    criterion_w = min(2.0, max(1.05, needed))
+    body_w = (BODY_W - criterion_w - 0.40) / 2
+    return body_w, criterion_w, body_w
+
+
 def s_paired_comparison(slide, spec, page):
     """同一観点で左右を比較し、対応関係を行単位で固定する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
@@ -235,7 +244,7 @@ def s_paired_comparison(slide, spec, page):
     row_gap = 0.0
     font = 15.0 if sparse else 13.5
     fitted = _fit_rows(
-        "paired_comparison", area.bottom - top - 0.54,
+        "paired_comparison", area.bottom - top - 0.70,
         len(rows), row_h=row_h, min_row_h=0.46, gap=row_gap, min_gap=0.0,
         font=font, min_font=10.0,
     )
@@ -243,10 +252,10 @@ def s_paired_comparison(slide, spec, page):
     rows_h = len(rows) * values["row_h"] + max(0, len(rows) - 1) * values["gap"]
     block_h = 0.70 + rows_h
     top += max(0.0, area.bottom - top - block_h) * 0.34
-    left_x, left_w = MARGIN, 4.95
-    criterion_x, criterion_w = left_x + left_w + 0.20, 1.68
+    left_w, criterion_w, right_w = _paired_column_widths(rows, spec.get("criterion_label", "評価軸"))
+    left_x = MARGIN
+    criterion_x = left_x + left_w + 0.20
     right_x = criterion_x + criterion_w + 0.20
-    right_w = MARGIN + BODY_W - right_x
     _flat_rect(slide, left_x, top, left_w, 0.56, NAVY, round_=True)
     _flat_rect(slide, right_x, top, right_w, 0.56, ACCENT, round_=True)
     add_text(slide, left_x + 0.18, top, left_w - 0.36, 0.56,
@@ -281,20 +290,23 @@ def s_paired_comparison(slide, spec, page):
 
     for index, (row, y) in enumerate(zip(rows, row_positions)):
         cy = y + values["row_h"] / 2
-        _text_in_box(slide, "paired_comparison", f"rows[{index}].left",
+        left_box = _text_in_box(slide, "paired_comparison", f"rows[{index}].left",
                      left_x + 0.20, y, left_w - 0.40, values["row_h"], row["left"],
                      values["font"], 9.5, anchor=MSO_ANCHOR.MIDDLE)
+        left_box.name = f"paired:left:{index}"
         _flat_rect(slide, criterion_x + 0.06, y + 0.12,
                    criterion_w - 0.12, values["row_h"] - 0.24, SURFACE)
-        _text_in_box(slide, "paired_comparison", f"rows[{index}].criterion",
+        criterion_box = _text_in_box(slide, "paired_comparison", f"rows[{index}].criterion",
                      criterion_x + 0.06, y + 0.12,
                      criterion_w - 0.12, values["row_h"] - 0.24, row["criterion"],
                      min(11.0, values["font"]), 8.5, bold=True, color=NAVY,
                      align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
                      role="compact")
-        _text_in_box(slide, "paired_comparison", f"rows[{index}].right",
+        criterion_box.name = f"paired:criterion:{index}"
+        right_box = _text_in_box(slide, "paired_comparison", f"rows[{index}].right",
                      right_x + 0.20, y, right_w - 0.40, values["row_h"], row["right"],
                      values["font"], 9.5, anchor=MSO_ANCHOR.MIDDLE)
+        right_box.name = f"paired:right:{index}"
 
     # 接続点は線より後に追加し、線端を明確な円として見せる。
     for y in row_positions:

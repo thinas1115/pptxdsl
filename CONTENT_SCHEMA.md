@@ -734,6 +734,8 @@ python slidegen/validate_content.py content.json
 - `criterion_label`: 評価軸列の見出し。省略時は`評価軸`
 
 比較から得られる判断を示す場合は`lead`に記載する。
+評価軸欄は文言の実測幅に合わせ、残りを左右本文へ均等に配分する。
+左右の配色は対象の識別用であり、rendererは入力にない優劣や推奨を追加しない。
 
 ```json
 {
