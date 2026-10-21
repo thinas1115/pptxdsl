@@ -354,6 +354,28 @@ def _mapping_items_by_min_crossings(left_items, right_items, links):
     )
 
 
+def _mapping_ports(left_y, right_y, row_h, links):
+    """相手側の並び順に端点を分散し、同じ項目への複数線を識別する。"""
+    ports = [{}, {}]
+    for side, (own, other, key, other_key) in enumerate((
+            (left_y, right_y, "from", "to"),
+            (right_y, left_y, "to", "from"))):
+        grouped = defaultdict(list)
+        for index, link in enumerate(links):
+            grouped[link[key]].append(index)
+        for item_id, indices in grouped.items():
+            indices.sort(key=lambda index: (other[links[index][other_key]], index))
+            span = min(0.42, row_h - 0.20) if len(indices) > 1 else 0.0
+            if len(indices) > 1 and span / (len(indices) - 1) < 0.055:
+                raise FitError("relationship_map: 接続端点の間隔を確保できません。"
+                               "関係線を減らすか、複数スライドへ分割してください。")
+            for rank, index in enumerate(indices):
+                ports[side][index] = own[item_id] + row_h / 2 + (
+                    -span / 2 + rank * span / (len(indices) - 1)
+                    if len(indices) > 1 else 0.0)
+    return [(ports[0][index], ports[1][index]) for index in range(len(links))]
+
+
 def s_mapping(slide, spec, page):
     """左右の項目間に一対多・多対多の対応線を描く。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
@@ -398,8 +420,9 @@ def s_mapping(slide, spec, page):
     def draw_items(items, y_by_id, x, width, side):
         for index, item in enumerate(items):
             y = y_by_id[item["id"]]
-            _flat_rect(slide, x, y, width, values["row_h"],
-                       ZEBRA if side == "left" else LIGHT)
+            box = _flat_rect(slide, x, y, width, values["row_h"],
+                             ZEBRA if side == "left" else LIGHT)
+            box.name = f"mapping:item:{side}:{item['id']}"
             marker_x = x + 0.25 if side == "left" else x + width - 0.25
             _dot(slide, marker_x, y + values["row_h"] / 2, ACCENT, 0.25)
             add_text(slide, marker_x - 0.12, y + values["row_h"] / 2 - 0.12,
@@ -407,10 +430,14 @@ def s_mapping(slide, spec, page):
                      align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
             text_x = x + 0.52 if side == "left" else x + 0.18
             text_w = width - 0.70
-            _text_in_box(slide, "relationship_map", f"{side}_items[{index}].text",
-                         text_x, y, text_w, values["row_h"], item["text"],
-                         values["font"], 9.5, bold=True, color=NAVY,
-                         anchor=MSO_ANCHOR.MIDDLE)
+            try:
+                text = _text_in_box(slide, "relationship_map", f"{side}_items[{index}].text",
+                             text_x, y, text_w, values["row_h"], item["text"],
+                             values["font"], 9.5, bold=True, color=NAVY,
+                             anchor=MSO_ANCHOR.MIDDLE)
+            except FitError as error:
+                raise FitError(f"{error} 関係を論点ごとに分割してください。") from None
+            text.name = f"mapping:text:{side}:{item['id']}"
             if index < len(items) - 1:
                 plain_line(slide, text_x, y + values["row_h"],
                            x + width - 0.18 if side == "left" else marker_x - 0.34,
@@ -418,32 +445,27 @@ def s_mapping(slide, spec, page):
 
     gap_left = left_x + left_w
     gap_right = right_x
-    endpoint_colors = {}
+    endpoints = _mapping_ports(left_y, right_y, values["row_h"], links)
     # 参考スライドと同じく、項目間を直接追えることを優先する。線を先に描き、
     # 項目と端点を前面へ置くことで、交差があっても接続元と接続先を見失いにくくする。
-    for link in links:
-        sy = left_y[link["from"]] + values["row_h"] / 2
-        ty = right_y[link["to"]] + values["row_h"] / 2
+    for index, (link, (sy, ty)) in enumerate(zip(links, endpoints)):
         color = ACCENT if link.get("emphasis") else GRAY
         width = 1.4 if link.get("emphasis") else 1.0
         # 後から描く線の下へ背景色の縁を置き、交点で線が連結して見える
         # 誤読を防ぐ。端点は項目描画後に置き直す。
-        plain_line(slide, gap_left, sy, gap_right, ty,
-                   color=CANVAS, width=3.6)
-        add_arrow(slide, gap_left, sy, gap_right, ty,
-                  color=color, width=width)
-        endpoint_colors[("left", link["from"])] = color
-        endpoint_colors[("right", link["to"])] = color
+        mask = plain_line(slide, gap_left, sy, gap_right, ty,
+                          color=CANVAS, width=3.6)
+        mask.name = f"mapping:crossing-mask:{index}"
+        arrow = add_arrow(slide, gap_left, sy, gap_right, ty,
+                          color=color, width=width)
+        arrow.name = f"mapping:link:{index}"
     draw_items(left_items, left_y, left_x, left_w, "left")
     draw_items(right_items, right_y, right_x, right_w, "right")
-    for item in left_items:
-        color = endpoint_colors.get(("left", item["id"]), GRAY)
-        _dot(slide, gap_left, left_y[item["id"]] + values["row_h"] / 2,
-             color, 0.08)
-    for item in right_items:
-        color = endpoint_colors.get(("right", item["id"]), GRAY)
-        _dot(slide, gap_right, right_y[item["id"]] + values["row_h"] / 2,
-             color, 0.08)
+    for index, (link, (sy, ty)) in enumerate(zip(links, endpoints)):
+        color = ACCENT if link.get("emphasis") else GRAY
+        for side, x, y in (("left", gap_left, sy), ("right", gap_right, ty)):
+            dot = _dot(slide, x, y, color, 0.06)
+            dot.name = f"mapping:port:{side}:{index}"
 def _swimlane_step_rects(spec, x0, y0, stage_w, lane_h):
     grouped = defaultdict(list)
     lane_index = {lane["id"]: index for index, lane in enumerate(spec["lanes"])}

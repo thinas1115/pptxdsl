@@ -1078,6 +1078,8 @@ def _v_mapping(s):
         s.req_str(key)
     left_ids = _mapping_items(s, "left_items")
     right_ids = _mapping_items(s, "right_items")
+    if isinstance(s.spec.get("links"), list) and len(s.spec["links"]) > 10:
+        s.err("対応線は1ページ10本までです。論点ごとに複数スライドへ分割してください")
     links = s.req_list("links", 1, 10, "対応線") or []
     seen = set()
     for index, link in enumerate(links):
