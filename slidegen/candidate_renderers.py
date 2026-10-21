@@ -37,7 +37,7 @@ from slidegen.quality_markers import (
     SEQUENCE_SELF_ROUTE_PREFIX,
     SURFACE_ON_CANVAS_PREFIX,
 )
-from slidegen.textfit import text_width_in, wrap_compact, wrap_natural
+from slidegen.textfit import text_width_in, wrap_compact
 
 
 # 参照デザインから採取したswimlane本文用パレット。背景とヘッダーは全体テーマを使う。

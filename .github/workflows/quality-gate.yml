@@ -9,6 +9,37 @@ permissions:
   contents: read
 
 jobs:
+  static-quality:
+    name: 静的検査と分岐coverage (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      PYTHONIOENCODING: utf-8
+      PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/cross-fonts/NotoSansJP-VF.ttf
+      PPTXDSL_FONT_CODE: ${{ github.workspace }}/out/cross-fonts/NotoSansMonoCJKjp-Regular.otf
+      PPTXDSL_TEST_VARIABLE_FONT: ${{ github.workspace }}/out/cross-fonts/NotoSansJP-VF.ttf
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: 実行時依存と検査専用依存を準備
+        run: |
+          python -m pip install -r requirements.txt -r requirements-quality.txt
+          python -m tools.quality.cross_platform prepare-fonts out/cross-fonts
+      - name: ローカルと共通の静的検査・全テスト計測
+        run: python -m tools.quality.static_gate --coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: static-quality-${{ matrix.os }}
+          path: out/coverage
+          if-no-files-found: error
+
   regression-origin:
     name: 主要5デッキと全テスト (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

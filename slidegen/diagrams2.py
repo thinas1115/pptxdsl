@@ -7,7 +7,7 @@ from pptx.util import Inches, Pt
 
 from slidegen.generate import (ACCENT, CORAL, GRAY, LIGHT, NAVY, RULE, SURFACE, TEXT, WHITE,
                       ZEBRA, ContentArea, add_rect, add_text, header, note_line)
-from slidegen.diagrams import add_arrow, arrow_label
+from slidegen.diagrams import add_arrow
 from slidegen.diagrams3 import plain_line, route
 from slidegen.layout_fit import FitError, ensure_within, fit_text_or_raise, select_fit
 from slidegen.textfit import line_height_in, text_width_in

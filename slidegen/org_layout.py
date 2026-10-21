@@ -3,7 +3,7 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 
 from slidegen.diagrams import add_arrow, arrow_label
 from slidegen.diagrams3 import plain_line, route
-from slidegen.generate import (ACCENT, BODY_W, GRAY, LIGHT, MARGIN, NAVY,
+from slidegen.generate import (ACCENT, BODY_W, LIGHT, MARGIN, NAVY,
                       RULE, SURFACE, TEXT, WHITE, ZEBRA, ContentArea, add_rect, add_text,
                       header, note_line)
 from slidegen.layout_fit import FitError, fit_text_or_raise, select_fit

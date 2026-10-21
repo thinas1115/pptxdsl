@@ -626,7 +626,7 @@ def s_table(slide, spec, page):
     )
     avail = table_available - hdr_h
     fitted, row_hs = _fit_table(rows, widths, avail)
-    size, pad = fitted.values["size"], fitted.values["pad"]
+    size = fitted.values["size"]
     table_h = hdr_h + sum(row_hs)
     top = area.top + TABLE_TOP_GAP + max(0.0, (table_available - table_h) * 0.12)
     gt = slide.shapes.add_table(len(rows) + 1, len(cols), Inches(MARGIN),

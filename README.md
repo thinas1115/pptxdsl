@@ -24,6 +24,8 @@ PowerPointで確認・編集できる実物は
 
 ## セットアップ
 
+開発時のlint・型検査・coverageは[静的品質ゲート](docs/static-quality.md)を参照してください。
+
 ```powershell
 git clone https://github.com/thinas1115/pptxdsl.git
 cd pptxdsl

@@ -20,3 +20,5 @@ node_modules/
 __pycache__/
 *.pyc
 .venv/
+.ruff_cache/
+.mypy_cache/

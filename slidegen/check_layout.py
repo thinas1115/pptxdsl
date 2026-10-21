@@ -114,7 +114,6 @@ def is_oob(rect, slide_w, slide_h):
 def seg_of(sh):
     """コネクタの線分端点(flipで向きを解決)。"""
     x1, y1, x2, y2 = rect_of(sh)
-    fh = getattr(sh, "rotation", 0)  # dummy no-op
     el = sh._element
     flip_h = el.spPr.xfrm.get("flipH") == "1" if el.spPr.xfrm is not None else False
     flip_v = el.spPr.xfrm.get("flipV") == "1" if el.spPr.xfrm is not None else False
