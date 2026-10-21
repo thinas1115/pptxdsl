@@ -8,10 +8,15 @@
   T-F: テキストグリフがコンテナ枠線をまたぐ
   L-T: 矢印・線×テキストグリフ(白塗りマスクラベルは除外)
   CELL-OOB: 表セルからのテキストはみ出し
+  TEXT-OOB: 通常図形の文字領域からのテキストはみ出し
+  TEXT-METRICS: 保存書式・書体が文字矩形の測定契約に対応しない
   OOB: スライド境界からの図形・画像・表・グラフのはみ出し
   VIS-CONTRAST: 背景に接する意味面とキャンバスの分離不足
   SEQ-CLEARANCE: sequence自己処理の戻り線とメッセージラベルの接触
   SEQ-LIFELINE: sequenceライフラインが応答と同じ破線になっている
+
+文字矩形は保存書式からの行ボックス推定であり、実グリフの描画範囲ではない。
+対応範囲と限界はdocs/text-metrics.mdを参照する。PNGの目視確認は別途必要。
 """
 import sys
 from pathlib import Path
@@ -21,7 +26,6 @@ if __package__ in (None, ""):
 
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from slidegen.cover_footer import COVER_BACKGROUND_NAME
 from slidegen.quality_markers import (
@@ -33,7 +37,7 @@ from slidegen.quality_markers import (
     SEQUENCE_SELF_ROUTE_PREFIX,
     SURFACE_ON_CANVAS_PREFIX,
 )
-from slidegen.textfit import line_height_in, wrap_text
+from slidegen.text_metrics import TextMetricsError, layout_text_frame
 
 EMU = 914400
 EDGE = 0.03          # 枠線の当たり判定幅
@@ -62,39 +66,9 @@ def contains(outer, inner, eps=EPS):
             and outer[2] + eps >= inner[2] and outer[3] + eps >= inner[3])
 
 
-def glyph_rect_for_text_frame(tf, box):
-    """指定領域にあるtext frameの実グリフ矩形をtextfitで推定する。"""
-    bw = box[2] - box[0]
-    lines, sizes = [], []
-    align = PP_ALIGN.LEFT
-    for p in tf.paragraphs:
-        if not p.runs:
-            continue
-        size = p.runs[0].font.size.pt if p.runs[0].font.size else 11.0
-        bold = bool(p.runs[0].font.bold)
-        text = "".join(r.text for r in p.runs)
-        weight = "bold" if bold else "regular"
-        for ln in wrap_text(text, bw, size, weight):
-            lines.append((ln, size, weight))
-            sizes.append(size)
-        if p.alignment is not None:
-            align = p.alignment
-    if not lines:
-        return None
-    from slidegen.textfit import text_width_in
-    w = max(text_width_in(t, s, wt) for t, s, wt in lines)
-    h = sum(line_height_in(s) for _, s, _ in lines)
-    if align == PP_ALIGN.CENTER:
-        x0 = box[0] + (bw - w) / 2
-    elif align == PP_ALIGN.RIGHT:
-        x0 = box[2] - w
-    else:
-        x0 = box[0]
-    if tf.vertical_anchor == MSO_ANCHOR.MIDDLE:
-        y0 = box[1] + ((box[3] - box[1]) - h) / 2
-    else:
-        y0 = box[1]
-    return (x0, y0, x0 + w, y0 + h)
+def glyph_rect_for_text_frame(tf, box, *, box_is_inner=False):
+    """保存書式を反映した各行矩形の外接矩形。衝突検査本体では行ごとに扱う。"""
+    return layout_text_frame(tf, box, box_is_inner=box_is_inner).bounds
 
 
 def glyph_rect(sh):
@@ -298,19 +272,29 @@ def check(path):
                 for _cell_rect, text_rect, tf, ri, ci in table_cells(sh):
                     if not tf.text.strip():
                         continue
-                    g = glyph_rect_for_text_frame(tf, text_rect)
-                    if g:
+                    try:
+                        layout = layout_text_frame(tf, text_rect, box_is_inner=True, default_role="compact")
+                    except TextMetricsError as error:
+                        findings.append((si, "TEXT-METRICS", f"{sh.name}[{ri},{ci}]", str(error)))
+                        continue
+                    if layout.bounds:
                         label = snippet(tf.text)
-                        texts.append((g, label, False))
-                        if not contains(text_rect, g, eps=0.01):
+                        texts.extend((line.rect, label, False) for line in layout.lines if line.text.strip())
+                        if not contains(text_rect, layout.bounds, eps=0.01):
                             findings.append(
                                 (si, "CELL-OOB", f"{sh.name}[{ri},{ci}]", label))
             if st != MSO_SHAPE_TYPE.TABLE \
                     and sh.has_text_frame and sh.text_frame.text.strip():
-                g = glyph_rect(sh)
-                if g:
-                    texts.append((g, snippet(sh.text_frame.text),
-                                  has_solid_fill(sh)))
+                try:
+                    layout = layout_text_frame(sh.text_frame, bounds)
+                except TextMetricsError as error:
+                    findings.append((si, "TEXT-METRICS", sh.name, str(error)))
+                    continue
+                if layout.bounds:
+                    texts.extend((line.rect, snippet(sh.text_frame.text), has_solid_fill(sh))
+                                 for line in layout.lines if line.text.strip())
+                    if not contains(layout.inner, layout.bounds):
+                        findings.append((si, "TEXT-OOB", sh.name, snippet(sh.text_frame.text)))
                 if sh.name.startswith(SEQUENCE_MESSAGE_LABEL_PREFIX):
                     sequence_labels.append((bounds, sh.name))
         # T-T
@@ -368,7 +352,11 @@ def check(path):
 
 if __name__ == "__main__":
     path = sys.argv[1]
-    fs = check(path)
+    from slidegen.font_config import FontConfigError
+    try:
+        fs = check(path)
+    except FontConfigError as error:
+        raise SystemExit(f"NG: フォント設定: {error}") from None
     if not fs:
         print(f"OK: no layout or visual QA findings in {path}")
         sys.exit(0)
