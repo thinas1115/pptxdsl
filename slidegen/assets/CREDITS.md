@@ -42,6 +42,9 @@
 
 - `pptxdsl-repository.png`: 公開中のpptxdslリポジトリ画面のスクリーンショット。
   画像加工なし。GitHubおよびGitHubロゴはGitHub, Inc.の商標であり、本リポジトリとの提携・承認を示さない。
+- `demo-request-overview.png`、`demo-request-focus.png`: このプロジェクトで作成した架空の受付画面図版。
+  `tools/assets/build_image_examples.py`に記述した同じベクター場面を、全体と注目領域の2範囲でPNG化。
+  実画面・アカウント情報・外部画像は使用していない。プロジェクト本体と同じMIT Licenseで提供する。
 
 ## 表紙背景画像 (`cover/*`)
 

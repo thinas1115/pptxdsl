@@ -23,6 +23,7 @@ from PIL import Image
 
 from slidegen.asset_paths import resolve_icon_path, resolve_image_path
 from slidegen.aws_icon_policy import icon_policy_error
+from slidegen.chart_model import NUMBER_FORMAT, finite_number
 from slidegen.sample_content_guard import sample_reuse_paths
 from slidegen.timeline_layout import resolve_marker, resolve_program_span
 
@@ -315,20 +316,20 @@ def _v_chart(s):
     if not (isinstance(series, list) and 1 <= len(series) <= 4):
         s.err("chart.series は [系列名, 値配列] の配列 (1〜4件) にしてください")
         return
-    if ch.get("kind", "bar") not in {
+    if not isinstance(ch.get("kind", "bar"), str) or ch.get("kind", "bar") not in {
             "bar", "column", "line", "stacked_bar", "stacked_column"}:
         s.err("chart.kind は bar / column / line / stacked_bar / "
               "stacked_column のいずれかにしてください")
     for key in ("show_legend", "show_values"):
         if key in ch and not isinstance(ch[key], bool):
             s.err(f"chart.{key} は真偽値にしてください")
-    if "number_format" in ch and not _is_str(ch["number_format"]):
-        s.err("chart.number_format は空でない文字列にしてください")
+    if "number_format" in ch and not (isinstance(ch["number_format"], str) and NUMBER_FORMAT.fullmatch(ch["number_format"])):
+        s.err("chart.number_format は0 / 0.0〜0.000000 / #,##0と任意の小数・%を指定してください")
     for i, sr in enumerate(series):
         ok = (isinstance(sr, list) and len(sr) == 2 and _is_str(sr[0])
-              and isinstance(sr[1], list) and all(_is_num(v) for v in sr[1]))
+              and isinstance(sr[1], list) and all(finite_number(v) for v in sr[1]))
         if not ok:
-            s.err(f'series[{i}] は ["系列名", [数値, ...]] にしてください')
+            s.err(f'series[{i}] は ["系列名", [有限の数値, ...]] にしてください（NaN・Infinity・真偽値は使用できません）')
         elif cats and len(sr[1]) != len(cats):
             s.err(f"series[{i}] の値 ({len(sr[1])}件) を categories "
                   f"({len(cats)}件) と同数にしてください")
@@ -1077,6 +1078,8 @@ def _v_mapping(s):
         s.req_str(key)
     left_ids = _mapping_items(s, "left_items")
     right_ids = _mapping_items(s, "right_items")
+    if isinstance(s.spec.get("links"), list) and len(s.spec["links"]) > 10:
+        s.err("対応線は1ページ10本までです。論点ごとに複数スライドへ分割してください")
     links = s.req_list("links", 1, 10, "対応線") or []
     seen = set()
     for index, link in enumerate(links):

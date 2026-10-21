@@ -123,16 +123,16 @@ def fit_program_roadmap(available, lane_counts, *, has_note=False):
     candidates = []
     standard = {
         "top_gap": 0.16, "header_h": 0.44, "track_pad": 0.08,
-        "track_gap": 0.03, "lane_pitch": 0.34, "period_pt": 10.0,
-        "track_pt": 11.5, "activity_pt": 9.5,
+        "track_gap": 0.03, "lane_pitch": 0.34, "period_pt": 11.0,
+        "track_pt": 12.5, "activity_pt": 10.5,
     }
     candidates.append(("standard", standard, used(standard)))
     for lane_pitch in stepped(0.32, 0.30, 0.02):
         values = {
             "top_gap": 0.10, "header_h": 0.42, "track_pad": 0.06,
             "track_gap": 0.01, "lane_pitch": lane_pitch,
-            "period_pt": 9.5, "track_pt": 11.0,
-            "activity_pt": 9.0,
+            "period_pt": 11.0, "track_pt": 12.5,
+            "activity_pt": 10.5,
         }
         candidates.append(("gap", values, used(values)))
     for lane_pitch in stepped(0.28, 0.24, 0.02):
@@ -140,8 +140,8 @@ def fit_program_roadmap(available, lane_counts, *, has_note=False):
         values = {
             "top_gap": 0.08, "header_h": 0.40, "track_pad": 0.05,
             "track_gap": 0.01, "lane_pitch": lane_pitch,
-            "period_pt": 8.0 + ratio, "track_pt": 9.5 + ratio,
-            "activity_pt": 8.0 + 0.5 * ratio,
+            "period_pt": 9.0 + ratio, "track_pt": 10.0 + ratio,
+            "activity_pt": 9.0 + 0.5 * ratio,
         }
         candidates.append(("element", values, used(values)))
     return select_fit(
