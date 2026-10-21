@@ -1,7 +1,7 @@
 # VLAN基礎研修
 
 新入社員がVLANの役割、Access / Trunk、IEEE 802.1Q、VLAN間ルーティング、
-SVI・RP・ルーターサブインターフェース、Cisco設定と確認、障害切り分けを順に学ぶ32枚の研修資料です。
+SVI・RP・ルーターサブインターフェース、Cisco設定と確認、障害切り分けを順に学ぶ36枚の研修資料です。
 
 - [生成済みPowerPoint](vlan_training.pptx)
 - [全36枚プレビュー](preview.png)
@@ -12,6 +12,7 @@ SVI・RP・ルーターサブインターフェース、Cisco設定と確認、�
 - `nw_topology`: 物理機器、論理セグメント、Access / Trunk / L3接続
 - `concept`: 用語の定義、要点、誤解しやすい境界
 - `nw_frame_anatomy`: フレーム・パケットのフィールド構造
+- `nw_protocol_flow`: 処理段階ごとのフレーム・パケットの状態変化
 - `config_lab`: 設定例と実行後の確認観点
 - `knowledge_check`: 選択式の設問と正答・解説
 
