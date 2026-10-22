@@ -59,7 +59,7 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 | `show_author` | boolean | 左下の作成者を表示する。既定値は `false` |
 | `show_rail` | boolean | 右側の補足情報を表示する。既定値は `true` |
 | `rail` | array | `label` / `value` の組。0〜3件。既定値は`DATE / ORGANIZATION / AUTHOR` |
-| `background_image` | string / null | 表紙背景のPNG/JPEG。既定値は同梱の`slidegen/assets/cover/cover-background.png`。設定JSONからの相対パスを推奨。絶対パスも使用可能 |
+| `background_image` | string / null | 表紙背景のPNG/JPEG。既定値は同梱の`slidegen/assets/cover/cover-background.png`。利用者の指定は設定JSONからの相対パスに限定する |
 | `background_color` | string | 表紙背景の6桁HEX色 |
 | `title_color` | string | タイトル・作成者・rail値の6桁HEX色 |
 | `secondary_color` | string | サブタイトル・日付・rail線の6桁HEX色 |
@@ -78,12 +78,49 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 | `divider_color` | string | 境界線の6桁HEX色 |
 
 設定JSONは部分指定できる。省略した項目には標準設定が使われる。
+個人パスを公開設定へ混入させないため、背景画像の絶対パス、ドライブ相対パス、
+ホーム展開はOSにかかわらず拒否する。既存設定は画像を設定JSONの近くへ配置し、
+その場所からの相対パスへ移行する。設定JSON自体のCLI引数には絶対パスを使用できる。
 `background_image` を指定すると、画像の縦横比を維持したまま中央基準で表紙全面へトリミングする。
 標準設定では同梱の`cover-background.png`を使用する。単色背景へ戻す場合は、設定JSONで
 `background_image: null`を明示すると`background_color`が使われる。画像上の文字が読めるよう、画像に合わせて
 `title_color` と `secondary_color` も指定する。背景には16:9で十分な解像度の画像を推奨する。
 画像は生成時にPPTXへ埋め込まれるため、生成後の閲覧時に元画像は不要。
 標準表紙は、タイトルとサブタイトルの右側に`DATE / ORGANIZATION / AUTHOR`のrailを表示する。
+
+### 社内資料向けの日本語ラベル
+
+既存の`cover.rail`だけで項目名を日本語化できる。
+[日本語設定例](../examples/cover_footer.ja.json)では、標準の構図・配色・背景を維持し、
+右欄を「日付・所属・作成者」へ変更している。
+
+```powershell
+python slidegen/generate_from_json.py content.json out/deck-ja.pptx --cover-footer-config examples/cover_footer.ja.json
+python slidegen/check_layout.py out/deck-ja.pptx
+```
+
+設定JSONの内容は次のとおり。`{date}`などの参照名は翻訳せず、`label`だけを変更する。
+
+```json
+{
+  "cover": {
+    "show_date": false,
+    "show_author": false,
+    "show_rail": true,
+    "rail": [
+      {"label": "日付", "value": "{date}"},
+      {"label": "所属", "value": "{organization}"},
+      {"label": "作成者", "value": "{author}"}
+    ]
+  }
+}
+```
+
+`organization`・`author`を参照する値は、日本語ラベルでも既存と同じ最大3行を使用できる。
+会社名・部門名などを分ける場合は`meta.organization`などに`\n`で改行を入れる。
+標準の英語ラベルと既存設定の動作は変更しない。
+
+### 標準ラベルと省略時の動作
 
 - `DATE`: `meta.date`を表示する
 - `ORGANIZATION`: `meta.organization`を表示する

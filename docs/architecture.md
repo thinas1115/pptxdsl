@@ -58,18 +58,33 @@
 `slidegen/`から`tests/`や`tools/`をimportしない。通常入力のサンプル混入検出には
 `slidegen/data/sample_fingerprints.json`を使い、回帰データの変更時に開発ツールで再生成する。
 全テストは`python -m tests`で、各モジュールを独立プロセスとして実行する。
+正式対応書体のOS間回帰と、同一PPTXの相互検査は[OS間の回帰検証](cross-platform-regression.md)を参照する。
 
 実装は4つの層に分けて考える。
 
 | 層 | 責務 | 主な実装 | 再利用範囲 |
 |---|---|---|---|
 | L0 測定・描画部品 | 文字計測、収容候補の選択、矩形、線、矢印、アイコン、ラベル | `textfit.py`、`layout_fit.py`、`generate.py`、`diagrams.py` | 全type |
-| L1 レイアウト計算 | ジャンル固有の位置・サイズ・配線計算 | `diagram_layout.py`、`org_layout.py`、`timeline_layout.py`、`image_slide.py`、`diagrams2.py`、`candidate_renderers.py`、各renderer | 同一ジャンル内 |
+| L1 レイアウト計算 | ジャンル固有の位置・サイズ・配線計算 | `diagram_layout.py`、`org_layout.py`、`timeline_layout.py`、`chart_model.py`、`chart_renderer.py`、`image_slide.py`、`diagrams2.py`、`candidate_renderers.py`、各renderer | 同一ジャンル内 |
 | L2 入力境界 | schema、入力検証、renderer選択 | `CONTENT_SCHEMA.md`、`validate_content.py`、`generate_from_json.py` | 全type |
 | L3 品質保証 | PPTX検査、PNG化、一覧確認 | `check_layout.py`、`render.ps1`、`contact_sheet.py` | 全type |
 
 共通化の中心はL0、L2、L3である。L1はグリッド、ガント、散布、縦詰め、ツリーなど、
 制約の種類ごとに異なるため、ジャンルを越えて無理に統合しない。
+
+グラフは`chart_model.py`で符号付き軸・正負別積み上げ・数値表示形式を計算し、
+`chart_renderer.py`でカテゴリ・凡例・値の文字を実測して描画計画を作る。
+`generate.s_chart()`は公開入口と共通ヘッダー・注記を保ち、専用rendererを遅延読込する。
+指定された数値ラベルは黙って省略せず、標準→余白圧縮→最小10.5ptでも収容できなければ停止する。
+数値ラベルに重なる補助グリッドだけを切り分け、データ線とゼロ軸は欠損させない。
+
+## デッキ単位の生成状態
+
+公開Python入口は`generate_from_json.build_presentation()`とする。
+`generation_context.py`の不変な`GenerationContext`へmetadata・総ページ数・表紙とフッター設定・
+標準テーマ・本文下端をまとめ、ContextVarで生成処理の範囲にだけ束縛する。
+モジュールの`DECK`や`COVER_FOOTER`を書き換えない。補足欄と入れ子生成も同じ束縛・復元規則に従う。
+API・例外・旧コードからの移行は[Python生成API](generation-api.md)を参照する。
 
 ## レイアウタ・カタログ方式
 
@@ -101,7 +116,7 @@
 
 ### 配置前のテキスト実測
 
-`textfit.py`は游ゴシックの実寸をPillowで測り、指定幅での折り返し行数と必要高さを計算する。
+`textfit.py`は`font_config.py`で解決した対応フォントの実寸をPillowで測り、指定幅での折り返し行数と必要高さを計算する。
 rendererは計測結果を使ってフォントサイズまたは配置領域を決めてからテキストを置く。
 
 表紙以外の共通ヘッダーは任意の`lead`を受け取り、`ContentArea`として本文の上端・下端をrendererへ返す。
@@ -111,6 +126,7 @@ lead未指定時は標準の本文領域を返し、指定時だけ実測したl
 
 日本語では、句読点が行頭へ出ないように折り返し位置を調整する。PowerPoint側でも禁則が働くように、
 日本語runへ`lang="ja-JP"`を設定する。計測と描画で異なるフォントや行間を使ってはならない。
+対応family、ウェイト、可変軸、再現性の条件は[フォント契約](font-contract.md)で定める。
 
 文章の折り返しは、`textfit.py`の役割別ポリシーを使用する。
 
@@ -123,6 +139,11 @@ lead未指定時は標準の本文領域を返し、指定時だけ実測したl
 `fit_text_or_raise()`は太字を既定で`natural`、通常本文を`body`として扱う。
 狭い領域で`compact`を使う場合だけrendererが役割を明示する。役割を理由に`min_pt`を下げたり、
 PowerPoint側の自動縮小へ委譲したりしない。
+
+`add_text()`と表セルは、測定に使った文章役割をPPTXの拡張情報へ保存する。
+生成後の検査は`text_metrics.py`でrunごとの書式・段落間隔・余白・縦位置から行単位の推定矩形を作る。
+対応外書体を黙って代替せず、測定不能も不合格とする。対応範囲とOS間の再現性検証は
+[保存PPTXの文字領域検査](text-metrics.md)を参照する。
 
 ### 段階的な収容ポリシー
 

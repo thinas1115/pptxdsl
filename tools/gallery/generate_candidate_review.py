@@ -3,9 +3,6 @@
 import argparse
 from pathlib import Path
 
-from pptx import Presentation
-from pptx.util import Inches
-
 from slidegen import generate
 from slidegen.candidate_renderers import (
     s_mapping,
@@ -15,7 +12,7 @@ from slidegen.candidate_renderers import (
     s_swimlane,
 )
 from tests.fixtures.gallery.candidate_review_cases import REVIEW_DECK
-from slidegen.validate_content import validate
+from slidegen.generate_from_json import build_presentation
 
 
 RENDER = {
@@ -31,18 +28,10 @@ RENDER = {
 def main(out_path):
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    errors = validate(REVIEW_DECK, allow_sample_content=True)
-    if errors:
-        raise SystemExit("NG: 候補rendererレビュー\n  - " + "\n  - ".join(errors))
-    generate.DECK = REVIEW_DECK
-    prs = Presentation()
-    prs.slide_width = Inches(generate.SLIDE_W)
-    prs.slide_height = Inches(generate.SLIDE_H)
-    blank = prs.slide_layouts[6]
-    for page, spec in enumerate(REVIEW_DECK["slides"], 1):
-        slide = prs.slides.add_slide(blank)
-        generate.render_slide(RENDER[spec["type"]], slide, spec, page)
-        generate.footer(slide, page)
+    try:
+        prs = build_presentation(REVIEW_DECK, renderers=RENDER, allow_sample_content=True)
+    except ValueError as error:
+        raise SystemExit(f"NG: 候補rendererレビュー: {error}") from None
     prs.save(out_path)
     print(f"saved: {out_path} ({len(REVIEW_DECK['slides'])} slides)")
 

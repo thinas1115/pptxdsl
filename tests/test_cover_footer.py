@@ -130,6 +130,22 @@ def main():
     )
     assert any(args[3] == 0.012 for args in default_rail_rect_calls)
 
+    japanese = load_cover_footer_config(repo_root / "examples" / "cover_footer.ja.json")
+    assert japanese.footer == default.footer
+    assert japanese.cover.background_image == default.cover.background_image
+    assert [item.label for item in japanese.cover.rail] == ["日付", "所属", "作成者"]
+    japanese_calls = []
+    render_cover(
+        fixture_slide, {"title": "標準表紙", "subtitle": "概要"}, full_meta, 10, japanese,
+        add_text=lambda *args, **kwargs: japanese_calls.append(args),
+        add_rect=lambda *args, **kwargs: None,
+    )
+    japanese_by_text = {args[5]: args for args in japanese_calls}
+    for label in ("日付", "所属", "作成者"):
+        assert label in japanese_by_text
+    for value in ("2026年7月", "業務企画本部\n業務改善推進部", "企画支援チーム", "標準表紙", "概要"):
+        assert japanese_by_text[value][1:5] == by_text[value][1:5], value
+
     balanced_title_calls = []
     render_cover(
         fixture_slide,

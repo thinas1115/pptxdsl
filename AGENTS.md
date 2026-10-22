@@ -81,8 +81,10 @@ git status --short
   明示し、通常入力では許可しない。新規資料は利用者が示した要件と情報源だけから作る。
 - 座標、文字実測、配線、描画順はrendererまたはレイアウトエンジンで決める。
 - 新しいtypeを追加するときは、renderer、登録、validator、schema、AI向けtype一覧、ギャラリー、品質検証を同時に更新する。
-- renderer、テーマ、ギャラリー内容を変更したときは、配布用の
-  `examples/gallery/pattern_gallery.pptx`も再生成して差分へ含める。
+- renderer、テーマ、ギャラリー内容を変更したときは、ギャラリーを`out/`へ再生成し、
+  機械検査と全ページのPNG目視QAを行う。Gitには生成元と960px幅の
+  `docs/pattern-gallery-by-type.png`だけを含め、PPTXや原寸PNGを追加しない。
+  配布PPTXはRelease・CIで生成する。[配布方針](docs/gallery-distribution.md)に従う。
 - 新しいrendererは、標準配置、裁量余白の圧縮、ジャンル固有要素の縮小、`FitError`による明示停止を
   この順で実装する。提出品質を保つ最小値と、最小値でも収まらない過密入力のテストを必ず追加する。
 - カードは独立項目の比較、選択、事例、KPIに使い、情報量が少ないという理由だけで反復パネルを並べない。
@@ -112,6 +114,9 @@ PowerPoint以外でレンダリングした場合は、使用したbackendとPow
 
 `check_layout.py`の合格だけでは完成扱いにしない。文字の視認性、余白、コントラスト、線の見え方、
 内容の正確性はPNGと情報源を使って確認する。
+NG基準、再確認範囲、backend差、人の承認点、検証記録は
+[PNGの合否基準](.agents/skills/pptxdsl/references/visual-acceptance.md)を正本とする。
+PNG補助検査の成功は目視確認・PowerPoint確認・人の承認へ読み替えない。
 
 接続図を変更した場合は、一覧確認に加えて原寸画像で接続点、線上ラベル、自己処理・差戻し経路、
 その直後の線とラベルを局所確認する。線の一部がラベル背景に隠れていないことを経路単位で追う。
