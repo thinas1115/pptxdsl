@@ -13,11 +13,12 @@ python -m tools.quality.static_gate --coverage
 
 - Ruffの`E9`／`F`で`slidegen/`全体の構文・未定義名・未使用変数・未使用importを検査する。
   既存エラーを基準ファイルで黙認せず、最初に検出した5件を除去した。
-- mypyのstrict検査は数値入力モデル`chart_model.py`と、renderer共通の収容API`layout_fit.py`から始める。
+- mypyのstrict検査は数値入力モデル`chart_model.py`と、renderer共通の収容API`layout_fit.py`から始め、
+  共通設定、ネットワーク・担当フロー・プロトコル・工程表の配置計画、構成図の入力契約へ広げている。
   引数、戻り値、収容候補、計測callbackを型付けし、対象を`mypy.ini`へ明記する。
   `follow_imports = skip`は未移行の描画・フォントモジュールまで一括で型検査しないための境界であり、
   リポジトリ全体の型安全性を保証する設定ではない。
-- Ruff formatterは上記2モジュールと検査の入口だけに適用する。
+- Ruff formatterは型検査対象の8モジュールと検査の入口に適用する。
   大きなrendererや既存テストを一括整形し、機能差分へ混ぜない。
 
 新規・変更runtimeには同じ基本lintを必須とする。新しい入力境界や純粋な配置計算は引数・戻り値を型付けし、

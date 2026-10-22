@@ -9,6 +9,7 @@ from typing import Mapping
 from pptx.dml.color import RGBColor
 
 from slidegen.cover_footer import CoverFooterConfig, load_cover_footer_config
+from slidegen.layout_settings import PAGE
 
 
 @dataclass(frozen=True)
@@ -26,11 +27,11 @@ class Theme:
     ZEBRA: RGBColor = RGBColor(0xEC, 0xEA, 0xE4)
     CANVAS: RGBColor = RGBColor(0xF7, 0xF5, 0xEF)
     RULE: RGBColor = RGBColor(0xD1, 0xCF, 0xC8)
-    SLIDE_W: float = 13.333
-    SLIDE_H: float = 7.5
-    MARGIN: float = 0.55
-    BODY_TOP: float = 1.58
-    BODY_BOTTOM: float = 6.85
+    SLIDE_W: float = PAGE.width
+    SLIDE_H: float = PAGE.height
+    MARGIN: float = PAGE.margin
+    BODY_TOP: float = PAGE.body_top
+    BODY_BOTTOM: float = PAGE.body_bottom
 
 
 STANDARD_THEME = Theme()

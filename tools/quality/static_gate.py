@@ -8,7 +8,17 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[2]
-FORMATTED = ("slidegen/chart_model.py", "slidegen/layout_fit.py", "tools/quality/static_gate.py")
+FORMATTED = (
+    "slidegen/chart_model.py",
+    "slidegen/layout_fit.py",
+    "slidegen/layout_settings.py",
+    "slidegen/network_layout.py",
+    "slidegen/swimlane_layout.py",
+    "slidegen/protocol_state_layout.py",
+    "slidegen/timeline_layout.py",
+    "slidegen/diagram_contract.py",
+    "tools/quality/static_gate.py",
+)
 
 
 def static_commands() -> list[list[str]]:

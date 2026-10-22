@@ -5,7 +5,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Callable, Iterable, Iterator, Mapping, Sequence, TypeVar
+from typing import Callable, Generic, Iterable, Iterator, Mapping, Sequence, TypeVar
 
 from slidegen.textfit import (
     fit_font_size,
@@ -18,6 +18,7 @@ from slidegen.textfit import (
 
 FIT_EPS = 0.01
 Item = TypeVar("Item")
+Payload = TypeVar("Payload")
 FitCandidate = tuple[str, Mapping[str, float], float]
 TextWrapper = Callable[[str, float, float, str], list[str]]
 
@@ -30,6 +31,16 @@ class FitError(ValueError):
 class FitResult:
     stage: str
     values: Mapping[str, float]
+    used: float
+    available: float
+
+
+@dataclass(frozen=True)
+class PayloadFitResult(Generic[Payload]):
+    """型付きのジャンル固有計画を保持する収容結果。図形は作らない。"""
+
+    stage: str
+    values: Payload
     used: float
     available: float
 
@@ -70,6 +81,64 @@ def select_fit(
         f"{renderer}: 最小設定でも縦方向に収まりません"
         f"(必要{last.used:.2f}in / 利用可能{available:.2f}in / "
         f"不足{shortage:.2f}in)。{guidance}"
+    )
+
+
+def select_payload_fit(
+    renderer: str,
+    available: float,
+    candidates: Iterable[tuple[str, Payload, float]],
+    *,
+    guidance: str,
+) -> PayloadFitResult[Payload]:
+    """候補選択の規則は共有し、配列等を含む固有計画は数値dictへ偽装しない。"""
+    payloads: list[Payload] = []
+
+    def numeric_candidates() -> Iterator[FitCandidate]:
+        for stage, payload, used in candidates:
+            payloads.append(payload)
+            yield stage, {}, used
+
+    selected = select_fit(renderer, available, numeric_candidates(), guidance=guidance)
+    return PayloadFitResult(selected.stage, payloads[-1], selected.used, selected.available)
+
+
+def fit_rows(
+    renderer: str,
+    available: float,
+    count: int,
+    *,
+    row_h: float,
+    min_row_h: float,
+    gap: float,
+    min_gap: float,
+    font: float,
+    min_font: float,
+    reserve: float = 0.0,
+) -> FitResult:
+    """標準・行間・行高・文字の順に収容する。配置と描画で同じ結果を使う。"""
+
+    def used(values: Mapping[str, float]) -> float:
+        return reserve + count * values["row_h"] + max(0, count - 1) * values["gap"]
+
+    def candidates() -> Iterator[FitCandidate]:
+        standard = {"row_h": row_h, "gap": gap, "font": font}
+        yield "standard", standard, used(standard)
+        for current_gap in stepped(gap - 0.03, min_gap, 0.03):
+            values = {"row_h": row_h, "gap": current_gap, "font": font}
+            yield "gap", values, used(values)
+        for current_h in stepped(row_h - 0.04, min_row_h, 0.04):
+            values = {"row_h": current_h, "gap": min_gap, "font": font}
+            yield "element", values, used(values)
+        for current_font in stepped(font - 0.5, min_font, 0.5):
+            values = {"row_h": min_row_h, "gap": min_gap, "font": current_font}
+            yield "font", values, used(values)
+
+    return select_fit(
+        renderer,
+        available,
+        candidates(),
+        guidance="項目を減らすか、文言を短くするか、複数スライドへ分割してください。",
     )
 
 

@@ -11,10 +11,10 @@ from slidegen.diagrams import add_arrow
 from slidegen.diagrams3 import plain_line, route
 from slidegen.layout_fit import FitError, ensure_within, fit_text_or_raise, select_fit
 from slidegen.textfit import line_height_in, text_width_in
-from slidegen.timeline_layout import (centered_label_box, fit_program_roadmap,
-                             pack_activities, resolve_marker)
+from slidegen.timeline_layout import plan_program_roadmap
+from slidegen.layout_settings import ROADMAP
 
-PROGRAM_LINE_PT = 2.4
+PROGRAM_LINE_PT = ROADMAP.line_pt
 MATRIX_LABEL_DISTANCE = 0.45
 
 
@@ -423,36 +423,18 @@ def _s_process_flow(slide, spec, page):
 # ---- 複数テーマ・複数作業のプログラム工程表 ----
 def s_program_roadmap(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    periods = spec["periods"]
-    tracks = spec["tracks"]
-    if not 3 <= len(periods) <= 12:
-        raise FitError(
-            "program_roadmap: 期間は3〜12件までです。期間をまとめてください。")
-    if not 1 <= len(tracks) <= 6:
-        raise FitError(
-            "program_roadmap: テーマは1〜6件までです。複数スライドへ分割してください。")
+    plan = plan_program_roadmap(spec, area)
+    _draw_program_roadmap(slide, spec, plan)
+    if spec.get("note"):
+        note_line(slide, spec["note"])
 
-    packed = [pack_activities(track["activities"], periods) for track in tracks]
-    activity_lane_counts = [lane_count for _placements, lane_count in packed]
-    lane_counts = [
-        lane_count + int(bool(track.get("milestone")))
-        for track, lane_count in zip(tracks, activity_lane_counts)
-    ]
-    fitted = fit_program_roadmap(
-        area.height, lane_counts, has_note=bool(spec.get("note")))
-    values = fitted.values
 
-    label_x, track_col_w = 0.72, 2.78
-    grid_x, grid_w = label_x + track_col_w, 9.09
-    period_w = grid_w / len(periods)
-    top = area.top + values["top_gap"]
-    header_h = values["header_h"]
-    row_heights = [
-        2 * values["track_pad"] + count * values["lane_pitch"]
-        for count in lane_counts
-    ]
-    grid_h = header_h + sum(row_heights) + values["track_gap"] * (len(tracks) - 1)
-
+def _draw_program_roadmap(slide, spec, plan):
+    periods, tracks = spec["periods"], spec["tracks"]
+    values = plan.fitted.values
+    label_x, track_col_w, grid_w = ROADMAP.label_x, ROADMAP.track_width, ROADMAP.grid_width
+    grid_x, period_w = plan.grid_x, plan.period_width
+    top, header_h, grid_h = plan.top, values["header_h"], plan.grid_height
     add_rect(slide, label_x, top, track_col_w, header_h, NAVY)
     add_text(slide, label_x + 0.18, top + 0.07, track_col_w - 0.36, 0.28,
              "テーマ", values["period_pt"], bold=True, color=WHITE)
@@ -461,29 +443,24 @@ def s_program_roadmap(slide, spec, page):
         size, _ = fit_text_or_raise(
             "program_roadmap", f"periods[{index}]", period,
             period_w - 0.04, 0.28, values["period_pt"],
-            min_pt=9.0, weight="bold", spacing=1.0)
+            min_pt=ROADMAP.period_min_pt, weight="bold", spacing=1.0)
         period_box = add_text(slide, grid_x + index * period_w, top + 0.07,
                  period_w, 0.28, period, size, bold=True, color=WHITE,
                  align=PP_ALIGN.CENTER, spacing=1.0)
         period_box.name = f"roadmap:period:{index}"
 
-    row_tops = []
-    cursor = top + header_h
-    for index, row_h in enumerate(row_heights):
-        row_tops.append(cursor)
-        add_rect(slide, label_x, cursor, track_col_w + grid_w, row_h,
+    for index, (row_top, row_h) in enumerate(zip(plan.row_tops, plan.row_heights)):
+        add_rect(slide, label_x, row_top, track_col_w + grid_w, row_h,
                  SURFACE if index % 2 == 0 else ZEBRA)
-        cursor += row_h + values["track_gap"]
-
     body_top = top + header_h
     for index in range(len(periods) + 1):
         _grid_line(slide, grid_x + index * period_w, body_top,
                    grid_x + index * period_w, top + grid_h)
-    for index, row_top in enumerate(row_tops):
+    for index, row_top in enumerate(plan.row_tops):
         _grid_line(slide, label_x, row_top,
                    label_x + track_col_w + grid_w, row_top)
         track = tracks[index]
-        row_h = row_heights[index]
+        row_h = plan.row_heights[index]
         has_goal = bool(track.get("goal"))
         number_y = row_top + (0.07 if has_goal else 0.11)
         name_y = row_top + (0.05 if has_goal else 0.09)
@@ -492,7 +469,7 @@ def s_program_roadmap(slide, spec, page):
                  color=ACCENT)
         track_size = _fit_single_line(
             "program_roadmap", f"tracks[{index}].name", track["name"],
-            track_col_w - 0.66, values["track_pt"], 10.0, bold=True)
+            track_col_w - 0.66, values["track_pt"], ROADMAP.track_min_pt, bold=True)
         track_box = add_text(slide, label_x + 0.52, name_y,
                  track_col_w - 0.66, min(0.28, row_h - 0.14),
                  track["name"], track_size, bold=True, color=NAVY,
@@ -501,47 +478,27 @@ def s_program_roadmap(slide, spec, page):
         if has_goal:
             goal_size = _fit_single_line(
                 "program_roadmap", f"tracks[{index}].goal", track["goal"],
-                track_col_w - 0.66, min(values["activity_pt"], 9.5), 9.0)
+                track_col_w - 0.66, min(values["activity_pt"], 9.5), ROADMAP.activity_min_pt)
             add_text(slide, label_x + 0.52, row_top + 0.29,
                      track_col_w - 0.66, 0.18, track["goal"], goal_size,
                      color=TEXT, spacing=1.0, wrap=False)
 
-        placements, _lane_count = packed[index]
-        lane_neighbors = {}
-        for lane in range(_lane_count):
-            lane_items = sorted(
-                (placement for placement in placements if placement.lane == lane),
-                key=lambda placement: (placement.start, placement.end),
-            )
-            for position, placement in enumerate(lane_items):
-                previous = lane_items[position - 1] if position else None
-                following = lane_items[position + 1] if position + 1 < len(lane_items) else None
-                lane_neighbors[placement.index] = (previous, following)
-        for placement in placements:
+        for activity_plan in plan.activities[index]:
+            placement = activity_plan.placement
             activity = placement.activity
-            lane_top = (row_top + values["track_pad"]
-                        + placement.lane * values["lane_pitch"])
-            x1 = grid_x + placement.start * period_w + 0.035
-            x2 = grid_x + placement.end * period_w - 0.035
+            lane_top = activity_plan.lane_top
+            x1, x2 = activity_plan.x1, activity_plan.x2
             color = CORAL if activity.get("emph") else ACCENT
             activity_line = _activity_line(slide, x1, lane_top + 0.035, x2, color)
             activity_line.name = f"roadmap:span:{index}:{placement.index}"
             text_h = values["lane_pitch"] - 0.07
-            previous, following = lane_neighbors[placement.index]
-            label_center = (x1 + x2) / 2
-            previous_center = None if previous is None else (
-                grid_x + (previous.start + previous.end) * period_w / 2)
-            following_center = None if following is None else (
-                grid_x + (following.start + following.end) * period_w / 2)
-            activity_label_x, activity_label_w = centered_label_box(
-                label_center, previous_center, following_center,
-                grid_x, grid_x + grid_w, 3.0,
-            )
+            activity_label_x = activity_plan.label_x
+            activity_label_w = activity_plan.label_width
             activity_size = _fit_single_line(
                 "program_roadmap",
                 f"tracks[{index}].activities[{placement.index}].label",
                 activity["label"], activity_label_w - 0.04,
-                values["activity_pt"], 9.0,
+                values["activity_pt"], ROADMAP.activity_min_pt,
                 bold=bool(activity.get("emph")))
             label = add_text(
                 slide, activity_label_x + 0.02, lane_top + 0.07,
@@ -553,10 +510,8 @@ def s_program_roadmap(slide, spec, page):
             label.name = f"roadmap:activity:{index}:{placement.index}"
         milestone = track.get("milestone")
         if milestone:
-            marker_x = grid_x + resolve_marker(milestone["at"], periods) * period_w
-            marker_y = (row_top + values["track_pad"]
-                        + activity_lane_counts[index] * values["lane_pitch"]
-                        + 0.035)
+            marker = plan.milestones[index]
+            marker_x, marker_y = marker.x, marker.y
             diamond_size = 0.15
             diamond = slide.shapes.add_shape(
                 MSO_SHAPE.DIAMOND,
@@ -568,15 +523,11 @@ def s_program_roadmap(slide, spec, page):
             diamond.line.fill.background()
             diamond.shadow.inherit = False
             diamond.name = f"roadmap:milestone:{index}"
-            milestone_w = min(2.0, max(0.78, period_w * 1.7))
-            milestone_x = min(
-                max(marker_x - milestone_w / 2, grid_x),
-                grid_x + grid_w - milestone_w,
-            )
+            milestone_w, milestone_x = marker.label_width, marker.label_x
             milestone_size = _fit_single_line(
                 "program_roadmap", f"tracks[{index}].milestone.label",
                 milestone["label"], milestone_w - 0.04,
-                min(values["activity_pt"], 9.5), 9.0)
+                min(values["activity_pt"], 9.5), ROADMAP.activity_min_pt)
             milestone_label = add_text(
                 slide, milestone_x + 0.02, marker_y + 0.07,
                 milestone_w - 0.04, values["lane_pitch"] - 0.07,
@@ -586,10 +537,8 @@ def s_program_roadmap(slide, spec, page):
             milestone_label.fill.fore_color.rgb = (
                 SURFACE if index % 2 == 0 else ZEBRA)
             milestone_label.name = f"roadmap:milestone-label:{index}"
-    _grid_line(slide, label_x, cursor - values["track_gap"],
-               label_x + track_col_w + grid_w, cursor - values["track_gap"])
-    if spec.get("note"):
-        note_line(slide, spec["note"])
+    _grid_line(slide, label_x, plan.bottom,
+               label_x + track_col_w + grid_w, plan.bottom)
 
 
 # ---- 2軸ポジショニングマップ ----

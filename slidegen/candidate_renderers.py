@@ -11,6 +11,8 @@ from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 from slidegen.asset_paths import resolve_icon_path
+from slidegen import swimlane_layout as _swimlane_layout
+from slidegen.layout_settings import SWIMLANE
 from slidegen.diagrams import add_arrow
 from slidegen.diagrams3 import plain_line, route
 from slidegen.generate import (
@@ -30,7 +32,7 @@ from slidegen.generate import (
     add_text,
     header,
 )
-from slidegen.layout_fit import FitError, fit_text_or_raise, select_fit, stepped
+from slidegen.layout_fit import FitError, fit_rows, fit_text_or_raise
 from slidegen.quality_markers import (
     SEQUENCE_LIFELINE_PREFIX,
     SEQUENCE_MESSAGE_LABEL_PREFIX,
@@ -63,29 +65,9 @@ def _flat_rect(slide, x, y, w, h, fill, *, line=None, round_=False):
 
 def _fit_rows(renderer, available, count, *, row_h, min_row_h, gap, min_gap,
               font, min_font, reserve=0.0):
-    """余白、行高、文字の順に縮める共通収容処理。"""
-    def used(values):
-        return reserve + count * values["row_h"] + max(0, count - 1) * values["gap"]
+    return fit_rows(renderer, available, count, row_h=row_h, min_row_h=min_row_h,
+                    gap=gap, min_gap=min_gap, font=font, min_font=min_font, reserve=reserve)
 
-    def candidates():
-        yield "standard", {"row_h": row_h, "gap": gap, "font": font}, used(
-            {"row_h": row_h, "gap": gap, "font": font})
-        for current_gap in stepped(gap - 0.03, min_gap, 0.03):
-            values = {"row_h": row_h, "gap": current_gap, "font": font}
-            yield "gap", values, used(values)
-        for current_h in stepped(row_h - 0.04, min_row_h, 0.04):
-            values = {"row_h": current_h, "gap": min_gap, "font": font}
-            yield "element", values, used(values)
-        for current_font in stepped(font - 0.5, min_font, 0.5):
-            values = {"row_h": min_row_h, "gap": min_gap, "font": current_font}
-            yield "font", values, used(values)
-
-    return select_fit(
-        renderer,
-        available,
-        candidates(),
-        guidance="項目を減らすか、文言を短くするか、複数スライドへ分割してください。",
-    )
 
 
 def _text_in_box(slide, renderer, field, x, y, w, h, text, max_pt, min_pt,
@@ -467,44 +449,8 @@ def s_mapping(slide, spec, page):
             dot = _dot(slide, x, y, color, 0.06)
             dot.name = f"mapping:port:{side}:{index}"
 def _swimlane_step_rects(spec, x0, y0, stage_w, lane_h):
-    grouped = defaultdict(list)
-    lane_index = {lane["id"]: index for index, lane in enumerate(spec["lanes"])}
-    stage_index = {stage["id"]: index for index, stage in enumerate(spec["stages"])}
-    for step in spec["steps"]:
-        grouped[(step["lane"], step["stage"])].append(step)
-    rects = {}
-    for (lane_id, stage_id), steps in grouped.items():
-        cell_x = x0 + stage_index[stage_id] * stage_w
-        cell_y = y0 + lane_index[lane_id] * lane_h
-        gap = 0.10
-        if len(spec["stages"]) <= 2:
-            max_node_w = 2.36
-        elif len(spec["stages"]) <= 3:
-            max_node_w = 1.92
-        else:
-            max_node_w = min(2.20, stage_w - 0.28)
-        available_w = stage_w - 0.28 - gap * (len(steps) - 1)
-        widths = [
-            min(max_node_w, max(
-                0.88, text_width_in(step["name"], 10.5, "bold") + 0.36))
-            for step in steps
-        ]
-        if sum(widths) > available_w:
-            scale = available_w / sum(widths)
-            widths = [width * scale for width in widths]
-        total_w = sum(widths) + gap * (len(steps) - 1)
-        start_x = cell_x + (stage_w - total_w) / 2
-        node_h = min(0.62 if lane_h >= 1.20 else 0.50, lane_h - 0.24)
-        cursor_x = start_x
-        for step, width in zip(steps, widths):
-            rects[step["id"]] = (
-                cursor_x,
-                cell_y + (lane_h - node_h) / 2,
-                width,
-                node_h,
-            )
-            cursor_x += width + gap
-    return rects
+    return _swimlane_layout.step_rects(spec, x0, y0, stage_w, lane_h)
+
 
 
 def _circled_step_number(index):
@@ -540,40 +486,21 @@ def _swimlane_label(slide, field, x, y, w, h, text, max_pt, min_pt):
 
 
 def s_swimlane(slide, spec, page):
-    """担当レーンと工程フェーズを持つ業務フローを描く。"""
+    """計画済みのセル・経路を、背景→接続→工程の順で描く。"""
     area = _swimlane_header(slide, spec)
+    plan = _swimlane_layout.plan_swimlane(spec, area)
+    _draw_swimlane_frame(slide, spec, plan)
+    _draw_swimlane_edges(slide, spec, plan)
+    _draw_swimlane_steps(slide, spec, plan)
+
+
+def _draw_swimlane_frame(slide, spec, plan):
     lanes, stages = spec["lanes"], spec["stages"]
-    frame_x, frame_w = 0.37, 12.59
-    top = area.top + 0.06
-    stage_h = 0.37
-    lane_label_w = min(1.85, max(1.27, max(
-        text_width_in(lane["label"], 13.0, "bold") + 0.22 for lane in lanes)))
-    stage_index = {stage["id"]: index for index, stage in enumerate(stages)}
-    step_by_id = {step["id"]: step for step in spec["steps"]}
-    has_feedback = any(
-        stage_index[step_by_id[edge["to"]]["stage"]]
-        < stage_index[step_by_id[edge["from"]]["stage"]]
-        for edge in spec["edges"]
-    )
-    edge_kinds = {
-        "feedback" if edge.get("kind") == "feedback" else "forward"
-        for edge in spec["edges"]
-    }
-    feedback_h = 0.30 if has_feedback else 0.0
-    show_line_legend = len(edge_kinds) > 1
-    body_bottom = 6.48
-    available_h = body_bottom - top - stage_h
-    standard_lane_h = (
-        1.34 if len(lanes) == 2 else 0.98 if len(lanes) == 3 else 0.95)
-    fitted = _fit_rows(
-        "swimlane_flow", available_h, len(lanes),
-        row_h=standard_lane_h, min_row_h=0.62, gap=0.0, min_gap=0.0,
-        font=11.5, min_font=9.0, reserve=feedback_h,
-    )
-    lane_h = fitted.values["row_h"]
-    x0 = frame_x + lane_label_w
-    stage_w = (frame_w - lane_label_w) / len(stages)
-    lane_y0 = top + stage_h
+    frame_x, frame_w = SWIMLANE.frame_x, SWIMLANE.frame_width
+    top, stage_h = plan.top, SWIMLANE.stage_height
+    lane_label_w, stage_w = plan.lane_label_w, plan.stage_w
+    lane_h, lane_y0, x0 = plan.fitted.values["row_h"], plan.lane_y0, plan.x0
+    show_line_legend = plan.show_line_legend
     for index, stage in enumerate(stages):
         x = x0 + index * stage_w
         shape = slide.shapes.add_shape(
@@ -589,7 +516,7 @@ def s_swimlane(slide, spec, page):
         _flatten_shape(shape)
         caption = _swimlane_label(slide, f"stages[{index}].label",
                                  x + 0.14, top + 0.025, stage_w - 0.28, 0.32,
-                                 stage["label"], 10.5, 9.5)
+                                 stage["label"], 10.5, SWIMLANE.stage_min_pt)
         caption.name = f"swimlane:stage-label:{stage['id']}"
     if show_line_legend:
         legend_x = frame_x + 0.08
@@ -607,8 +534,6 @@ def s_swimlane(slide, spec, page):
         add_text(slide, legend_x + 0.68, top + 0.22, 0.42, 0.18,
                  "差戻し", 7.0, color=SWIMLANE_NAVY,
                  anchor=MSO_ANCHOR.MIDDLE)
-    rects = _swimlane_step_rects(spec, x0, lane_y0, stage_w, lane_h)
-    lane_index = {lane["id"]: index for index, lane in enumerate(lanes)}
     for index, lane in enumerate(lanes):
         y = lane_y0 + index * lane_h
         label_bg = _flat_rect(slide, frame_x, y, lane_label_w, lane_h, SWIMLANE_LIGHT)
@@ -618,7 +543,7 @@ def s_swimlane(slide, spec, page):
         lane_text_w = lane_label_w - 0.22
         label = _swimlane_label(slide, f"lanes[{index}].label",
                                frame_x + 0.12, y, lane_text_w, lane_h,
-                               lane["label"], 13.0, 10.5)
+                               lane["label"], 13.0, SWIMLANE.lane_min_pt)
         label.name = f"swimlane:lane-label:{lane['id']}"
     # 後続レーンの背景で前レーンの下罫線が隠れないよう、境界は全背景の後に描く。
     for index, lane in enumerate(lanes):
@@ -635,65 +560,20 @@ def s_swimlane(slide, spec, page):
         x = x0 + index * stage_w
         plain_line(slide, x, lane_y0, x, lane_y0 + len(lanes) * lane_h,
                    color=SWIMLANE_RULE, width=0.55)
-    # 接続線を先に描き、ノードを上から重ねて線の貫通を隠す。
-    for edge_index, edge in enumerate(spec["edges"]):
-        sx, sy, sw, sh = rects[edge["from"]]
-        tx, ty, tw, th = rects[edge["to"]]
-        source_stage = stage_index[step_by_id[edge["from"]]["stage"]]
-        target_stage = stage_index[step_by_id[edge["to"]]["stage"]]
-        if target_stage > source_stage:
-            start, end = (sx + sw, sy + sh / 2), (tx, ty + th / 2)
-            if abs(start[1] - end[1]) < 0.02:
-                points = [start, end]
-            else:
-                boundary = x0 + target_stage * stage_w - 0.04
-                points = [start, (boundary, start[1]), (boundary, end[1]), end]
-        elif target_stage == source_stage:
-            source_lane = lane_index[step_by_id[edge["from"]]["lane"]]
-            target_lane = lane_index[step_by_id[edge["to"]]["lane"]]
-            if source_lane == target_lane:
-                left_to_right = tx > sx
-                start = (sx + sw if left_to_right else sx, sy + sh / 2)
-                end = (tx if left_to_right else tx + tw, ty + th / 2)
-                points = [start, end]
-            elif abs(target_lane - source_lane) == 1:
-                downward = ty > sy
-                start = (sx + sw / 2, sy + sh if downward else sy)
-                end = (tx + tw / 2, ty if downward else ty + th)
-                channel_y = (start[1] + end[1]) / 2
-                points = [start, (start[0], channel_y),
-                          (end[0], channel_y), end]
-            else:
-                # 中間レーンのノードを貫通しないよう工程セル右端を通し、
-                # 対象ノードの上下辺へ最後の短い縦線で接続する。
-                upward = target_lane < source_lane
-                channel_x = x0 + (source_stage + 1) * stage_w - 0.22
-                start = (sx + sw, sy + sh / 2)
-                target_x = tx + tw / 2
-                target_y = ty + th if upward else ty
-                approach_y = target_y + (0.10 if upward else -0.10)
-                points = [start, (channel_x, start[1]),
-                          (channel_x, approach_y),
-                          (target_x, approach_y), (target_x, target_y)]
-        else:
-            channel_y = lane_y0 + len(lanes) * lane_h + 0.10
-            if channel_y > body_bottom - 0.08:
-                raise FitError("swimlane: 差戻し線の配線領域が不足しています。工程を分割してください。")
-            start = (sx + sw / 2, sy + sh)
-            end = (tx + tw / 2, ty)
-            source_channel = x0 + (source_stage + 1) * stage_w - 0.08
-            target_channel = x0 + target_stage * stage_w + 0.08
-            points = [start, (start[0], start[1] + 0.035),
-                      (source_channel, start[1] + 0.035),
-                      (source_channel, channel_y), (target_channel, channel_y),
-                      (target_channel, end[1] - 0.035),
-                      (end[0], end[1] - 0.035), end]
+
+
+def _draw_swimlane_edges(slide, spec, plan):
+    for edge_index, (edge, points) in enumerate(zip(spec["edges"], plan.paths)):
         before_route = len(slide.shapes)
         route(slide, points,
               dash="dash" if edge.get("kind") == "feedback" else None,
               width=1.10, color=SWIMLANE_ACCENT)
         for part, shape in enumerate(list(slide.shapes)[before_route:]):
             shape.name = f"swimlane:edge:{edge_index}:{part}"
+
+
+def _draw_swimlane_steps(slide, spec, plan):
+    rects, fitted = plan.rects, plan.fitted
     for index, step in enumerate(spec["steps"]):
         x, y, w, h = rects[step["id"]]
         box = _flat_rect(slide, x, y, w, h,
@@ -704,8 +584,9 @@ def s_swimlane(slide, spec, page):
         display_name = _swimlane_step_label(step, index)
         label = _swimlane_label(slide, f"steps[{index}].name",
                                x + 0.06, y, w - 0.12, h, display_name,
-                               max(9.5, min(11.5, fitted.values["font"])), 9.5)
+                               max(SWIMLANE.node_min_pt, min(11.5, fitted.values["font"])), SWIMLANE.node_min_pt)
         label.name = f"swimlane:step-label:{step['id']}"
+
 def s_sequence(slide, spec, page):
     """参加者間のメッセージを上から下へ時系列表示する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
