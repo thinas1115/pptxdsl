@@ -9,7 +9,7 @@ from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 from slidegen.asset_paths import resolve_icon_path
-from slidegen.diagrams import add_arrow, arrow_label
+from slidegen.diagrams import add_arrow, arrow_label, set_line_dash
 from slidegen.generate import (
     ACCENT,
     BODY_W,
@@ -155,7 +155,7 @@ def s_concept(slide, spec, page):
         add_text(
             slide, right_x, y + 0.03, right_w, label_h,
             "\n".join(label_lines), label_size, bold=True, color=ACCENT,
-            spacing=1.08,
+            spacing=1.08, role="compact",
         )
         body_y = y + label_h + values["inside_gap"]
         body_size, body_lines = fit_text_or_raise(
@@ -173,12 +173,11 @@ def s_concept(slide, spec, page):
 
 def _set_connector_arrow(connector, *, both=False, dash=None):
     ln = connector.line._get_or_add_ln()
-    for tag, enabled in (("a:tailEnd", True), ("a:headEnd", both)):
+    for tag, enabled in (("a:headEnd", both), ("a:tailEnd", True)):
         if enabled:
             ln.append(ln.makeelement(
                 qn(tag), {"type": "triangle", "w": "med", "len": "med"}))
-    if dash:
-        ln.insert(0, ln.makeelement(qn("a:prstDash"), {"val": dash}))
+    set_line_dash(connector, dash)
 
 
 def _plain_connector(slide, x1, y1, x2, y2, color, *, width=1.6,
@@ -192,8 +191,7 @@ def _plain_connector(slide, x1, y1, x2, y2, color, *, width=1.6,
     if arrow:
         _set_connector_arrow(conn, dash=dash)
     elif dash:
-        ln = conn.line._get_or_add_ln()
-        ln.insert(0, ln.makeelement(qn("a:prstDash"), {"val": dash}))
+        set_line_dash(conn, dash)
     return conn
 
 
@@ -213,8 +211,8 @@ def _compact_lane_names(labels):
     return " / ".join(labels)
 
 
-def _fit_network(area, lane_count, max_cell_nodes):
-    available = area.height - 0.58
+def _fit_network(area, lane_count, max_cell_nodes, legend_h=0.24):
+    available = area.height - 0.46 - 0.12 - legend_h
 
     def used(values):
         return lane_count * values["lane_h"] + max(0, lane_count - 1) * values["gap"]
@@ -244,29 +242,57 @@ def _fit_network(area, lane_count, max_cell_nodes):
         guidance="論理セグメントまたは機器数を減らし、複数スライドへ分割してください。")
 
 
-def _node_label(slide, x, y, width, text, font, *, sub=None):
+def _node_label(slide, x, y, width, text, font, *, sub=None, fill=CANVAS):
     title_size, title_lines = fit_text_or_raise(
-        "nw_topology", "node.label", text, width, 0.35, font,
+        "nw_topology", "node.label", text, width - 0.08, 0.35, font,
         min_pt=8.5, weight="bold", spacing=1.05, role="compact")
     rendered = "\n".join(title_lines)
+    title_w = min(width, max(text_width_in(line, title_size, "bold") for line in title_lines) + 0.08)
     title_h = len(title_lines) * line_height_in(title_size, 1.05) + 0.02
     box = add_text(
-        slide, x - width / 2, y, width, title_h, rendered, title_size,
+        slide, x - title_w / 2, y, title_w, title_h, rendered, title_size,
         bold=True, color=NAVY, align=PP_ALIGN.CENTER,
-        anchor=MSO_ANCHOR.MIDDLE, spacing=1.05)
+        anchor=MSO_ANCHOR.MIDDLE, spacing=1.05, wrap=False, role="compact")
+    box.name = "network-node:label"
     box.fill.solid()
-    box.fill.fore_color.rgb = CANVAS
+    box.fill.fore_color.rgb = fill
     if sub:
         sub_size, sub_lines = fit_text_or_raise(
-            "nw_topology", "node.sub", sub, width, 0.28, font - 1.5,
+            "nw_topology", "node.sub", sub, width - 0.08, 0.28, font - 1.5,
             min_pt=7.5, spacing=1.0, role="compact")
         sub_h = len(sub_lines) * line_height_in(sub_size, 1.0) + 0.01
+        sub_w = min(width, max(text_width_in(line, sub_size) for line in sub_lines) + 0.08)
         sub_box = add_text(
-            slide, x - width / 2, y + title_h + 0.01, width, sub_h,
+            slide, x - sub_w / 2, y + title_h + 0.01, sub_w, sub_h,
             "\n".join(sub_lines), sub_size, color=GRAY,
-            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0)
+            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, wrap=False, role="compact")
+        sub_box.name = "network-node:sub"
         sub_box.fill.solid()
-        sub_box.fill.fore_color.rgb = CANVAS
+        sub_box.fill.fore_color.rgb = fill
+
+
+_NETWORK_KIND_LABELS = {
+    "access": "Access（単一セグメント）", "trunk": "Trunk（複数セグメント）",
+    "routed": "L3転送", "control": "制御・確認",
+    "broadcast": "ブロードキャスト", "blocked": "境界で停止",
+}
+
+
+def _network_legend(links):
+    kinds = list(dict.fromkeys(link.get("kind", "access") for link in links))
+    if "trunk" in kinds:
+        kinds.insert(0, "physical")
+    rows = [[]]
+    used = 0.0
+    for kind in kinds:
+        label = "物理リンク" if kind == "physical" else _NETWORK_KIND_LABELS[kind]
+        width = text_width_in(label, 9.5) + 0.52
+        if rows[-1] and used + 0.24 + width > BODY_W - 0.16:
+            rows.append([])
+            used = 0.0
+        rows[-1].append((kind, label, width))
+        used += width + 0.24
+    return rows, len(rows) * 0.24 + (len(rows) - 1) * 0.10
 
 
 def s_network(slide, spec, page):
@@ -286,7 +312,8 @@ def s_network(slide, spec, page):
         raise FitError(
             "network.nodes: 同じ列・論理セグメントに3件以上の機器は配置できません。"
             "列を追加するか、複数スライドへ分割してください。")
-    fitted = _fit_network(area, len(lanes), max_cell_nodes)
+    legend_rows, legend_h = _network_legend(links)
+    fitted = _fit_network(area, len(lanes), max_cell_nodes, legend_h)
     lane_h = fitted.values["lane_h"]
     gap = fitted.values["gap"]
     icon_size = fitted.values["icon"]
@@ -294,8 +321,13 @@ def s_network(slide, spec, page):
 
     top = area.top + 0.46
     used_h = len(lanes) * lane_h + max(0, len(lanes) - 1) * gap
-    top += max(0.0, (area.height - 0.55 - used_h) * 0.12)
-    lane_label_w = 1.46
+    top += max(0.0, (fitted.available - used_h) * 0.12)
+    # 長い意味単位を8pt未満へ潰さず、機器領域から見出しレールへ幅を配分する。
+    lane_label_w = max(1.46, min(2.40, max(
+        max(text_width_in(lane["label"], 11.5, "bold"),
+            text_width_in(lane.get("sub", ""), 8.5)) + 0.26
+        for lane in lanes
+    )))
     network_x0 = MARGIN + lane_label_w
     network_x1 = MARGIN + BODY_W - 0.16
     network_w = network_x1 - network_x0
@@ -316,12 +348,22 @@ def s_network(slide, spec, page):
         fill, color = _LANE_PALETTE[index]
         background = add_rect(slide, MARGIN, y, BODY_W, lane_h, fill)
         background.name = f"layout-background:network-lane:{lane['id']}"
-        add_text(slide, MARGIN + 0.16, y + 0.20, lane_label_w - 0.26, 0.27,
-                 lane["label"], 11.5, bold=True, color=color,
-                 anchor=MSO_ANCHOR.MIDDLE)
+        label_w = lane_label_w - 0.26
+        label_size, label_lines = fit_text_or_raise(
+            "nw_topology", "lane.label", lane["label"], label_w, 0.30,
+            11.5, min_pt=10.5, weight="bold", spacing=1.0, role="compact")
+        add_text(slide, MARGIN + 0.16, y + 0.16, label_w, 0.30,
+                 "\n".join(label_lines), label_size, bold=True, color=color,
+                 anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, wrap=False, role="compact")
         if lane.get("sub"):
-            add_text(slide, MARGIN + 0.16, y + 0.49, lane_label_w - 0.26, 0.22,
-                     lane["sub"], 8.5, color=GRAY)
+            sub_h = lane_h - 0.49 - 0.08
+            sub_size, sub_lines = fit_text_or_raise(
+                "nw_topology", "lane.sub", lane["sub"], label_w, sub_h,
+                8.5, min_pt=8.0, spacing=1.0, role="compact")
+            box = add_text(slide, MARGIN + 0.16, y + 0.49, label_w, sub_h,
+                           "\n".join(sub_lines), sub_size, color=GRAY,
+                           spacing=1.0, wrap=False, role="compact")
+            box.name = f"network-lane:sub:{lane['id']}"
 
     for column in columns:
         if column.get("label"):
@@ -424,18 +466,19 @@ def s_network(slide, spec, page):
         grouped_broadcasts.update(index for index, _link in group)
 
     # 配線を先に描き、アイコンとラベルを前面へ置く。
-    legend_kinds = []
     for link_index, link in enumerate(links):
         source_x, source_y = positions[link["from"]]
         target_x, target_y = positions[link["to"]]
         kind = link.get("kind", "access")
         lane_ids = link.get("lanes", [])
-        if kind not in legend_kinds:
-            legend_kinds.append(kind)
         if link_index in grouped_broadcasts:
             continue
         if kind == "trunk":
             active = lane_ids or list(lane_by_id)
+            physical_start = node_edge(link["from"], target_x)
+            physical_end = node_edge(link["to"], source_x)
+            physical = _plain_connector(slide, *physical_start, *physical_end, GRAY, width=1.5)
+            physical.name = f"network-link:physical:{link_index}"
             for lane_id in active:
                 color = _LANE_PALETTE[lane_index[lane_id]][1]
                 start = node_edge(link["from"], target_x, lane_id=lane_id)
@@ -453,12 +496,15 @@ def s_network(slide, spec, page):
                 "nw_topology", "link.trunk.label", trunk_label,
                 label_w - 0.12, 0.34, 8.5, min_pt=7.0,
                 weight="bold", spacing=1.0, role="compact")
+            label_w = min(label_w, max(text_width_in(line, label_size, "bold")
+                                      for line in label_lines) + 0.12)
             label = add_text(
                 slide, (source_x + target_x) / 2 - label_w / 2,
                 min(source_y, target_y) - 0.42, label_w, 0.34,
                 "\n".join(label_lines), label_size, bold=True, color=NAVY,
                 align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
-                spacing=1.0)
+                spacing=1.0, wrap=False, role="compact")
+            label.name = "network-link:trunk-label"
             label.fill.solid()
             label.fill.fore_color.rgb = CANVAS
             continue
@@ -515,12 +561,14 @@ def s_network(slide, spec, page):
 
     for node in nodes:
         x, y = positions[node["id"]]
+        node_fill = (_LANE_PALETTE[lane_index[node["lanes"][0]]][0]
+                     if len(node["lanes"]) == 1 else CANVAS)
         halo = slide.shapes.add_shape(
             MSO_SHAPE.OVAL,
             Inches(x - icon_size / 2 - 0.06), Inches(y - icon_size / 2 - 0.06),
             Inches(icon_size + 0.12), Inches(icon_size + 0.12))
         halo.fill.solid()
-        halo.fill.fore_color.rgb = CANVAS
+        halo.fill.fore_color.rgb = node_fill
         halo.line.fill.background()
         halo.shadow.inherit = False
         icon_path = resolve_icon_path(node["icon"])
@@ -533,32 +581,55 @@ def s_network(slide, spec, page):
         _node_label(
             slide, x, y + icon_size / 2 + 0.08,
             label_width, node["label"], font,
-            sub=node.get("sub"))
+            sub=node.get("sub"), fill=node_fill)
 
-    legend_y = area.bottom - 0.25
-    kind_labels = {"access": "Access", "trunk": "Trunk (複数VLAN)",
-                   "routed": "L3転送", "control": "制御・確認",
-                   "broadcast": "ブロードキャスト",
-                   "blocked": "VLAN境界で停止"}
-    x = MARGIN + 0.08
-    for kind in legend_kinds:
-        label = kind_labels[kind]
-        width = text_width_in(label, 8.5) + 0.52
-        color = (CORAL if kind in {"broadcast", "blocked"} else
-                 ACCENT if kind in {"access", "trunk"} else NAVY)
-        _plain_connector(slide, x, legend_y + 0.09, x + 0.28,
-                         legend_y + 0.09, color,
-                         width=2.2 if kind == "broadcast" else 2.0 if kind == "trunk" else 1.5,
-                         arrow=kind in {"access", "routed", "broadcast"},
-                         dash="dash" if kind in {"control", "blocked"} else None)
-        add_text(slide, x + 0.36, legend_y, width - 0.36, 0.20,
-                 label, 8.5, color=GRAY)
-        x += width + 0.24
+    legend_y = area.bottom - legend_h
+    for row_index, row in enumerate(legend_rows):
+        x = MARGIN + 0.08
+        y = legend_y + row_index * 0.34
+        for kind, label, width in row:
+            color = (CORAL if kind in {"broadcast", "blocked"} else
+                     ACCENT if kind in {"access", "trunk"} else GRAY if kind == "physical" else NAVY)
+            if kind == "trunk":
+                for dy, line_color in ((0.05, ACCENT), (0.13, NAVY)):
+                    _plain_connector(slide, x, y + dy, x + 0.28, y + dy, line_color, width=2.0)
+            else:
+                _plain_connector(slide, x, y + 0.09, x + 0.28, y + 0.09, color,
+                                 width=2.2 if kind == "broadcast" else 1.5,
+                                 arrow=kind in {"access", "routed", "broadcast"},
+                                 dash="dash" if kind in {"control", "blocked"} else None)
+            box = add_text(slide, x + 0.36, y, width - 0.36, 0.24,
+                           label, 9.5, color=TEXT, spacing=1.0, wrap=False, role="compact")
+            box.name = f"network-legend:{kind}"
+            x += width + 0.24
+
+
+_PROTOCOL_LEGEND_H = 0.36
+_PROTOCOL_APPEARANCES = {
+    "plain": "通常の値",
+    "encapsulated": "タグ・ヘッダー付加",
+    "internal": "装置内部処理",
+    "alert": "異常・要確認",
+}
+
+
+def _protocol_changed_stages(stages, states):
+    """位置順で直前の表示値・付加情報と比べる。処理理由や見せ方だけの差は除く。"""
+    by_stage = {state["stage"]: state for state in states}
+    previous = None
+    changed = set()
+    for stage in stages:
+        state = by_stage[stage["id"]]
+        value = (state["label"], state.get("encapsulation"))
+        if previous is not None and value != previous:
+            changed.add(stage["id"])
+        previous = value
+    return changed
 
 
 def _fit_protocol_state_flow(area, stages, flows):
     rail_w = 1.42
-    available = area.height - 0.08
+    available = area.height - 0.08 - _PROTOCOL_LEGEND_H
 
     def measured(values):
         stage_w = (
@@ -669,16 +740,16 @@ def _fit_protocol_state_flow(area, stages, flows):
 
 
 def _protocol_state_marker(
-        slide, cx, y, width, appearance, color, encapsulation=None):
+        slide, cx, y, width, appearance, encapsulation=None):
     marker_w = min(1.02, width * 0.72)
     marker_h = 0.20
     x = cx - marker_w / 2
     if appearance == "internal":
-        marker = add_rect(slide, x, y + 0.08, marker_w, 0.04, color)
+        marker = add_rect(slide, x, y + 0.08, marker_w, 0.04, NAVY)
         marker.name = "protocol-state-flow:marker:internal"
         return marker_w
     fill = RGBColor(0xF9, 0xF8, 0xF4)
-    line = CORAL if appearance == "alert" else color
+    line = CORAL if appearance == "alert" else NAVY
     marker = add_rect(slide, x, y, marker_w, marker_h, fill, line=line)
     marker.name = f"protocol-state-flow:marker:{appearance}"
     if appearance == "encapsulated":
@@ -686,7 +757,7 @@ def _protocol_state_marker(
             marker_w * 0.48,
             max(0.20, text_width_in(encapsulation, 6.5, "bold") + 0.10),
         )
-        tag = add_rect(slide, x, y, tag_w, marker_h, color)
+        tag = add_rect(slide, x, y, tag_w, marker_h, NAVY)
         tag.name = "protocol-state-flow:marker:encapsulated:tag"
         label_size, label_lines = fit_text_or_raise(
             "nw_protocol_flow", "state.encapsulation", encapsulation,
@@ -697,9 +768,35 @@ def _protocol_state_marker(
             slide, x + 0.02, y + 0.01, tag_w - 0.04, marker_h - 0.02,
             "\n".join(label_lines), label_size,
             bold=True, color=WHITE, align=PP_ALIGN.CENTER,
-            anchor=MSO_ANCHOR.MIDDLE, spacing=1.0,
+            anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, role="compact",
         )
     return marker_w
+
+
+def _protocol_legend(slide, states, top):
+    used = {state.get("appearance", "plain") for state in states}
+    x = MARGIN
+    for appearance, label in _PROTOCOL_APPEARANCES.items():
+        if appearance not in used:
+            continue
+        start = len(slide.shapes)
+        _protocol_state_marker(slide, x + 0.21, top, 0.42 / 0.72,
+                               appearance, "＋")
+        for shape in list(slide.shapes)[start:]:
+            shape.name = "protocol-state-flow:legend:" + shape.name
+        width = text_width_in(label, 9.0) + 0.04
+        box = add_text(slide, x + 0.54, top, width, 0.22, label, 9.0,
+                       color=TEXT, spacing=1.0, wrap=False, role="compact")
+        box.name = f"protocol-state-flow:legend:{appearance}"
+        x += 0.54 + width + 0.26
+    label = "下線：直前から値・付加情報が変化"
+    width = BODY_W - (x - MARGIN)
+    size, lines = fit_text_or_raise(
+        "nw_protocol_flow", "legend", label, width, 0.24, 9.0,
+        min_pt=9.0, spacing=1.0, role="compact")
+    box = add_text(slide, x, top, width, 0.24, "\n".join(lines), size,
+                   color=CORAL, spacing=1.0, wrap=False, role="compact")
+    box.name = "protocol-state-flow:legend:change"
 
 
 def s_protocol_state_flow(slide, spec, page):
@@ -719,7 +816,8 @@ def s_protocol_state_flow(slide, spec, page):
         )
         for index, stage in enumerate(stages)
     }
-    top = area.top + 0.08
+    _protocol_legend(slide, [state for flow in flows for state in flow["states"]], area.top + 0.02)
+    top = area.top + 0.08 + _PROTOCOL_LEGEND_H
     rows_top = top + values["header_h"] + 0.18
     rows_bottom = (
         rows_top + sum(values["row_heights"])
@@ -753,7 +851,7 @@ def s_protocol_state_flow(slide, spec, page):
             slide, cx - stage_w / 2 + 0.06, top + icon_size + 0.06,
             stage_w - 0.12, values["header_h"] - icon_size - 0.04,
             "\n".join(label_lines), label_size, bold=True, color=NAVY,
-            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.TOP, spacing=1.0,
+            align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.TOP, spacing=1.0, role="compact",
         )
 
     row_y = rows_top
@@ -777,7 +875,7 @@ def s_protocol_state_flow(slide, spec, page):
             slide, MARGIN + 0.10, row_y + 0.20,
             rail_w - 0.20, flow_label_h,
             "\n".join(flow_label_lines), flow_label_size,
-            bold=True, color=color, spacing=1.0,
+            bold=True, color=color, spacing=1.0, role="compact",
         )
         if flow.get("sub"):
             flow_sub_y = row_y + 0.20 + flow_label_h + 0.04
@@ -790,7 +888,7 @@ def s_protocol_state_flow(slide, spec, page):
             add_text(
                 slide, MARGIN + 0.10, flow_sub_y,
                 rail_w - 0.20, row_y + row_h - flow_sub_y - 0.10,
-                "\n".join(sub_lines), sub_size, color=GRAY, spacing=1.0,
+                "\n".join(sub_lines), sub_size, color=GRAY, spacing=1.0, role="compact",
             )
 
         states = sorted(
@@ -800,6 +898,7 @@ def s_protocol_state_flow(slide, spec, page):
                 if stage["id"] == state["stage"]
             ),
         )
+        changed_stages = _protocol_changed_stages(stages, states)
         marker_y = row_y + 0.18
         arrow_y = marker_y + 0.10
         marker_widths = {}
@@ -821,7 +920,7 @@ def s_protocol_state_flow(slide, spec, page):
             cx = stage_centers[state["stage"]]
             _protocol_state_marker(
                 slide, cx, marker_y, stage_w,
-                state.get("appearance", "plain"), color,
+                state.get("appearance", "plain"),
                 state.get("encapsulation"),
             )
             text_w = stage_w - 0.18
@@ -832,11 +931,21 @@ def s_protocol_state_flow(slide, spec, page):
             )
             title_y = marker_y + 0.30
             title_h = len(title_lines) * line_height_in(title_size, 1.0) + 0.03
-            add_text(
+            changed = state["stage"] in changed_stages
+            value_box = add_text(
                 slide, cx - text_w / 2, title_y, text_w, title_h,
-                "\n".join(title_lines), title_size, bold=True, color=NAVY,
-                align=PP_ALIGN.CENTER, spacing=1.0,
+                "\n".join(title_lines), title_size, bold=True,
+                color=CORAL if changed else NAVY,
+                align=PP_ALIGN.CENTER, spacing=1.0, role="compact",
             )
+            value_box.name = (
+                f"protocol-state-flow:value:{'changed' if changed else 'unchanged'}:"
+                f"{flow_index}:{state['stage']}"
+            )
+            if changed:
+                for paragraph in value_box.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.underline = True
             if state.get("detail"):
                 detail_y = title_y + title_h + 0.03
                 detail_h = row_y + row_h - detail_y - 0.10
@@ -848,20 +957,23 @@ def s_protocol_state_flow(slide, spec, page):
                 add_text(
                     slide, cx - text_w / 2, detail_y, text_w, detail_h,
                     "\n".join(detail_lines), detail_size, color=GRAY,
-                    align=PP_ALIGN.CENTER, spacing=1.0,
+                    align=PP_ALIGN.CENTER, spacing=1.0, role="compact",
                 )
         row_y += row_h + values["row_gap"]
 
-def _fit_protocol(area, frames, annotation_count):
+_PROTOCOL_ANNOTATION_GAP = 0.14
+
+
+def _fit_protocol(area, frames):
     available = area.height
-    annotation_rows = math.ceil(annotation_count / 4)
+    annotation_rows = [math.ceil(len(frame.get("annotations", [])) / 4) for frame in frames]
 
     def used(values):
         frame_block = (len(frames) * values["frame_h"]
                        + max(0, len(frames) - 1) * values["gap"])
-        annotation_block = (
-            0.28 + annotation_rows * values["annotation_row_h"]
-            if annotation_rows else 0.0
+        annotation_block = sum(
+            _PROTOCOL_ANNOTATION_GAP + rows * values["annotation_row_h"]
+            for rows in annotation_rows if rows
         )
         return 0.30 + frame_block + annotation_block + 0.08
 
@@ -895,7 +1007,7 @@ def s_protocol_anatomy(slide, spec, page):
         for frame_index, frame in enumerate(frames)
         for annotation in frame.get("annotations", [])
     ]
-    fitted = _fit_protocol(area, frames, len(annotations))
+    fitted = _fit_protocol(area, frames)
     values = fitted.values
     frame_h, gap, font = values["frame_h"], values["gap"], values["font"]
     label_w = 1.25
@@ -910,6 +1022,11 @@ def s_protocol_anatomy(slide, spec, page):
     bar_x = MARGIN + label_w
     bar_w = BODY_W - label_w - length_label_w
     top = area.top + 0.30
+    scale_note = add_text(
+        slide, MARGIN, area.top + 0.02, BODY_W, 0.22,
+        "幅はbit数に比例しない概念図", 9.0, color=TEXT,
+        spacing=1.0, wrap=False, role="compact")
+    scale_note.name = "protocol-anatomy:scale-note"
 
     minimum_by_bits = {}
     for frame in frames:
@@ -948,8 +1065,16 @@ def s_protocol_anatomy(slide, spec, page):
 
     field_centers = {}
     field_names = {}
+    frame_ys = []
+    cursor_y = top
+    for frame in frames:
+        frame_ys.append(cursor_y)
+        cursor_y += frame_h + gap
+        if frame.get("annotations"):
+            cursor_y += (_PROTOCOL_ANNOTATION_GAP
+                         + math.ceil(len(frame["annotations"]) / 4) * values["annotation_row_h"])
     for frame_index, frame in enumerate(frames):
-        y = top + frame_index * (frame_h + gap)
+        y = frame_ys[frame_index]
         add_text(slide, MARGIN + 0.02, y + 0.20, label_w - 0.18, 0.30,
                  frame["label"], 11, bold=True, color=NAVY,
                  anchor=MSO_ANCHOR.MIDDLE)
@@ -966,7 +1091,7 @@ def s_protocol_anatomy(slide, spec, page):
                 min_pt=7.5, weight="bold", spacing=1.0, role="compact")
             add_text(slide, x + 0.05, y + 0.12, width - 0.10, frame_h * 0.48,
                      "\n".join(name_lines), name_size, bold=True, color=color,
-                     align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0)
+                     align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, role="compact")
             add_text(slide, x + 0.04, y + frame_h - 0.25, width - 0.08, 0.16,
                      field.get("size_label", f"{field['bits']} bit"),
                      max(7.0, font - 2), color=GRAY,
@@ -990,27 +1115,35 @@ def s_protocol_anatomy(slide, spec, page):
                      anchor=MSO_ANCHOR.MIDDLE)
 
     if annotations:
-        annotation_y = top + len(frames) * frame_h + max(0, len(frames) - 1) * gap + 0.28
-        columns = min(4, len(annotations))
-        annotation_w = (BODY_W - 0.22 * (columns - 1)) / columns
-        for index, (frame_index, annotation) in enumerate(annotations):
+        next_index = {}
+        for frame_index, annotation in annotations:
+            index = next_index.get(frame_index, 0)
+            next_index[frame_index] = index + 1
+            columns = min(4, len(frames[frame_index]["annotations"]))
+            annotation_w = (BODY_W - 0.22 * (columns - 1)) / columns
             col = index % columns
             row = index // columns
             x = MARGIN + col * (annotation_w + 0.22)
-            y = annotation_y + row * values["annotation_row_h"]
+            y = (frame_ys[frame_index] + frame_h + _PROTOCOL_ANNOTATION_GAP
+                 + row * values["annotation_row_h"])
             source_x, source_y = field_centers[(frame_index, annotation["field"])]
             target_x = x + 0.20
             target_y = y - 0.06
-            _plain_connector(slide, source_x, source_y + 0.02,
-                             target_x, target_y, RULE, width=0.8)
+            connector = _plain_connector(slide, source_x, source_y + 0.02,
+                                         target_x, target_y, GRAY, width=1.1)
+            connector.name = f"protocol-anatomy:annotation:{frame_index}:{annotation['field']}"
             annotation_label = field_names[(frame_index, annotation["field"])]
             annotation_label_w = min(
-                0.62,
+                annotation_w * 0.42,
                 max(0.42, text_width_in(annotation_label, 8.5, "bold") + 0.08),
             )
-            add_text(slide, x, y, annotation_label_w, 0.22,
-                     annotation_label, 8.5,
-                     bold=True, color=ACCENT)
+            label_size, label_lines = fit_text_or_raise(
+                "nw_frame_anatomy", "annotation.field", annotation_label,
+                annotation_label_w, values["annotation_text_h"], 8.5,
+                min_pt=8.5, weight="bold", spacing=1.08, role="compact")
+            add_text(slide, x, y, annotation_label_w, values["annotation_text_h"],
+                     "\n".join(label_lines), label_size,
+                     bold=True, color=ACCENT, spacing=1.08, wrap=False, role="compact")
             fit_size, lines = fit_text_or_raise(
                 "nw_frame_anatomy", "annotation", annotation["text"],
                 annotation_w - annotation_label_w - 0.06,
@@ -1020,11 +1153,16 @@ def s_protocol_anatomy(slide, spec, page):
             add_text(slide, x + annotation_label_w + 0.06, y,
                      annotation_w - annotation_label_w - 0.06,
                      values["annotation_text_h"],
-                     "\n".join(lines), fit_size, color=TEXT, spacing=1.08)
+                     "\n".join(lines), fit_size, color=TEXT, spacing=1.08, wrap=False, role="compact")
 
 def _fit_code_text(code, width, height):
+    from slidegen.font_config import font_family
+    if font_family("code") == "Consolas" and not code.isascii():
+        raise FitError(
+            "config_lab.code: ConsolasではASCIIのコードだけを扱います。"
+            "日本語コメントは本文へ移すか、PPTXDSL_FONT_CODEでNoto Sans Mono CJK JPを指定してください。")
     for size in stepped(13.0, 9.5, 0.5):
-        widest = max(text_width_in(line or " ", size) for line in code.splitlines())
+        widest = max(text_width_in(line or " ", size, "code") for line in code.splitlines())
         used_h = max(1, len(code.splitlines())) * line_height_in(size, 1.18)
         if widest <= width and used_h <= height:
             return size
@@ -1034,16 +1172,18 @@ def _fit_code_text(code, width, height):
 
 
 def _apply_code_font(textbox):
+    from slidegen.font_config import font_family
+    family = font_family("code")
     for paragraph in textbox.text_frame.paragraphs:
         for run in paragraph.runs:
-            run.font.name = "Consolas"
+            run.font.name = family
             r_pr = run._r.get_or_add_rPr()
             for tag in ("a:ea", "a:cs"):
                 element = r_pr.find(qn(tag))
                 if element is None:
                     element = r_pr.makeelement(qn(tag), {})
                     r_pr.append(element)
-                element.set("typeface", "Consolas")
+                element.set("typeface", family)
 
 
 def s_code_lab(slide, spec, page):
@@ -1069,7 +1209,7 @@ def s_code_lab(slide, spec, page):
         size = _fit_code_text(section["code"], left_w - 0.56, code_h)
         code_box = add_text(
             slide, MARGIN + 0.28, code_y, left_w - 0.56, code_h,
-            section["code"], size, color=WHITE, spacing=1.18, wrap=False)
+            section["code"], size, color=WHITE, spacing=1.18, wrap=False, role="compact")
         _apply_code_font(code_box)
 
     add_text(slide, right_x, top + 0.02, right_w, 0.32,
@@ -1095,36 +1235,37 @@ def s_code_lab(slide, spec, page):
             add_rect(slide, right_x + 0.44, y + row_h - 0.04,
                      right_w - 0.44, 0.008, RULE)
 
-def _layout_options(question, size, mode, width):
+def _layout_options(question, size, mode, width, columns=None):
     option_size = size - 1.5
-    rows = []
-    current = []
-    current_width = 0.0
+    columns = columns or len(question["options"])
+    column_w = (width - .18 * (columns - 1)) / columns
+    # 設問をまたいでA/B/Cの列位置を共有する。正答の太字も先に測り、
+    # 問題・解答モードや収容時の縮小で横並び/縦並びが変わらないようにする。
+    horizontal = all(
+        "\n" not in option and text_width_in(
+            f"{chr(65 + i)}. {option}", 13.5,
+            "bold" if i == question["answer"] else "regular") + .12 <= column_w
+        for i, option in enumerate(question["options"]))
+    item_width = column_w if horizontal else width
+    items = []
     for option_index, option in enumerate(question["options"]):
         correct = option_index == question["answer"]
         weight = "bold" if mode == "answers" and correct else "regular"
         option_text = f"{chr(65 + option_index)}. {option}"
-        lines = wrap_compact(option_text, width, option_size, weight)
-        natural_width = max(
-            text_width_in(line or " ", option_size, weight) for line in lines
-        ) + 0.28
-        item_width = min(width, natural_width)
+        _, lines = fit_text_or_raise(
+            "knowledge_check", f"options[{option_index}]", option_text,
+            item_width - .12, 5.0, option_size, min_pt=option_size,
+            weight=weight, spacing=1.08, role="compact")
         item_height = max(
             0.28, len(lines) * line_height_in(option_size, 1.08) + 0.02
         )
-        if current and current_width + 0.18 + item_width > width:
-            rows.append(current)
-            current = []
-            current_width = 0.0
-        current.append({
+        items.append({
             "index": option_index,
             "text": "\n".join(lines),
             "width": item_width,
             "height": item_height,
         })
-        current_width += (0.18 if len(current) > 1 else 0.0) + item_width
-    if current:
-        rows.append(current)
+    rows = [items] if horizontal else [[item] for item in items]
     height = sum(max(item["height"] for item in row) for row in rows)
     height += max(0, len(rows) - 1) * 0.05
     return rows, height
@@ -1132,6 +1273,7 @@ def _layout_options(question, size, mode, width):
 
 def _fit_questions(area, questions, mode):
     available = area.height - 0.36
+    columns = max(len(question["options"]) for question in questions)
 
     def measure(size, gap):
         heights = []
@@ -1139,7 +1281,7 @@ def _fit_questions(area, questions, mode):
             question_h = len(wrap_text(question["question"], 10.25, size, "bold")) \
                 * line_height_in(size, 1.12)
             _option_rows, option_h = _layout_options(
-                question, size, mode, 10.85)
+                question, size, mode, 10.85, columns)
             explanation_h = 0.0
             if mode == "answers":
                 explanation_h = len(wrap_text(
@@ -1149,16 +1291,24 @@ def _fit_questions(area, questions, mode):
         return heights, sum(heights) + max(0, len(heights) - 1) * gap
 
     def candidates():
-        for gap in stepped(0.24, 0.10, 0.035):
-            _heights, used = measure(15.0, gap)
-            yield "standard" if gap == 0.24 else "gap", {"size": 15.0, "gap": gap}, used
-        for size in stepped(14.5, 11.5, 0.5):
-            _heights, used = measure(size, 0.10)
-            yield "font", {"size": size, "gap": 0.10}, used
+        profiles = [("standard" if gap == .24 else "gap", 15.0, gap)
+                    for gap in stepped(.24, .10, .035)]
+        profiles += [("font", size, .10) for size in stepped(14.5, 11.5, .5)]
+        generated, width_error = False, None
+        for stage, size, gap in profiles:
+            try:
+                _heights, used = measure(size, gap)
+            except FitError as error:
+                width_error = error
+                continue
+            generated = True
+            yield stage, {"size": size, "gap": gap}, used
+        if not generated and width_error:
+            raise FitError(f"{width_error} 設問を分割してください。") from None
 
     fitted = select_fit(
         "knowledge_check", available, candidates(),
-        guidance="設問を減らすか、選択肢と解説を短くしてください。")
+        guidance="設問を分割するか、選択肢と解説を短くしてください。")
     heights, _used = measure(fitted.values["size"], fitted.values["gap"])
     return fitted, heights
 
@@ -1168,6 +1318,7 @@ def s_knowledge_check(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     questions = spec["questions"]
     mode = spec["mode"]
+    columns = max(len(question["options"]) for question in questions)
     fitted, heights = _fit_questions(area, questions, mode)
     size, gap = fitted.values["size"], fitted.values["gap"]
     top = area.top + 0.22
@@ -1192,24 +1343,26 @@ def s_knowledge_check(slide, spec, page):
             question["question"], 10.85, 0.56, size,
             min_pt=11.5, weight="bold", spacing=1.12, role="natural")
         q_h = len(question_lines) * line_height_in(question_size, 1.12)
-        add_text(slide, x, top, 10.85, q_h + 0.04,
+        question_box = add_text(slide, x, top, 10.85, q_h + 0.04,
                  "\n".join(question_lines), question_size,
-                 bold=True, color=NAVY, spacing=1.12)
+                 bold=True, color=NAVY, spacing=1.12, wrap=False)
+        question_box.name = f"knowledge:question:{index}"
         option_y = top + q_h + 0.10
         option_rows, option_h = _layout_options(
-            question, size, mode, 10.85)
+            question, size, mode, 10.85, columns)
         for row in option_rows:
             option_x = x
             option_row_h = max(item["height"] for item in row)
             for item in row:
                 correct = item["index"] == question["answer"]
                 option_color = ACCENT if mode == "answers" and correct else GRAY
-                add_text(
+                option_box = add_text(
                     slide, option_x, option_y, item["width"], item["height"],
                     item["text"], size - 1.5,
                     bold=mode == "answers" and correct,
-                    color=option_color, spacing=1.08,
+                    color=option_color, spacing=1.08, role="compact", wrap=False,
                 )
+                option_box.name = f"knowledge:option:{index}:{item['index']}"
                 option_x += item["width"] + 0.18
             option_y += option_row_h + 0.05
         if mode == "answers":
@@ -1220,9 +1373,10 @@ def s_knowledge_check(slide, spec, page):
                 "knowledge_check", f"questions[{index}].explanation",
                 question["explanation"], 9.90, row_h - (explanation_y - top),
                 size - 2.0, min_pt=9.5, spacing=1.10, role="body")
-            add_text(slide, x + 0.68, explanation_y, 9.90,
+            explanation_box = add_text(slide, x + 0.68, explanation_y, 9.90,
                      row_h - (explanation_y - top), "\n".join(exp_lines),
-                     exp_size, color=TEXT, spacing=1.10)
+                     exp_size, color=TEXT, spacing=1.10, wrap=False)
+            explanation_box.name = f"knowledge:explanation:{index}"
         if index < len(questions) - 1:
             add_rect(slide, x, top + row_h + gap / 2,
                      BODY_W - 0.72, 0.008, RULE)

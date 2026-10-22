@@ -2,9 +2,6 @@
 import argparse
 from pathlib import Path
 
-from pptx import Presentation
-from pptx.util import Inches
-
 from slidegen import generate
 from tests.fixtures.gallery.content_patterns import PATTERN_DECK
 from slidegen.aws_vpc_layout import s_aws_vpc_layout
@@ -20,7 +17,7 @@ from slidegen.training_renderers import (
     s_code_lab, s_concept, s_knowledge_check, s_network, s_protocol_state_flow,
     s_protocol_anatomy,
 )
-from slidegen.validate_content import validate
+from slidegen.generate_from_json import build_presentation
 
 
 def s_diagram(slide, spec, page):
@@ -51,23 +48,10 @@ def main(out_path, cover_footer_config=None):
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        generate.configure_cover_footer(cover_footer_config)
+        prs = build_presentation(PATTERN_DECK, cover_footer_config,
+                                 renderers=RENDER, allow_sample_content=True)
     except ValueError as e:
-        raise SystemExit(f"NG: 表紙・フッター設定: {e}") from e
-    errors = validate(PATTERN_DECK, allow_sample_content=True)
-    if errors:
-        raise SystemExit("NG: パターンギャラリー\n  - " + "\n  - ".join(errors))
-    # footer() は generate.DECK の meta を参照するため、ギャラリー用に差し替える。
-    generate.DECK = PATTERN_DECK
-    prs = Presentation()
-    prs.slide_width = Inches(generate.SLIDE_W)
-    prs.slide_height = Inches(generate.SLIDE_H)
-    blank = prs.slide_layouts[6]
-    for idx, spec in enumerate(PATTERN_DECK["slides"], 1):
-        slide = prs.slides.add_slide(blank)
-        generate.render_slide(RENDER[spec["type"]], slide, spec, idx)
-        if spec["type"] != "title":
-            generate.footer(slide, idx)
+        raise SystemExit(f"NG: パターンギャラリー: {e}") from None
     prs.save(out_path)
     print(f"saved: {out_path} ({len(PATTERN_DECK['slides'])} slides)")
 

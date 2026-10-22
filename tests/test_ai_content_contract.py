@@ -16,7 +16,7 @@ def _deck(content_slide=None):
 def _bullets():
     return {
         "type": "bullets", "kicker": "分類", "title": "要点",
-        "bullets": [["本文A", None], ["本文B", None]],
+        "bullets": [{"text": "本文A"}, {"text": "本文B"}],
     }
 
 
@@ -52,7 +52,7 @@ def main():
     _assert_error(invalid_note_link, "https://")
 
     ignored_bullet_value = _deck(_bullets())
-    ignored_bullet_value["slides"][1]["bullets"][0][1] = "描画されない値"
+    ignored_bullet_value["slides"][1]["bullets"][0] = ["本文A", "描画されない値"]
     _assert_error(ignored_bullet_value, "text を持つオブジェクト")
 
     for style in ("numbered", "bullet", "checklist"):
@@ -163,7 +163,7 @@ def main():
     _assert_error(unknown_slide, "caption: 未対応")
 
     unresolved = _deck(_bullets())
-    unresolved["slides"][1]["bullets"][0][0] = "TBD"
+    unresolved["slides"][1]["bullets"][0]["text"] = "TBD"
     _assert_error(unresolved, "未確定マーカー")
 
     process = {
