@@ -8,7 +8,7 @@ CIでは以下を分け、PowerPointを利用していない検証を「PowerPoi
 | 游ゴシック | Windows、Python 3.10／3.13 | 全テスト、主要5デッキの生成と機械検査 |
 | Noto Sans CJK JP | Ubuntu、Python 3.13 | 全テスト、主要5デッキ、LibreOffice描画、文字幅の校正 |
 | Noto Sans JP可変400／700 | Ubuntu、Python 3.13 | 全テスト、主要5デッキ、LibreOffice描画、文字幅の校正 |
-| 固定Noto Sans JP＋固定Noto Sans Mono CJK JP | Windows／Ubuntu、Python 3.13 | 全テスト、双方の主要5デッキを双方のOSで検査 |
+| 固定Noto Sans JP＋固定Noto Sans Mono CJK JP | Windows／Ubuntu／macOS、Python 3.13 | 全テスト、各OSの主要5デッキを全3OSで検査 |
 
 主要5デッキは`basic`、`extended`、`patterns`、`lead_patterns`、`stress_patterns`である。
 通常・太字だけでなくコード欄の書体も固定し、OSの既定コード書体の違いを比較へ持ち込まない。
@@ -29,7 +29,7 @@ PowerPointはホストWindowsにあると仮定せず、この処理だけでは
 
 全テストの結果は、[テストランナー](../README.md)の`--report`でモジュール別に保存する。
 CIの失敗時も基準値・照合結果を成果物として残す。1つ目の照合に失敗して2つ目が成功した場合も、
-全体を成功扱いにしない。
+全体を成功扱いにしない。3つ目のmacOS成果物の欠落・失敗も必ず失敗として集約する。
 
 ## 一致させる項目と許容する差
 
@@ -54,5 +54,7 @@ python -m tools.quality.cross_platform compare out/regression/decks out/regressi
 ```
 
 他環境の生成成果物を同じ書体設定で受け取り、`compare`で照合する。
-GitHub ActionsではWindows／Ubuntu双方の成果物を取得して両方向を検査する。
+GitHub ActionsではWindows／Ubuntu／macOSの成果物を取得し、3生成元×3検査先×5デッキの
+45結果を照合する。macOS CIは固定書体での生成・構造検査であり、PowerPoint for Macでの
+描画は実施しない。[Macの実機確認](macos.md)とは別に記録する。
 実際の出力先やフォントの絶対パスは公開文書へ書かず、環境変数または引数で渡す。

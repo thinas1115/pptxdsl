@@ -41,6 +41,9 @@ python -m pip install -r requirements.txt
 - PPTXの生成にPowerPointは不要です。PNG化と目視確認にだけ使用します。
 - AWS・Fluentアイコンは`slidegen/assets/icons/`へ同梱済みです。
 
+macOSのフォント準備、生成・機械検査、PowerPointの全ページPNG書出しと実機受入は
+[Mac向け手順](docs/macos.md)を参照してください。Windows COM用の`render.ps1`はMacでは使いません。
+
 アイコンの出典とライセンスは[クレジット](slidegen/assets/CREDITS.md)を参照してください。
 
 ## 使い方
@@ -178,6 +181,8 @@ WindowsではPowerPointを優先し、それ以外ではLibreOfficeとPDF画像�
 
 Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テスト、主要デッキ生成、
 `check_layout.py`を実行します。PowerPointによるPNG化と目視確認はCIで代替せず、提出前に実施します。
+固定書体の主要5デッキはWindows・Ubuntu・macOSで生成し、各OSで相互検査します。
+macOS CIの構造検査と、PowerPoint for Macでの実機受入は別の工程です。
 
 ## 目的別ガイド
 

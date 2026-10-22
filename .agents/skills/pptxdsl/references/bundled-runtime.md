@@ -38,6 +38,10 @@ Windowsでは游ゴシック、非WindowsではfontconfigとNoto Sans CJK JP/Not
 同じフォントをPPTXの表示・レンダリング環境にも用意し、置換が起きた出力を確認済みとしない。
 
 PNG化にはPowerPoint、またはLibreOfficeとpdftoppm/PyMuPDFなどが必要。
+自動操作するPowerPoint backendはWindows COM用であり、Mac版PowerPointを探索・操作しない。
+Mac版では同梱の`project/docs/macos.md`に従って全ページを手動PNG書出しし、
+原本を残して`slide_01.png`等へ別名コピーした後、`run.py sheet`で一覧化する。
+開発用のPNG取込ツールは配布版へ同梱しない。PNGの枚数・順序・寸法も確認する。
 `probe`の結果を確認し、未対応の環境では利用可能な代替手段を調査する。
 Python実行ができない通常チャットやレンダリング手段のない環境では完了を約束しない。
 PNG化できなければ目視QAを完了扱いにせず、不足と調査結果を報告する。

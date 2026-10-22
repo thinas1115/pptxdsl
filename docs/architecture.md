@@ -20,7 +20,8 @@
 3. `generate_from_json.py`がtypeに対応するrendererを選択する。
 4. rendererまたは専用レイアウタが、座標・余白・フォント・描画順を決定してPPTXを生成する。
 5. `check_layout.py`が、重なり・枠線貫通・スライド外へのはみ出しを機械検査する。
-6. `render.ps1`がPowerPointでPNG化し、機械検査では判定できない見た目を確認する。
+6. Windowsは`render.ps1`、Macは[PowerPointの全ページ書出し](macos.md)、それ以外は実変換可能な
+   backendでPNG化し、機械検査では判定できない見た目を確認する。
 7. 不合格の場合は、内容の問題なら`content.json`、表現力の問題ならrendererまたはレイアウタへ戻す。
 
 ## 設計目標

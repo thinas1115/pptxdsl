@@ -18,6 +18,7 @@ from tools.quality.text_metrics_cases import compare as compare_text, prepare_fo
 
 
 DECKS = ("basic", "extended", "patterns", "lead_patterns", "stress_patterns")
+ORIGINS = ("windows-latest", "ubuntu-latest", "macos-latest")
 CODE_URL = "https://raw.githubusercontent.com/notofonts/noto-cjk/523d033d6cb47f4a80c58a35753646f5c3608a78/Sans/Mono/NotoSansMonoCJKjp-Regular.otf"
 CODE_SHA256 = "4d01725be822d144cf9a56ade981e6fb920cd7a610b8fc24cc601a920beea5b9"
 
@@ -131,9 +132,9 @@ def compare(source, output):
 
 
 def compare_sources(source, output):
-    """一方が失敗しても他方を検査し、PowerShellの最終終了値で失敗を隠さない。"""
+    """全3OSを検査し、先頭・中間・最後の失敗を最終終了値で隠さない。"""
     results = []
-    for name in ("windows-latest", "ubuntu-latest"):
+    for name in ORIGINS:
         try:
             compare(source / f"regression-origin-{name}" / "decks", output / name)
             results.append({"origin": name, "status": "passed"})

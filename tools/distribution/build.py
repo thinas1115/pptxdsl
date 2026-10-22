@@ -27,6 +27,7 @@ PROJECT_FILES = (
     "docs/text-metrics.md",
     "docs/dependencies.md",
     "docs/static-quality.md",
+    "docs/macos.md",
     "docs/generation-api.md",
     "examples/cover_footer.ja.json",
     "requirements.txt", "render.ps1", "contact_sheet.py",

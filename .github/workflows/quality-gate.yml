@@ -46,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     env:
       PYTHONIOENCODING: utf-8
       PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/cross-fonts/NotoSansJP-VF.ttf
@@ -86,7 +86,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     env:
       PYTHONIOENCODING: utf-8
       PPTXDSL_FONT_REGULAR: ${{ github.workspace }}/out/cross-fonts/NotoSansJP-VF.ttf

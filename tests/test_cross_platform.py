@@ -64,13 +64,30 @@ class CrossPlatformTests(unittest.TestCase):
         self.assertNotIn("private", json.dumps(report))
 
     def test_first_cross_failure_cannot_be_hidden_by_second_success(self):
-        with TemporaryDirectory() as temporary, patch.object(c, "compare", side_effect=[ValueError("NG"), {}]) as compare:
+        with TemporaryDirectory() as temporary, patch.object(c, "compare", side_effect=[ValueError("NG"), {}, {}]) as compare:
             output = Path(temporary) / "checked"
             with self.assertRaisesRegex(ValueError, "クロス検査"):
                 c.compare_sources(Path(temporary), output)
-            self.assertEqual(compare.call_count, 2)
+            self.assertEqual(compare.call_count, 3)
             results = json.loads((output / "summary.json").read_text(encoding="utf-8"))
-            self.assertEqual([item["status"] for item in results], ["failed", "passed"])
+            self.assertEqual([item["status"] for item in results], ["failed", "passed", "passed"])
+
+    def test_mac_failure_or_missing_origin_cannot_be_hidden(self):
+        with TemporaryDirectory() as temporary, patch.object(c, "compare", side_effect=[{}, {}, FileNotFoundError("missing")]) as compare:
+            output = Path(temporary) / "checked"
+            with self.assertRaisesRegex(ValueError, "クロス検査"):
+                c.compare_sources(Path(temporary), output)
+            self.assertEqual(compare.call_count, 3)
+            results = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+            self.assertEqual([item["origin"] for item in results], list(c.ORIGINS))
+            self.assertEqual([item["status"] for item in results], ["passed", "passed", "failed"])
+
+    def test_ci_requires_all_three_origins_and_checkers(self):
+        workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/quality-gate.yml").read_text(encoding="utf-8")
+        for job, next_job in (("regression-origin", "regression-cross"), ("regression-cross", "text-metrics-origin")):
+            section = workflow.split(f"  {job}:", 1)[1].split(f"  {next_job}:", 1)[0]
+            self.assertIn("os: [windows-latest, ubuntu-latest, macos-latest]", section)
+        self.assertEqual(len(c.ORIGINS), 3)
 
 
 if __name__ == "__main__":
