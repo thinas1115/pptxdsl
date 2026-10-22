@@ -31,15 +31,20 @@ class DependencyContractTests(unittest.TestCase):
     def test_dependency_groups_are_pinned_and_documented(self):
         runtime = _pins("requirements.txt")
         assets = _pins("requirements-assets.txt")
+        quality = _pins("requirements-quality.txt")
         self.assertEqual(set(runtime), {"python-pptx", "Pillow", "lxml", "XlsxWriter", "typing_extensions"})
         self.assertEqual(len(assets), 9)
         self.assertFalse(runtime.keys() & assets.keys())
         self.assertFalse(_pins("requirements-dev.txt"))
         self.assertIn("-r requirements.txt", (ROOT / "requirements-assets.txt").read_text(encoding="utf-8"))
         self.assertIn("-r requirements-assets.txt", (ROOT / "requirements-dev.txt").read_text(encoding="utf-8"))
+        self.assertIn("-r requirements-quality.txt", (ROOT / "requirements-dev.txt").read_text(encoding="utf-8"))
+        self.assertEqual(set(quality), {"ruff", "mypy", "mypy_extensions", "pathspec", "typing_extensions", "coverage"})
+        for name in runtime.keys() & quality.keys():
+            self.assertEqual(runtime[name], quality[name], f"共通依存の固定値が不一致: {name}")
         document = ROOT / "docs/dependencies.md"
         text = document.read_text(encoding="utf-8")
-        for name in (*runtime, *assets):
+        for name in (*runtime, *assets, *quality):
             self.assertIn(f"| {name} |", text)
         self.assertFalse(_broken_local_links(document))
         self.assertFalse(_broken_local_links(ROOT / "THIRD_PARTY_NOTICES.md"))
@@ -47,9 +52,10 @@ class DependencyContractTests(unittest.TestCase):
     @unittest.skipUnless(os.environ.get("PPTXDSL_RUNTIME_ONLY") == "1", "最小依存環境でのみ導入済みパッケージを厳密検査する")
     def test_minimal_environment_has_no_asset_dependencies(self):
         modules = ("reportlab", "svglib", "charset_normalizer", "cssselect2", "tinycss2",
-                   "webencodings", "rlPyCairo", "cairo", "freetype")
+                   "webencodings", "rlPyCairo", "cairo", "freetype", "ruff", "mypy",
+                   "mypy_extensions", "pathspec", "coverage")
         for module in modules:
-            self.assertIsNone(importlib.util.find_spec(module), f"素材取得依存が混入: {module}")
+            self.assertIsNone(importlib.util.find_spec(module), f"開発専用依存が混入: {module}")
         for package, pinned in _pins("requirements.txt").items():
             self.assertEqual(version(package), pinned)
 
@@ -61,7 +67,7 @@ class DependencyContractTests(unittest.TestCase):
                     _, archive = build(base / (kind + "-build"))
                     installed = base / (kind + "-installed")
                     with zipfile.ZipFile(archive) as bundle:
-                        self.assertFalse(any(Path(name).name in ("requirements-dev.txt", "requirements-assets.txt")
+                        self.assertFalse(any(Path(name).name in ("requirements-dev.txt", "requirements-assets.txt", "requirements-quality.txt")
                                              for name in bundle.namelist()))
                         bundle.extractall(installed)
                     skill = installed / ("pptxdsl" if kind == "skill" else "skills/pptxdsl")

@@ -7,7 +7,8 @@
 | PPTX生成・検査・PNG一覧作成、Skill・Plugin | `python -m pip install -r requirements.txt` | 実行時5パッケージ。直接・間接依存を固定 |
 | テスト・ギャラリー生成・Skill/Plugin/Releaseビルド | 同上 | 実行時依存とPython標準ライブラリ。配布ビルドにはGitも必要 |
 | 素材の取得・SVG→PNG変換 | `python -m pip install -r requirements-assets.txt` | 実行時依存と素材取得用9パッケージ |
-| 全開発ツール | `python -m pip install -r requirements-dev.txt` | 素材取得を含む全依存。現時点では追加のテストframeworkは不要 |
+| 静的検査・分岐coverage | `python -m pip install -r requirements.txt -r requirements-quality.txt` | 実行時依存と検査専用依存。対象範囲は[静的品質ゲート](static-quality.md)を参照 |
+| 全開発ツール | `python -m pip install -r requirements-dev.txt` | 素材取得・静的検査を含む全依存。追加のテストframeworkは不要 |
 
 コマンドはcloneしたリポジトリのルートから実行する。Release版Skill・Pluginでは、
 同梱された`project/requirements.txt`だけを使う。素材は変換済みPNGを同梱しており、
@@ -53,3 +54,8 @@ Pillow、lxmlなどのwheelに同梱されるネイティブライブラリの�
 | rlPyCairo | 素材取得・PNG backend | BSD | [PyPI](https://pypi.org/project/rlPyCairo/) |
 | pycairo | 素材取得・間接 | LGPL-2.1-only OR MPL-1.1 | [PyPI](https://pypi.org/project/pycairo/) |
 | freetype-py | 素材取得・間接 | BSD | [PyPI](https://pypi.org/project/freetype-py/) |
+| ruff | 静的検査・直接 | MIT | [PyPI](https://pypi.org/project/ruff/) |
+| mypy | 静的検査・直接 | MIT | [PyPI](https://pypi.org/project/mypy/) |
+| mypy_extensions | 静的検査・間接 | MIT | [PyPI](https://pypi.org/project/mypy-extensions/) |
+| pathspec | 静的検査・間接 | MPL-2.0 | [PyPI](https://pypi.org/project/pathspec/) |
+| coverage | 分岐coverage・直接 | Apache-2.0 | [PyPI](https://pypi.org/project/coverage/) |

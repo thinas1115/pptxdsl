@@ -82,7 +82,7 @@ def build_presentation(deck, cover_footer_config=None, *, renderers=None,
         for idx, spec in enumerate(snapshot["slides"], 1):
             renderer = registry.get(spec["type"])
             if renderer is None:
-                raise FitError(f"未対応のスライド種別です: {spec['type']!r}")
+                raise FitError(f"対応するrendererがありません（未対応のスライド種別）: {spec['type']!r}")
             slide = prs.slides.add_slide(prs.slide_layouts[6])
             generate.render_slide(renderer, slide, spec, idx)
             if spec["type"] != "title":

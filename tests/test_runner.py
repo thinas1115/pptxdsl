@@ -38,6 +38,28 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(records[2]["skips"], ["optional-render: backendなし"])
             self.assertTrue(all(r["seconds"] >= 0 for r in records))
 
+    def test_collects_unittest_decorator_and_dynamic_skip_reasons(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tests = root / "tests"
+            tests.mkdir()
+            (tests / "__init__.py").touch()
+            case = tests / "test_unittest_skips.py"
+            case.write_text(
+                "import unittest\n"
+                "class OptionalTests(unittest.TestCase):\n"
+                "    @unittest.skip('可変フォント未指定')\n"
+                "    def test_decorator(self): pass\n"
+                "    def test_dynamic(self): self.skipTest('素材変換依存なし')\n"
+                "if __name__ == '__main__': unittest.main()\n", encoding="utf-8")
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                records = run_cases(root, [case])
+            self.assertEqual(records[0]["status"], "passed")
+            skips = records[0]["skips"]
+            self.assertEqual(len(skips), 2)
+            self.assertTrue(any("test_decorator: 可変フォント未指定" in s for s in skips))
+            self.assertTrue(any("test_dynamic: 素材変換依存なし" in s for s in skips))
+
     def test_optimized_entrypoint_refuses_to_run(self):
         result = subprocess.run([sys.executable, "-O", "-m", "tests"],
                                 capture_output=True, encoding="utf-8",

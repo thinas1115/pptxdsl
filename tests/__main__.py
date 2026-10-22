@@ -8,6 +8,25 @@ import sys
 import time
 
 
+# 単体実行の入口を変えず、unittestのskipも既存scriptと同じ形式で報告する。
+_CASE_RUNNER = """
+import runpy
+import sys
+import unittest
+
+original_add_skip = unittest.TextTestResult.addSkip
+
+def report_skip(result, test, reason):
+    original_add_skip(result, test, reason)
+    print(f"SKIP: {test.id()}: {reason}", flush=True)
+
+unittest.TextTestResult.addSkip = report_skip
+module = sys.argv[1]
+sys.argv = [module]
+runpy.run_module(module, run_name="__main__", alter_sys=True)
+"""
+
+
 def run_cases(root, cases):
     """既存script形式を独立実行し、全失敗と明示されたskipを収集する。"""
     env = os.environ.copy()
@@ -19,7 +38,7 @@ def run_cases(root, cases):
         print(f"==> {case.name}", flush=True)
         started = time.perf_counter()
         result = subprocess.run(
-            [sys.executable, "-m", f"tests.{case.stem}"], cwd=root, env=env,
+            [sys.executable, "-c", _CASE_RUNNER, f"tests.{case.stem}"], cwd=root, env=env,
             capture_output=True, text=True, encoding="utf-8", errors="replace")
         elapsed = time.perf_counter() - started
         print(result.stdout, end="", flush=True)
