@@ -60,9 +60,10 @@ jobs:
           cache: pip
       - name: Office互換ソフトのバージョンを記録できる環境を準備
         if: runner.os == 'Linux'
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libreoffice-impress
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --no-install-recommends -y libreoffice-impress
       - name: 依存と固定書体を準備
         run: |
           python -m pip install -r requirements.txt
@@ -277,9 +278,10 @@ jobs:
           cache: pip
 
       - name: LibreOfficeと日本語フォントを導入
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libreoffice-impress poppler-utils fonts-noto-cjk
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --no-install-recommends -y libreoffice-impress poppler-utils fonts-noto-cjk
 
       - name: 依存ライブラリを導入
         run: python -m pip install -r requirements.txt
@@ -385,9 +387,10 @@ jobs:
           python-version: "3.13"
           cache: pip
       - name: 描画環境を準備
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libreoffice-impress poppler-utils fonts-noto-cjk
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --no-install-recommends -y libreoffice-impress poppler-utils fonts-noto-cjk
           python -m pip install -r requirements.txt
       - name: 固定したNoto Sans JP可変フォントを準備
         if: matrix.profile == 'noto-jp-variable'
@@ -462,9 +465,10 @@ jobs:
           cache: pip
           cache-dependency-path: requirements*.txt
       - name: Cairoのビルド環境を準備
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libcairo2-dev pkg-config python3-dev
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --no-install-recommends -y libcairo2-dev pkg-config python3-dev
       - name: 全開発依存を導入
         run: python -m pip install -r requirements-dev.txt
       - name: 素材変換を検証
