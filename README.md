@@ -13,8 +13,8 @@
 
 ![TYPE別パターンギャラリー](docs/pattern-gallery-by-type.png)
 
-PowerPointで確認・編集できる実物は
-[パターンギャラリー](examples/gallery/pattern_gallery.pptx)に収録しています。
+PowerPointで確認・編集できる実物は、[パターンギャラリーの取得・生成手順](examples/gallery/README.md)から入手できます。
+Gitには軽量な一覧画像を置き、PPTXはRelease・CI成果物で配布します。
 研修資料の構成例は[VLAN基礎研修](examples/training/vlan/README.md)で確認できます。
 [AWSネットワーク資料の入力例](examples/training/aws-network/README.md)も収録しています。
 
@@ -186,7 +186,7 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 | `content.json`のフィールドと制約を確認する | [CONTENT_SCHEMA.md](CONTENT_SCHEMA.md) |
 | 内容に合うtypeを選ぶ | [docs/type-selection-guide.md](docs/type-selection-guide.md) |
 | 生成AIへの依頼文を作る | [AI_DECK_PROMPT.md](AI_DECK_PROMPT.md) |
-| 対応レイアウトを人間が見て確認する | [サンプルスライドギャラリー](examples/gallery/pattern_gallery.pptx) |
+| 対応レイアウトを人間が見て確認する | [サンプルスライドギャラリー](examples/gallery/README.md) |
 | 新しいtypeやレイアウタを追加する | [EXTENDING.md](EXTENDING.md) |
 | 配色・フォント・表紙デザインを変更する | [DESIGN_CUSTOMIZATION.md](DESIGN_CUSTOMIZATION.md) |
 | 表紙・フッターだけを利用者別に変更する | [docs/cover-footer-customization.md](docs/cover-footer-customization.md) |
@@ -215,8 +215,9 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 実行時の生成物はすべて`out/`へ保存します。`docs/`には保守対象の説明文書と、
 その文書から参照する掲載素材だけを置きます。
 
-`examples/gallery/pattern_gallery.pptx`はclone後に人間が確認する配布用サンプルです。
+ギャラリーPPTXは人間がレイアウトを確認するサンプルです。[Release・CIからの取得とローカル生成](examples/gallery/README.md)に対応します。
 新しい資料を作る生成AIには渡さず、内容・文言・ページ順の参考資料にも使用しません。
+追跡対象と公開履歴の扱いは[ギャラリー配布方針](docs/gallery-distribution.md)を参照してください。
 
 テストや開発ツールはリポジトリルートからmoduleとして実行します。
 単体実行例は`python -m tests.test_check_layout`、ギャラリー生成は

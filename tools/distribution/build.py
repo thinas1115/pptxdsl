@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import zipfile
 
@@ -161,6 +162,29 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _build_gallery(target: Path, source_root: Path) -> None:
+    """checkoutの生成元を検証し、ZIP日時によらない配布PPTXを作る。"""
+    with tempfile.TemporaryDirectory(prefix="pptxdsl-gallery-", dir=target.parent) as temporary:
+        generated = Path(temporary) / "gallery.pptx"
+        for module, arguments in (
+            ("tools.gallery.generate_patterns", [str(generated)]),
+            ("slidegen.check_layout", [str(generated)]),
+        ):
+            result = subprocess.run(
+                [sys.executable, "-m", module, *arguments], cwd=source_root,
+                capture_output=True, text=True, encoding="utf-8", errors="replace")
+            if result.returncode:
+                raise ValueError("配布ギャラリーの生成・機械検査に失敗しました。"
+                                 "tools.gallery.generate_patternsとslidegen.check_layoutを個別に実行してください。")
+        with zipfile.ZipFile(generated) as source, \
+                zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as output:
+            for name in sorted(source.namelist()):
+                info = zipfile.ZipInfo(name, date_time=(2020, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o100644 << 16
+                output.writestr(info, source.read(name))
+
+
 def build_release(output_dir: Path, *, tag: str | None = None,
                   source_root: Path = ROOT) -> ReleaseAssets:
     output_dir = output_dir.resolve()
@@ -181,12 +205,14 @@ def build_release(output_dir: Path, *, tag: str | None = None,
         temporary_root = Path(temporary)
         _, skill_archive = build_skill(temporary_root / "skill", source_root)
         _, plugin_archive = build_plugin(temporary_root / "plugin", source_root)
+        gallery_archive = temporary_root / names[2]
+        _build_gallery(gallery_archive, source_root)
         skill_target = output_dir / names[0]
         plugin_target = output_dir / names[1]
         gallery_target = output_dir / names[2]
         shutil.copyfile(skill_archive, skill_target)
         shutil.copyfile(plugin_archive, plugin_target)
-        shutil.copyfile(source_root / "examples/gallery/pattern_gallery.pptx", gallery_target)
+        shutil.copyfile(gallery_archive, gallery_target)
     checksums = output_dir / names[3]
     checksum_targets = (skill_target, plugin_target, gallery_target)
     checksums.write_text("".join(

@@ -1,33 +1,43 @@
 # サンプルスライドギャラリー
 
-[pattern_gallery.pptx](pattern_gallery.pptx)は、cloneした利用者が対応レイアウトの見た目を
-PowerPointで確認するための配布用ギャラリーです。
+対応する27種類のtypeを、37枚の出力例で比較できます。Gitには下の縮小一覧を置き、
+PowerPointで編集できるPPTXはRelease・CI成果物として配布します。
 
 ![TYPE別パターンギャラリー](../../docs/pattern-gallery-by-type.png)
 
-27種類のtypeを、37枚の出力例で比較できます。画像は全体確認用で、各スライドの文言、
-図形、表、グラフ、配線は`pattern_gallery.pptx`で確認してください。
+## PPTXを取得する
 
-## 扱い
+- 安定版は[最新Release](https://github.com/thinas1115/pptxdsl/releases/latest)の`pattern_gallery.pptx`を取得してください。Pythonやcloneは不要です。
+- 開発中の版は[品質ゲート](https://github.com/thinas1115/pptxdsl/actions/workflows/quality-gate.yml)で対象PR・コミットの実行を開き、`pptxdsl-distributions`を取得してください。PNGは`font-contract-*`に含まれます。CI成果物の保存期限やアクセス権に注意してください。
+- オフラインやforkでは、次の手順で手元のコミットから生成できます。Releaseの取得権限は不要です。
 
-- 人間がレイアウト選定とデザイン確認に使う。
-- 新しい資料を作る生成AIには渡さない。
-- ギャラリーの題材、文言、数値、ページ順を`content.json`へ流用しない。
-- rendererの開発時は、回帰検証と目視QAに使用する。
+## 手元のコードから生成する
 
-生成AIへ渡す資料は、記入済みの`AI_DECK_PROMPT.md`、`CONTENT_SCHEMA.md`、
-`docs/type-selection-guide.md`です。
-
-## 更新
-
-renderer、テーマ、ギャラリー内容を変更した場合は、次のコマンドで配布用PPTXを更新します。
+リポジトリルートで[セットアップ](../../README.md#セットアップ)を済ませてから実行してください。
+PPTX生成にPowerPointは不要です。PNG描画にはPowerPoint、またはLibreOfficeとPDF画像化手段が必要です。
 
 ```powershell
-python -m tools.gallery.generate_patterns examples\gallery\pattern_gallery.pptx
-python slidegen/check_layout.py examples\gallery\pattern_gallery.pptx
-powershell -ExecutionPolicy Bypass -File render.ps1 -PptxPath examples\gallery\pattern_gallery.pptx -OutDir out\png_pattern_gallery
-python -m tools.gallery.build_gallery_overview out\png_pattern_gallery docs\pattern-gallery-by-type.png
+python -m tools.gallery.generate_patterns out/pattern_gallery.pptx
+python -m slidegen.check_layout out/pattern_gallery.pptx
+python .agents/skills/pptxdsl/scripts/render_preview.py out/pattern_gallery.pptx out/gallery-png
+python contact_sheet.py out/gallery-png
 ```
 
-各ページのPNGなど、配布しない確認用生成物は`out/`へ保存します。TYPE別一覧画像は
-`docs/pattern-gallery-by-type.png`へ出力し、配布用PPTXと一緒に更新します。
+各ページの原寸PNGと一覧を確認します。Gitへ載せるtype別一覧は960px幅です。
+詳細を見るための1920px版は`out/`へ保存できます。
+
+```powershell
+python -m tools.gallery.build_gallery_overview out/gallery-png docs/pattern-gallery-by-type.png
+python -m tools.gallery.build_gallery_overview out/gallery-png out/gallery-overview.png --width 1920
+```
+
+## ギャラリーを新規資料の題材へ流用しない
+
+ギャラリーは人間のレイアウト選定とrendererの回帰検証用です。新しい資料を作る生成AIへ
+題材・文言・数値・ページ順の見本として渡さないでください。生成AIへ渡す資料は、
+記入済みの[AI_DECK_PROMPT.md](../../AI_DECK_PROMPT.md)、
+[CONTENT_SCHEMA.md](../../CONTENT_SCHEMA.md)、[type選定ガイド](../../docs/type-selection-guide.md)です。
+
+追跡対象、Release生成、履歴の扱いは[ギャラリー配布方針](../../docs/gallery-distribution.md)を参照してください。
+取得・生成で解決しない問題は、利用したコミットと公開可能なエラー概要を添えて
+[Issue](https://github.com/thinas1115/pptxdsl/issues)へ報告してください。

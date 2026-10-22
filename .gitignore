@@ -1,5 +1,7 @@
 # 生成物 (render.ps1 / generate*.py の出力)
 out/
+# ギャラリーPPTXはRelease・CIで生成する。旧手順のローカル出力も追跡しない。
+/examples/gallery/*.pptx
 
 # ローカル専用のAIエージェント設定。端末固有のパスや設定を含み得るため追跡しない
 /CLAUDE.md
