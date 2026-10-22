@@ -3,7 +3,7 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 
 from slidegen.diagrams import add_arrow, arrow_label
 from slidegen.diagrams3 import plain_line, route
-from slidegen.generate import (ACCENT, BODY_W, GRAY, LIGHT, MARGIN, NAVY,
+from slidegen.generate import (ACCENT, BODY_W, LIGHT, MARGIN, NAVY,
                       RULE, SURFACE, TEXT, WHITE, ZEBRA, ContentArea, add_rect, add_text,
                       header, note_line)
 from slidegen.layout_fit import FitError, fit_text_or_raise, select_fit
@@ -25,15 +25,15 @@ def fit_org_layout(org, available):
     ]
     profiles = [
         ("standard", 0.08, 0.04, 0.34, 0.34, 0.84, 1.26,
-         12.5, 9.5, 9.5),
+         13.5, 11.5, 10.5),
         ("gap", 0.05, 0.03, 0.24, 0.24, 0.76, 1.14,
-         12.5, 9.5, 9.5),
+         13.5, 11.5, 10.5),
         ("element", 0.03, 0.02, 0.18, 0.20, 0.70, 1.06,
-         11.5, 8.8, 8.8),
+         12.5, 10.5, 10.0),
         ("element", 0.02, 0.02, 0.14, 0.18, 0.64, 1.00,
-         10.5, 8.2, 8.2),
+         11.5, 10.0, 9.5),
         ("element", 0.01, 0.01, 0.10, 0.16, 0.60, 0.94,
-         9.5, 7.5, 7.5),
+         10.5, 9.5, 9.5),
     ]
     candidates = []
     for (stage, top_gap, bottom_gap, gap_y, gap_x, plain_h, member_h,
@@ -374,12 +374,13 @@ class OrgLayout:
         style = node.get("style", "primary" if level_index == 0 else "standard")
         palette = {
             "primary": (NAVY, NAVY, WHITE, LIGHT),
-            "accent": (SURFACE, ACCENT, NAVY, GRAY),
-            "standard": (SURFACE, RULE, NAVY, GRAY),
-            "external": (ZEBRA, RULE, NAVY, GRAY),
+            "accent": (SURFACE, ACCENT, NAVY, TEXT),
+            "standard": (SURFACE, RULE, NAVY, TEXT),
+            "external": (ZEBRA, RULE, NAVY, TEXT),
         }
         fill, border, title_color, sub_color = palette[style]
-        add_rect(slide, x, y, w, h, fill, line=border)
+        box = add_rect(slide, x, y, w, h, fill, line=border)
+        box.name = f"org:box:{node_id}"
 
         members = node.get("members", [])
         sub = node.get("sub")
@@ -392,26 +393,30 @@ class OrgLayout:
             title_y = y + 0.07
             title_box_h = title_h
             title_anchor = MSO_ANCHOR.TOP
-        title_size, _ = fit_text_or_raise(
+        title_size, title_lines = fit_text_or_raise(
             "org", f"nodes.{node_id}.name", node["name"], w - 0.28,
-            title_box_h, self.fit.values["title_pt"], min_pt=9.0,
+            title_box_h, self.fit.values["title_pt"], min_pt=10.5,
             weight="bold", spacing=1.05)
-        add_text(
-            slide, x + 0.14, title_y, w - 0.28, title_box_h, node["name"],
+        title = add_text(
+            slide, x + 0.14, title_y, w - 0.28, title_box_h, "\n".join(title_lines),
             title_size, bold=True, color=title_color,
             align=PP_ALIGN.CENTER, anchor=title_anchor, spacing=1.05)
+        title.name = f"org:name:{node_id}"
+        title.text_frame.word_wrap = False
 
         member_top = y + h - 0.37 if members else y + h
         if sub:
             sub_y = title_y + title_h + 0.04
             sub_h = max(0.15, member_top - sub_y - 0.04)
-            sub_size, _ = fit_text_or_raise(
+            sub_size, sub_lines = fit_text_or_raise(
                 "org", f"nodes.{node_id}.sub", sub, w - 0.28, sub_h,
-                self.fit.values["sub_pt"], min_pt=7.2, spacing=1.05)
-            add_text(
-                slide, x + 0.14, sub_y, w - 0.28, sub_h, sub, sub_size,
+                self.fit.values["sub_pt"], min_pt=9.5, spacing=1.05)
+            sub_box = add_text(
+                slide, x + 0.14, sub_y, w - 0.28, sub_h, "\n".join(sub_lines), sub_size,
                 color=sub_color, align=PP_ALIGN.CENTER,
                 anchor=MSO_ANCHOR.MIDDLE, spacing=1.05)
+            sub_box.name = f"org:sub:{node_id}"
+            sub_box.text_frame.word_wrap = False
         if members:
             separator = LIGHT if style == "primary" else RULE
             add_rect(slide, x + 0.16, member_top, w - 0.32, 0.01, separator)
@@ -419,13 +424,14 @@ class OrgLayout:
             member_size, _ = fit_text_or_raise(
                 "org", f"nodes.{node_id}.members", member_text,
                 w - 0.30, 0.25, self.fit.values["members_pt"],
-                min_pt=7.0, spacing=1.05)
-            add_text(
+                min_pt=9.5, spacing=1.05)
+            member_box = add_text(
                 slide, x + 0.15, member_top + 0.07, w - 0.30, 0.24,
                 member_text, member_size,
                 color=LIGHT if style == "primary" else TEXT,
                 align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
                 spacing=1.05)
+            member_box.name = f"org:members:{node_id}"
 
     def render(self, slide):
         reporting_groups = self._reporting_bus_groups()

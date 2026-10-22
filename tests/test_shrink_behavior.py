@@ -235,9 +235,9 @@ def main():
     assert image_fit.stage == "element", image_fit
     assert image_fit.values["min_image_h"] < 3.20, image_fit
 
-    generate.DECK = STRESS_PATTERN_DECK
-    for idx, spec in enumerate(STRESS_PATTERN_DECK["slides"], 1):
-        generate.render_slide(RENDER[spec["type"]], _slide(), spec, idx)
+    from slidegen.generate_from_json import build_presentation
+    built = build_presentation(STRESS_PATTERN_DECK, allow_sample_content=True)
+    assert len(built.slides) == len(STRESS_PATTERN_DECK["slides"])
 
     print(
         "shrink behavior tests passed "

@@ -18,7 +18,13 @@ PowerPointで確認・編集できる実物は
 研修資料の構成例は[VLAN基礎研修](examples/training/vlan/README.md)で確認できます。
 [AWSネットワーク資料の入力例](examples/training/aws-network/README.md)も収録しています。
 
+理解度チェックの問題・解答、2〜4選択肢、長い選択肢、leadありの専用ギャラリー（8ページ）は、
+`python -m tools.gallery.generate_knowledge_cases out/knowledge_gallery.pptx`で生成できます。
+同じ内容の問題と正答・解説を隣接ページで比較し、選択肢の列位置と長文の縦並びを確認できます。
+
 ## セットアップ
+
+開発時のlint・型検査・coverageは[静的品質ゲート](docs/static-quality.md)を参照してください。
 
 ```powershell
 git clone https://github.com/thinas1115/pptxdsl.git
@@ -26,9 +32,12 @@ cd pptxdsl
 python -m pip install -r requirements.txt
 ```
 
-- Python 3.10以上を前提とします。Windowsでは游ゴシック、非Windowsでは`fontconfig`から検出できる
-  日本語sansフォントを使用します。Noto Sans CJKを推奨します。
+- Python 3.10以上を前提とします。Windowsでは游ゴシック、非Windowsではfontconfigから
+  Noto Sans CJK JPまたはNoto Sans JPを検出します。測定とPPTX指定は同じfamilyへ統一します。
+  可変フォント・TTC・明示指定・再現性の条件は[フォント契約](docs/font-contract.md)を参照してください。
 - 生成結果を再現できるよう、直接・間接依存のバージョンを`requirements.txt`へ固定しています。
+- 素材の再取得を含む開発環境は`python -m pip install -r requirements-dev.txt`で導入します。
+  通常生成・Skill・Pluginには不要です。依存区分とOS側の前提は[依存関係](docs/dependencies.md)を参照してください。
 - PPTXの生成にPowerPointは不要です。PNG化と目視確認にだけ使用します。
 - AWS・Fluentアイコンは`slidegen/assets/icons/`へ同梱済みです。
 
@@ -157,10 +166,14 @@ python contact_sheet.py out\png
 ```
 
 `generate_from_json.py`は生成前にschemaを検証し、不正な入力ではPPTXを生成しません。
+Pythonから組み込む場合は、状態がデッキ間で混ざらない[Python生成API](docs/generation-api.md)を使用します。
 エラーが出た場合は、表示された`slides[番号] (type=種別)`の内容を修正して再実行します。
 
 `out\png\sheet.png`の一覧と各ページの原寸画像を確認してください。レンダリング補助スクリプトは、
 WindowsではPowerPointを優先し、それ以外ではLibreOfficeとPDF画像化手段の組み合わせを探索します。
+`--probe`は一時領域で1枚のPPTXを実際にPNGへ変換し、backendの利用可否と失敗時の対処法を返します。
+実行ファイルがあるだけでは利用可能と判定しません。LibreOfficeはImpressモジュールも必要です。
+最小変換を使う環境判定では各コマンドに60秒の制限を設けますが、通常の資料の変換にはこの制限を適用しません。
 機械検証だけでは、文字の読みやすさ、内容の正確性、余白や配線の印象までは判断できません。
 
 Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テスト、主要デッキ生成、
@@ -208,6 +221,12 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 テストや開発ツールはリポジトリルートからmoduleとして実行します。
 単体実行例は`python -m tests.test_check_layout`、ギャラリー生成は
 `python -m tools.gallery.generate_patterns out/pattern_gallery.pptx`です。
+全件実行は失敗後も最後まで続け、各モジュールの成功・失敗・所要時間と、明示された任意検証の
+skip理由を表示します。詳細ログは`out/test-results.json`へ保存します。
+保存先は`python -m tests --report out/test-results-next.json`で変更できます。
+assertを使用する既存テストの最適化実行は拒否します。新規テストには標準のunittestを使い、
+既存テストは対象機能の変更時にモジュール単位でTestCaseへ移行します。
+各モジュールの`python -m tests.test_xxx`入口とプロセス分離は維持します。
 通常のJSON生成・検証は従来のファイル実行とmodule実行の両方に対応します。
 
 ## ライセンス

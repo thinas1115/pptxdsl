@@ -33,6 +33,8 @@ def test_release_assets() -> None:
             names = set(bundle.namelist())
             assert "pptxdsl/SKILL.md" in names
             assert "pptxdsl/project/slidegen/generate_from_json.py" in names
+            assert "pptxdsl/project/examples/authoring/config-checks.json" in names
+            assert "pptxdsl/project/docs/static-quality.md" in names
             assert "pptxdsl/plugin.json" not in names
             assert "pptxdsl/.codex-plugin/plugin.json" not in names
             assert not any(set(Path(name).parts) & {"tests", "tools", ".git", "out", "__pycache__"}
@@ -44,6 +46,8 @@ def test_release_assets() -> None:
             assert ".codex-plugin/plugin.json" in names
             assert "skills/pptxdsl/SKILL.md" in names
             assert "skills/pptxdsl/project/slidegen/generate_from_json.py" in names
+            assert "skills/pptxdsl/project/examples/authoring/config-checks.json" in names
+            assert "skills/pptxdsl/project/docs/static-quality.md" in names
 
         checksums = {}
         for line in first.checksums.read_text(encoding="utf-8").splitlines():

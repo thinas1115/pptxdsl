@@ -1,0 +1,20 @@
+[run]
+branch = True
+parallel = True
+patch = subprocess
+source = slidegen
+relative_files = True
+data_file = out/coverage/.coverage
+
+[report]
+show_missing = True
+skip_empty = True
+
+[html]
+directory = out/coverage/html
+
+[json]
+output = out/coverage/coverage.json
+
+[xml]
+output = out/coverage/coverage.xml

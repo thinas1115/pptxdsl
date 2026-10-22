@@ -92,7 +92,7 @@ def main():
     _must_fail(generate.s_bullets, spec, "不足")
     try:
         generate.render_slide(generate.s_bullets, _slide(), spec, 1)
-    except SystemExit as e:
+    except FitError as e:
         assert "slides[0] (type=bullets)" in str(e), str(e)
         assert "箇条書きを減らす" in str(e), str(e)
     else:
