@@ -4,7 +4,8 @@ from pathlib import Path
 import tempfile
 import zipfile
 
-from tools.distribution.build import ROOT, build_release, version
+from tools.distribution.build import build_release, version
+from tools.gallery.generate_patterns import main as generate_gallery
 
 
 VERSION = f"v{version()}"
@@ -33,6 +34,9 @@ def test_release_assets() -> None:
             names = set(bundle.namelist())
             assert "pptxdsl/SKILL.md" in names
             assert "pptxdsl/project/slidegen/generate_from_json.py" in names
+            assert "pptxdsl/project/examples/authoring/config-checks.json" in names
+            assert "pptxdsl/project/docs/static-quality.md" in names
+            assert "pptxdsl/project/docs/macos.md" in names
             assert "pptxdsl/plugin.json" not in names
             assert "pptxdsl/.codex-plugin/plugin.json" not in names
             assert not any(set(Path(name).parts) & {"tests", "tools", ".git", "out", "__pycache__"}
@@ -44,6 +48,9 @@ def test_release_assets() -> None:
             assert ".codex-plugin/plugin.json" in names
             assert "skills/pptxdsl/SKILL.md" in names
             assert "skills/pptxdsl/project/slidegen/generate_from_json.py" in names
+            assert "skills/pptxdsl/project/examples/authoring/config-checks.json" in names
+            assert "skills/pptxdsl/project/docs/static-quality.md" in names
+            assert "skills/pptxdsl/project/docs/macos.md" in names
 
         checksums = {}
         for line in first.checksums.read_text(encoding="utf-8").splitlines():
@@ -54,7 +61,12 @@ def test_release_assets() -> None:
             first.plugin.name: _sha256(first.plugin),
             first.gallery.name: _sha256(first.gallery),
         }
-        assert first.gallery.read_bytes() == (ROOT / "examples/gallery/pattern_gallery.pptx").read_bytes()
+        generated = base / "fresh-gallery.pptx"
+        generate_gallery(generated)
+        with zipfile.ZipFile(generated) as source, zipfile.ZipFile(first.gallery) as released:
+            assert {name: source.read(name) for name in source.namelist()} == {
+                name: released.read(name) for name in released.namelist()}
+            assert all(info.date_time == (2020, 1, 1, 0, 0, 0) for info in released.infolist())
 
         try:
             build_release(base / "wrong-tag", tag="v999.0.0")

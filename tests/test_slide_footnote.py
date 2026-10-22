@@ -10,24 +10,30 @@ from slidegen.generate_from_json import RENDER
 from slidegen.layout_fit import FitError
 from slidegen.slide_footnote import fit_footnote
 from slidegen.validate_content import validate
+from slidegen.generation_context import bind_context, current_context, make_context
 from tests.fixtures.gallery.content_patterns import PATTERN_DECK
 
 
 def main():
+    deck = {'meta': {'title': '共通補足欄の検証', 'author': '作成担当'},
+            'slides': [None] * len(RENDER)}
+    with bind_context(make_context(deck)):
+        _run()
+
+
+def _run():
     specimens = {spec['type']: deepcopy(spec) for spec in PATTERN_DECK['slides']}
     specimens['aws_vpc_layout']['azs'] = specimens['aws_vpc_layout']['azs'][:1]
     specimens['aws_vpc_layout']['azs'][0]['subnets'] = specimens['aws_vpc_layout']['azs'][0]['subnets'][:1]
     specimens['aws_vpc_layout'].pop('external', None)
     specimens['aws_vpc_layout'].pop('flows', None)
     assert set(specimens) == set(RENDER)
-    generate.DECK = {'meta': {'title': '共通補足欄の検証', 'author': '作成担当'},
-                     'slides': list(specimens.values())}
     prs = Presentation()
     prs.slide_width = Inches(generate.SLIDE_W)
     prs.slide_height = Inches(generate.SLIDE_H)
     for index, spec in enumerate(specimens.values(), 1):
         spec['footnote'] = {'label': '注意', 'text': 'この補足欄は全type共通です。'}
-        assert not validate({'meta': generate.DECK['meta'], 'slides': [spec]}, allow_sample_content=True)
+        assert not validate({'meta': dict(current_context().metadata), 'slides': [spec]}, allow_sample_content=True)
         slide = prs.slides.add_slide(prs.slide_layouts[6])
         generate.render_slide(RENDER[spec['type']], slide, spec, index)
         notes = {shape.name: shape for shape in slide.shapes if shape.name.startswith('slide-footnote:')}
@@ -40,7 +46,7 @@ def main():
             if shape.width > Inches(13) or shape.height > Inches(7):
                 continue
             assert shape.top + shape.height <= notes['slide-footnote:rule'].top + Inches(.02), (spec['type'], shape.name)
-        assert generate._CONTENT_BOTTOM.get() == generate.BODY_BOTTOM
+        assert current_context().content_bottom == generate.BODY_BOTTOM
         generate.footer(slide, index)
     output = Path('out/footnote-all-types.pptx')
     output.parent.mkdir(exist_ok=True)
@@ -79,9 +85,11 @@ def main():
         raise FitError('本文が収まりません')
     try:
         generate.render_slide(failing, slide, spec, 1)
-    except SystemExit:
+    except FitError:
         pass
-    assert generate._CONTENT_BOTTOM.get() == generate.BODY_BOTTOM
+    else:
+        raise AssertionError('rendererの収容エラーが通知されていません')
+    assert current_context().content_bottom == generate.BODY_BOTTOM
     for value in ('誤った形式', {}, {'text': ''}, {'text': '補足', 'label': ''}, {'text': '補足', 'x': 1}):
         spec['footnote'] = value
         assert validate({'meta': {'title': '検証'}, 'slides': [spec]}, allow_sample_content=True)

@@ -170,7 +170,9 @@ def _paste_thumbnail(canvas: Image.Image, source: Path, x: int, y: int) -> None:
     canvas.paste(thumb, (x, y))
 
 
-def build(png_dir: Path, output: Path) -> None:
+def build(png_dir: Path, output: Path, *, width: int = 960) -> None:
+    if not 640 <= width <= CANVAS_WIDTH:
+        raise ValueError(f"一覧画像の幅は640〜{CANVAS_WIDTH}pxで指定してください")
     groups = _gallery_groups()
     placements, canvas_height = _layout(groups)
     canvas = Image.new("RGB", (CANVAS_WIDTH, canvas_height), BG)
@@ -216,6 +218,9 @@ def build(png_dir: Path, output: Path) -> None:
             _paste_thumbnail(canvas, source, thumb_x + index * (THUMB_W + THUMB_GAP), thumb_y)
 
     output.parent.mkdir(parents=True, exist_ok=True)
+    if width != CANVAS_WIDTH:
+        canvas = canvas.resize((width, round(canvas_height * width / CANVAS_WIDTH)),
+                               Image.Resampling.LANCZOS)
     canvas.save(output, optimize=True)
 
 
@@ -229,8 +234,10 @@ def main() -> None:
         default=Path("docs/pattern-gallery-by-type.png"),
         help="一覧画像の出力先",
     )
+    parser.add_argument("--width", type=int, default=960,
+                        help="出力幅px。Git掲載用は既定960、詳細確認用は1920")
     args = parser.parse_args()
-    build(args.png_dir, args.output)
+    build(args.png_dir, args.output, width=args.width)
 
 
 if __name__ == "__main__":

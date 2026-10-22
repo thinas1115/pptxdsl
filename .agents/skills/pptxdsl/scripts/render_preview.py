@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextvars import ContextVar
 import importlib.util
 import json
 from pathlib import Path
@@ -24,6 +25,7 @@ def _project_root() -> Path:
 
 REPO_ROOT = _project_root()
 RENDER_PS1 = REPO_ROOT / "render.ps1"
+_COMMAND_TIMEOUT = ContextVar("render_command_timeout", default=None)
 
 
 class RenderError(RuntimeError):
@@ -66,7 +68,7 @@ def probe() -> dict[str, object]:
         and _powerpoint_registered()
     )
     libreoffice = bool(office and (pdftoppm or pymupdf))
-    return {
+    details = {
         "platform": sys.platform,
         "available_backends": [
             name
@@ -89,17 +91,69 @@ def probe() -> dict[str, object]:
             "pymupdf": pymupdf,
         },
     }
+    # 実行ファイルの存在と実際の変換能力は別。Impress未導入やCOM起動失敗も検出する。
+    for backend in ("powerpoint", "libreoffice"):
+        info = details[backend]
+        if not info["available"]:
+            info["reason"] = (
+                "PowerPointとPowerShellを利用可能にしてください。" if backend == "powerpoint"
+                else "LibreOffice Impressとpdftoppm/PyMuPDFを導入してください。")
+            continue
+        try:
+            _probe_conversion(backend, details)
+            info["reason"] = "最小PPTXのPNG変換成功"
+        except (RenderError, OSError, ValueError) as error:
+            info["available"] = False
+            info["reason"] = str(error)
+    details["available_backends"] = [
+        name for name in ("powerpoint", "libreoffice") if details[name]["available"]]
+    return details
+
+
+def _probe_conversion(backend: str, details: dict[str, object]) -> None:
+    from PIL import Image
+    from pptx import Presentation
+
+    with tempfile.TemporaryDirectory(prefix="pptxdsl-probe-") as directory:
+        task_dir = Path(directory)
+        source = task_dir / "probe.pptx"
+        presentation = Presentation()
+        slide = presentation.slides.add_slide(presentation.slide_layouts[6])
+        slide.shapes.add_textbox(0, 0, 914400, 914400).text = "Probe"
+        presentation.save(source)
+        output = task_dir / "png"
+        # 環境判定の最小変換だけ時間を制限する。通常の長い資料へ波及させない。
+        timeout_token = _COMMAND_TIMEOUT.set(60)
+        try:
+            if backend == "powerpoint":
+                count = _render_powerpoint(source, output, 320, [], details)
+            else:
+                count = _render_libreoffice(source, output, 320, [], details)
+            if count != 1:
+                raise RenderError("最小PPTXの変換ページ数が不正です")
+            with Image.open(output / "slide_01.png") as image:
+                image.verify()
+        except (RenderError, OSError, ValueError) as error:
+            guidance = (
+                "PowerPointを起動可能なセッションで再実行してください。"
+                if backend == "powerpoint" else
+                "sofficeはありますがPPTXからPNGへの変換に失敗しました。"
+                "libreoffice-impressとPDF画像化ツールの導入を確認してください。")
+            # backend出力に利用者の絶対パスが入ることがあるため、診断理由を分類して返す。
+            raise RenderError(guidance) from error
+        finally:
+            _COMMAND_TIMEOUT.reset(timeout_token)
 
 
 def _run(command: list[str]) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        errors="replace",
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, errors="replace", check=False, timeout=_COMMAND_TIMEOUT.get())
+    except subprocess.TimeoutExpired as error:
+        raise RenderError(f"変換が{error.timeout:g}秒以内に完了しませんでした。Officeの状態を確認してください。") from error
+    except OSError as error:
+        raise RenderError("変換コマンドを起動できません。必要なソフトを確認してください。") from error
     if result.returncode:
         output = result.stdout.strip()
         raise RenderError(output or f"command failed with exit code {result.returncode}")
@@ -230,9 +284,12 @@ def _render_libreoffice(
 
     with tempfile.TemporaryDirectory(prefix="pptxdsl-render-") as temp_name:
         temp_dir = Path(temp_name)
+        # 通常起動中のLibreOfficeとプロファイルを共有すると変換が転送・待機される。
+        profile = (temp_dir / "profile").as_uri()
         _run(
             [
                 office,
+                f"-env:UserInstallation={profile}",
                 "--headless",
                 "--convert-to",
                 "pdf",

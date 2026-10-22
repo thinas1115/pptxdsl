@@ -10,7 +10,6 @@ generate_from_json.py が生成前に自動で呼ぶため、通常は単体実�
 ここで強制する件数上限は「段階的収容の最小値でも崩れる」値。
 通常・余白圧縮・要素縮小・明示停止を実測して決める。
 """
-import json
 import re
 import sys
 from pathlib import Path
@@ -22,7 +21,9 @@ if __package__ in (None, ""):
 from PIL import Image
 
 from slidegen.asset_paths import resolve_icon_path, resolve_image_path
-from slidegen.aws_icon_policy import icon_policy_error
+from slidegen.input_io import load_content_json
+from slidegen.chart_model import NUMBER_FORMAT, finite_number
+from slidegen.diagram_contract import validate_diagram
 from slidegen.sample_content_guard import sample_reuse_paths
 from slidegen.timeline_layout import resolve_marker, resolve_program_span
 
@@ -47,9 +48,9 @@ _TITLE_ASSERTIVE_QUALITY = re.compile(
 
 _TOP_LEVEL_KEYS = {"meta", "slides"}
 _META_KEYS = {"title", "footer", "date", "organization", "author"}
-_BASE_SLIDE_KEYS = {"type", "kicker", "title", "lead", "footnote"}
+_BASE_SLIDE_KEYS = {"type", "kicker", "title", "lead", "footnote", "title_nominal_review"}
 _TYPE_KEYS = {
-    "title": {"type", "title", "subtitle", "footnote"},
+    "title": {"type", "title", "subtitle", "footnote", "title_nominal_review"},
     "section_divider": _BASE_SLIDE_KEYS,
     "bullets": _BASE_SLIDE_KEYS | {"style", "bullets"},
     "cards": _BASE_SLIDE_KEYS | {"style", "cards"},
@@ -127,12 +128,41 @@ def _is_num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
+def _is_web_url(value, *, https_only=False):
+    if (not _is_str(value) or "\\" in value
+            or any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in value)):
+        return False
+    try:
+        parsed = urlsplit(value)
+        return (parsed.scheme in ({"https"} if https_only else {"http", "https"})
+                and bool(parsed.hostname) and parsed.username is None
+                and parsed.password is None and parsed.port != 0)
+    except ValueError:
+        return False
+
+
+def validation_warnings(deck):
+    """エラーとは分けて返す移行警告。入力値や端末固有パスを出さない。"""
+    messages = []
+    if not isinstance(deck, dict) or not isinstance(deck.get("slides"), list):
+        return messages
+    for index, slide in enumerate(deck["slides"]):
+        if not isinstance(slide, dict) or slide.get("type") != "bullets":
+            continue
+        items = slide.get("bullets")
+        if isinstance(items, list) and any(isinstance(item, list) for item in items):
+            messages.append(
+                f"slides[{index}].bullets: 旧2要素配列は非推奨です。"
+                '各項目を {"text": "本文"} へ移行してください。2.0.0で受理を終了します。')
+    return messages
+
+
 def _title_policy_error(value):
     """通常資料のページタイトルが、見出しではなく主張文なら理由を返す。"""
     if not _is_str(value):
         return None
     title = value.strip()
-    if _TITLE_SENTENCE_MARKS.search(title):
+    if _TITLE_SENTENCE_MARKS.search(value):
         return "読点・句点・改行を含む文章"
     if _TITLE_PREDICATE_ENDING.search(title):
         return "文末が述語になっている文章"
@@ -141,6 +171,25 @@ def _title_policy_error(value):
     if _TITLE_ASSERTIVE_QUALITY.search(title):
         return "評価や必要性を言い切る文章"
     return None
+
+
+def _validate_nominal_review(s, title_error):
+    """語尾だけによる名詞の誤検知を、対象見出しと理由付きで限定解除する。"""
+    review = s.spec.get("title_nominal_review")
+    if "title_nominal_review" not in s.spec:
+        return False
+    title = s.spec.get("title")
+    if not (isinstance(review, dict) and set(review) == {"title", "reason"}
+            and review.get("title") == title and _is_str(review.get("reason"))
+            and 10 <= len(review["reason"].strip()) <= 200
+            and isinstance(title, str) and 2 <= len(title.strip()) <= 40):
+        s.err("title_nominal_review は現在のtitleと、名詞句と判断した10〜200文字のreasonを指定してください")
+        return False
+    if (title_error != "文末が述語になっている文章"
+            or re.search(r"[をがは]|では|には|でき|です|ます|しない|なかった", title)):
+        s.err("title_nominal_review は短い名詞句の語尾誤検知だけに使えます。文章はleadまたは本文へ移してください")
+        return False
+    return True
 
 
 def _placeholder_paths(value, path=""):
@@ -273,9 +322,8 @@ def _v_table(s):
             s.allow_keys(link, {"label", "url"}, "note_link")
             if not _is_str(link.get("label")):
                 s.err("note_link.label は空でない文字列にしてください")
-            if not (_is_str(link.get("url"))
-                    and link["url"].startswith("https://")):
-                s.err("note_link.url は https:// で始まるURLにしてください")
+            if not _is_web_url(link.get("url"), https_only=True):
+                s.err("note_link.url は https:// で始まる完全なURLにしてください（認証情報・空白は含めないでください）")
         if not _is_str(s.spec.get("note")):
             s.err("note_link を指定する場合は note も指定してください")
 
@@ -315,20 +363,20 @@ def _v_chart(s):
     if not (isinstance(series, list) and 1 <= len(series) <= 4):
         s.err("chart.series は [系列名, 値配列] の配列 (1〜4件) にしてください")
         return
-    if ch.get("kind", "bar") not in {
+    if not isinstance(ch.get("kind", "bar"), str) or ch.get("kind", "bar") not in {
             "bar", "column", "line", "stacked_bar", "stacked_column"}:
         s.err("chart.kind は bar / column / line / stacked_bar / "
               "stacked_column のいずれかにしてください")
     for key in ("show_legend", "show_values"):
         if key in ch and not isinstance(ch[key], bool):
             s.err(f"chart.{key} は真偽値にしてください")
-    if "number_format" in ch and not _is_str(ch["number_format"]):
-        s.err("chart.number_format は空でない文字列にしてください")
+    if "number_format" in ch and not (isinstance(ch["number_format"], str) and NUMBER_FORMAT.fullmatch(ch["number_format"])):
+        s.err("chart.number_format は0 / 0.0〜0.000000 / #,##0と任意の小数・%を指定してください")
     for i, sr in enumerate(series):
         ok = (isinstance(sr, list) and len(sr) == 2 and _is_str(sr[0])
-              and isinstance(sr[1], list) and all(_is_num(v) for v in sr[1]))
+              and isinstance(sr[1], list) and all(finite_number(v) for v in sr[1]))
         if not ok:
-            s.err(f'series[{i}] は ["系列名", [数値, ...]] にしてください')
+            s.err(f'series[{i}] は ["系列名", [有限の数値, ...]] にしてください（NaN・Infinity・真偽値は使用できません）')
         elif cats and len(sr[1]) != len(cats):
             s.err(f"series[{i}] の値 ({len(sr[1])}件) を categories "
                   f"({len(cats)}件) と同数にしてください")
@@ -710,186 +758,9 @@ def _v_org(s):
                   "下位階層へ接続してください")
 
 
-_EDGE_SIDES = {"left", "right", "top", "bottom"}
-_CHANNEL_KINDS = {"left_of_col", "right_of_col", "above_row", "below_row",
-                  "outside_container"}
-
-
 def _v_diagram(s):
-    """構成図のグリッド仕様の構造検証。
-
-    ここで見るのはJSONとしての整合(参照切れ・型違い)まで。行間に収まるか・
-    配線がコンテナを貫通しないか等の実現可能性は、レンダリング時に
-    diagram_layout.py エンジン自身が対処方法つきのエラーで検出する。
-    """
-    d = s.spec.get("diagram")
-    if not isinstance(d, dict):
-        s.err('"diagram" (cols/rows/nodes/edges を持つオブジェクト) が必要です。'
-              '座標は書かない(グリッド仕様のみ)')
-        return
-    s.allow_keys(d, {"cols", "rows", "nodes", "containers", "channels", "edges"},
-                 "diagram")
-    if "spec" in s.spec or "spec" in d:
-        s.err('"spec" (サンプル図の名前参照) は使えません。diagram の中に'
-              'グリッド仕様をインラインで書いてください')
-    if "area" in d:
-        s.err("diagram.area は指定できません。描画領域は行数からエンジンが"
-              "自動計算します")
-    cols, rows = d.get("cols"), d.get("rows")
-    for key, v in (("cols", cols), ("rows", rows)):
-        if not (isinstance(v, list) and v and all(_is_str(c) for c in v)):
-            s.err(f"diagram.{key} は文字列の配列 (1件以上) が必要です")
-        elif len(set(v)) != len(v):
-            s.err(f"diagram.{key} は重複しない名前にしてください")
-    nodes = d.get("nodes")
-    if not (isinstance(nodes, dict) and nodes):
-        s.err("diagram.nodes (ノード名 → {col, row, title} のオブジェクト) が"
-              "必要です")
-        return
-    for name, n in nodes.items():
-        if not isinstance(n, dict):
-            s.err(f"nodes.{name} はオブジェクトにしてください")
-            continue
-        s.allow_keys(n, {"col", "row", "title", "sub", "icon", "service"},
-                     f"diagram.nodes.{name}")
-        if not _is_str(n.get("title")):
-            s.err(f"nodes.{name}.title (文字列) が必要です")
-        if "sub" in n and not _is_str(n["sub"]):
-            s.err(f"nodes.{name}.sub は空でない文字列にしてください")
-        if "service" in n and not _is_str(n["service"]):
-            s.err(f"nodes.{name}.service は空でないAWSサービス識別名にしてください")
-        if isinstance(cols, list) and n.get("col") not in cols:
-            s.err(f"nodes.{name}.col={n.get('col')!r} が diagram.cols に"
-                  f"ありません")
-        if isinstance(rows, list) and n.get("row") not in rows:
-            s.err(f"nodes.{name}.row={n.get('row')!r} が diagram.rows に"
-                  f"ありません")
-        if not _is_str(n.get("icon")):
-            s.err(f"nodes.{name}.icon は必須です。CONTENT_SCHEMA.md の"
-                  f"Fluent/AWSアイコン一覧から選んでください")
-        else:
-            try:
-                icon_path = resolve_icon_path(n["icon"])
-            except ValueError:
-                s.err(f"nodes.{name}.icon は slidegen/assets/ 内の相対パスに"
-                      f"してください")
-            else:
-                if not icon_path.is_file():
-                    s.err(f"nodes.{name}.icon={n['icon']!r} が assets/ にありません。"
-                          f"Fluent一覧は fetch_fluent_icons.py --list で確認してください")
-                if _is_str(n.get("title")) and ("service" not in n or _is_str(n["service"])):
-                    try:
-                        policy_error = icon_policy_error(n["title"], n["icon"], n.get("service"))
-                    except ValueError as error:
-                        s.err(f"nodes.{name}.service: {error}")
-                    else:
-                        if policy_error:
-                            s.err(f"nodes.{name}.icon: {policy_error}")
-    cont_names = set()
-    containers = d.get("containers", [])
-    if not isinstance(containers, list):
-        s.err("diagram.containers は配列にしてください")
-        containers = []
-    for i, c in enumerate(containers):
-        if not (isinstance(c, dict) and _is_str(c.get("name"))
-                and _is_str(c.get("label")) and isinstance(c.get("members"), list)):
-            s.err(f"containers[{i}] には name / label (文字列) と members (配列)"
-                  f" が必要です")
-            continue
-        s.allow_keys(c, {"name", "label", "members", "color", "dash"},
-                     f"diagram.containers[{i}]")
-        if not c["members"] or not all(_is_str(member) for member in c["members"]):
-            s.err(f"containers[{i}].members は1件以上の参照文字列にしてください")
-        if c.get("color", "line") not in {"line", "navy", "accent"}:
-            s.err(f"containers[{i}].color は line / navy / accent にしてください")
-        if "dash" in c and c["dash"] != "dash":
-            s.err(f'containers[{i}].dash は "dash" にしてください')
-        for key in ("pad", "pad_x"):
-            if key in c:
-                s.err(f"containers[{i}].{key} は指定できません。余白は入れ子構造と"
-                      "行数からエンジンが自動計算します")
-        cont_names.add(c["name"])
-    for i, c in enumerate(containers):
-        for m in c.get("members", []):
-            ref_ok = (m[1:] in cont_names if isinstance(m, str) and m.startswith("@")
-                      else m in nodes)
-            if not ref_ok:
-                s.err(f"containers[{i}].members の {m!r} が nodes / @コンテナ名 "
-                      f"に見つかりません")
-    channels = d.get("channels", {})
-    if not isinstance(channels, dict):
-        s.err("diagram.channels はオブジェクトにしてください")
-        channels = {}
-    for name, ch in channels.items():
-        if not _is_str(name):
-            s.err("diagram.channels のキーは空でない文字列にしてください")
-        if not (isinstance(ch, list) and len(ch) == 2
-                and ch[0] in _CHANNEL_KINDS):
-            s.err(f"channels.{name} は [種類, 基準] の2要素配列にしてください "
-                  f"(種類: {', '.join(sorted(_CHANNEL_KINDS))})")
-            continue
-        kind, ref = ch
-        if kind in {"left_of_col", "right_of_col"} and ref not in (cols or []):
-            s.err(f"channels.{name} の基準 {ref!r} が diagram.cols にありません")
-        elif kind in {"above_row", "below_row"} and ref not in (rows or []):
-            s.err(f"channels.{name} の基準 {ref!r} が diagram.rows にありません")
-        elif kind == "outside_container":
-            valid_ref = (
-                isinstance(ref, list) and len(ref) == 2
-                and ref[1] in {"left", "right", "top", "bottom", "top_inside"}
-                and (
-                    (_is_str(ref[0]) and ref[0] in cont_names)
-                    or (isinstance(ref[0], list) and ref[0]
-                        and all(node in nodes for node in ref[0]))
-                )
-            )
-            if not valid_ref:
-                s.err(f"channels.{name} のoutside_container基準は "
-                      "[コンテナ名またはノード名配列, 辺] にしてください")
-    edges = d.get("edges")
-    if not (isinstance(edges, list) and edges):
-        s.err("diagram.edges ({from, to} の配列、1件以上) が必要です")
-        return
-    for i, e in enumerate(edges):
-        if not isinstance(e, dict):
-            s.err(f"edges[{i}] はオブジェクトにしてください")
-            continue
-        s.allow_keys(e, {
-            "from", "to", "label", "exit", "enter", "via", "dash", "both",
-            "from_row",
-        }, f"diagram.edges[{i}]")
-        for key in ("from", "to"):
-            v = e.get(key)
-            ref_ok = (v[1:] in cont_names if isinstance(v, str) and v.startswith("@")
-                      else v in nodes)
-            if not ref_ok:
-                s.err(f"edges[{i}].{key}={v!r} が nodes / @コンテナ名 に"
-                      f"見つかりません")
-        for key in ("exit", "enter"):
-            if key in e and e[key] not in _EDGE_SIDES:
-                s.err(f"edges[{i}].{key} は {', '.join(sorted(_EDGE_SIDES))} の"
-                      f"いずれかにしてください")
-        if "label" in e and not _is_str(e["label"]):
-            s.err(f"edges[{i}].label は空でない文字列にしてください")
-        if "dash" in e and e["dash"] != "dash":
-            s.err(f'edges[{i}].dash は "dash" にしてください')
-        if "both" in e and not isinstance(e["both"], bool):
-            s.err(f"edges[{i}].both は真偽値にしてください")
-        via = e.get("via", [])
-        if not (isinstance(via, list) and all(_is_str(v) for v in via)):
-            s.err(f"edges[{i}].via はチャネル名の配列にしてください")
-            via = []
-        for v in via:
-            if v not in channels:
-                s.err(f"edges[{i}].via の {v!r} が diagram.channels に"
-                      f"ありません")
-        source = e.get("from")
-        if isinstance(source, str) and source.startswith("@"):
-            if e.get("from_row") not in (rows or []):
-                s.err(f"edges[{i}].from_row はコンテナ始点の接続行として"
-                      "diagram.rowsから指定してください")
-        elif "from_row" in e:
-            s.err(f"edges[{i}].from_row はfromが@コンテナ名の場合だけ指定できます")
+    """構成図の節別の入力契約。配置の実現可能性はエンジンで確認する。"""
+    validate_diagram(s)
 
 
 def _check_icon(s, icon, path):
@@ -1077,6 +948,8 @@ def _v_mapping(s):
         s.req_str(key)
     left_ids = _mapping_items(s, "left_items")
     right_ids = _mapping_items(s, "right_items")
+    if isinstance(s.spec.get("links"), list) and len(s.spec["links"]) > 10:
+        s.err("対応線は1ページ10本までです。論点ごとに複数スライドへ分割してください")
     links = s.req_list("links", 1, 10, "対応線") or []
     seen = set()
     for index, link in enumerate(links):
@@ -1375,9 +1248,8 @@ def _v_references(s):
                 s.err(f"{path}.id={entry['id']!r} が重複しています")
             seen_ids.add(entry["id"])
         if _is_str(entry.get("url")):
-            parsed = urlsplit(entry["url"])
-            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-                s.err(f"{path}.url はhttpまたはhttpsの完全なURLにしてください")
+            if not _is_web_url(entry["url"]):
+                s.err(f"{path}.url はhttpまたはhttpsの完全なURLにしてください（認証情報・空白は含めないでください）")
             if entry["url"] in seen_urls:
                 s.err(f"{path}.url が同じスライド内で重複しています")
             seen_urls.add(entry["url"])
@@ -1634,7 +1506,7 @@ def validate(deck, *, allow_sample_content=False):
             continue
         s = _Slide(idx, spec, errors)
         t = spec.get("type")
-        if t not in VALIDATORS:
+        if not isinstance(t, str) or t not in VALIDATORS:
             s.err(f"未対応のtypeです。使用可能: {', '.join(sorted(VALIDATORS))}")
             continue
         for key in _unknown_keys(spec, _TYPE_KEYS[t]):
@@ -1648,7 +1520,8 @@ def validate(deck, *, allow_sample_content=False):
                     '内容は共通フィールド "lead" へ移してください')
         if not allow_sample_content:
             title_error = _title_policy_error(spec.get("title"))
-            if title_error:
+            reviewed = _validate_nominal_review(s, title_error)
+            if title_error and not reviewed:
                 s.err(
                     f'"title" は名詞句または短い疑問形の見出しにしてください '
                     f"({title_error})。結論・因果・行動はsubtitle、leadまたは本文へ移してください")
@@ -1678,14 +1551,16 @@ def validate(deck, *, allow_sample_content=False):
 
 
 def main(json_path):
-    deck = json.loads(Path(json_path).read_text(encoding="utf-8"))
+    deck = load_content_json(json_path)
     errors = validate(deck)
+    for message in validation_warnings(deck):
+        print(f"警告: {message}", file=sys.stderr)
     if errors:
-        print(f"NG: {json_path} に {len(errors)} 件の問題", file=sys.stderr)
+        print(f"NG: {Path(json_path).name} に {len(errors)} 件の問題", file=sys.stderr)
         for e in errors:
             print(f"  - {e}", file=sys.stderr)
         raise SystemExit(1)
-    print(f"OK: {json_path} ({len(deck['slides'])} slides) 検証通過")
+    print(f"OK: {Path(json_path).name} ({len(deck['slides'])} slides) 検証通過")
 
 
 if __name__ == "__main__":
