@@ -1,4 +1,4 @@
-"""用途別カード、バー起点のテーマ、収容段階と最小値停止を検証する。"""
+"""番号付きカードの旧配置、工程表、収容段階と最小値停止を検証する。"""
 
 from copy import deepcopy
 from pathlib import Path
@@ -14,13 +14,14 @@ from slidegen.check_layout import check
 from slidegen.layout_fit import FitError
 from slidegen.layout_settings import ROADMAP
 from slidegen.timeline_layout import plan_program_roadmap
+from slidegen.diagrams2 import s_program_roadmap
 from tools.gallery.generate_card_roadmap_cases import main, make_deck
 
 
 class CardRoadmapDesignTests(unittest.TestCase):
-    def test_sixteen_cases_pass_layout_and_styles_have_distinct_hierarchy(self):
+    def test_fifteen_cases_pass_layout_and_styles_have_distinct_hierarchy(self):
         data = make_deck()
-        self.assertEqual(len(data["slides"]), 16)
+        self.assertEqual(len(data["slides"]), 15)
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "cases.pptx"
             main(output)
@@ -30,19 +31,27 @@ class CardRoadmapDesignTests(unittest.TestCase):
                     continue
                 panels = [shape for shape in slide.shapes if shape.name.startswith("cards:editorial:panel:")]
                 if spec["style"] == "editorial":
-                    self.assertEqual(len(panels), len(spec["cards"]))
-                    shapes = {shape.name: shape for shape in slide.shapes}
-                    for index, panel in enumerate(panels):
-                        for role, minimum in (("heading", 13), ("body", 11)):
-                            shape = shapes[f"cards:editorial:{role}:{index}"]
-                            self.assertGreater(shape.left, panel.left)
-                            self.assertGreaterEqual(shape.top, panel.top)
-                            self.assertLess(shape.left + shape.width, panel.left + panel.width)
-                            self.assertLess(shape.top + shape.height, panel.top + panel.height)
+                    self.assertFalse(panels)
+                    self.assertFalse(any(shape.name.startswith("cards:editorial:accent:")
+                                         for shape in slide.shapes))
+                    text_shapes = [shape for shape in slide.shapes if shape.has_text_frame]
+                    for index in range(len(spec["cards"])):
+                        number = next(shape for shape in text_shapes
+                                      if shape.text == f"{index + 1:02d}")
+                        self.assertEqual(number.text, f"{index + 1:02d}")
+                        card = spec["cards"][index]
+                        heading = next(shape for shape in text_shapes
+                                       if shape.text.replace("\n", "") == card["heading"])
+                        body = next(shape for shape in text_shapes
+                                    if shape.text.replace("\n", "") == card["body"])
+                        self.assertAlmostEqual(heading.left.inches - number.left.inches, .72)
+                        self.assertAlmostEqual(body.left.inches, heading.left.inches)
+                        self.assertAlmostEqual(body.top.inches - heading.top.inches, .58)
+                        for shape, minimum in ((heading, 13), (body, 11)):
+                            self.assertGreaterEqual(shape.top.inches, generate.BODY_TOP)
+                            self.assertLessEqual((shape.top + shape.height) / 914400,
+                                                 generate.BODY_BOTTOM)
                             self.assertGreaterEqual(shape.text_frame.paragraphs[0].runs[0].font.size.pt, minimum)
-                    numbers = [shape.text for shape in slide.shapes if shape.has_text_frame
-                               and generate.BODY_TOP < shape.top.inches < generate.BODY_BOTTOM]
-                    self.assertFalse(set(numbers) & {f"{number:02d}" for number in range(1, 7)})
                 else:
                     self.assertFalse(panels)
                     values = {card["value"] for card in spec["cards"]}
@@ -76,25 +85,28 @@ class CardRoadmapDesignTests(unittest.TestCase):
         self.assertEqual(observed, {"standard", "gap", "font"})
         self.assertTrue(stopped)
 
-    def test_delayed_theme_starts_at_first_bar_and_goal_has_dedicated_lane(self):
+    def test_delayed_theme_and_goal_stay_in_left_column(self):
         spec = {"periods": ["前期", "中期", "後期"], "tracks": [{
             "name": "試行", "goal": "結果の記録", "activities": [
                 {"label": "受付", "start": 1, "end": 2},
                 {"label": "照合", "start": 1.5, "end": 3},
             ]}]}
         plan = plan_program_roadmap(spec, generate.ContentArea(1.58, 6.85))
-        theme = plan.themes[0]
-        first, second = plan.activities[0]
-        self.assertAlmostEqual(plan.grid_x, ROADMAP.label_x)
-        self.assertAlmostEqual(theme.x, first.x1)
-        self.assertGreater(theme.x, plan.grid_x)
-        self.assertGreater(theme.goal_y, theme.y)
-        self.assertGreater(second.lane_top, theme.goal_y)
+        self.assertAlmostEqual(plan.grid_x, ROADMAP.label_x + ROADMAP.track_width)
+        first = plan.activities[0][0]
+        self.assertGreater(first.x1, plan.grid_x)
+        prs = Presentation()
+        slide = prs.slides.add_slide(prs.slide_layouts[6])
+        s_program_roadmap(slide, dict(spec, kicker="旧配置の回帰検証", title="工程表"), 1)
+        name = next(shape for shape in slide.shapes if shape.has_text_frame and shape.text == "試行")
+        goal = next(shape for shape in slide.shapes if shape.has_text_frame and shape.text == "結果の記録")
+        self.assertLess((name.left + name.width) / 914400, plan.grid_x)
+        self.assertLess((goal.left + goal.width) / 914400, plan.grid_x)
         self.assertLess(plan.bottom, 6.85)
         with self.assertRaises(FitError):
             plan_program_roadmap(spec, generate.ContentArea(1.58, 2.0))
 
-    def test_short_first_bar_gets_own_lane_without_losing_goal_or_milestone(self):
+    def test_short_first_bar_preserves_original_lane_and_milestone(self):
         spec = {"periods": [str(index) for index in range(12)], "tracks": [{
             "name": "短期作業", "goal": "結果の確認",
             "milestone": {"at": 6, "label": "完了"},
@@ -105,13 +117,13 @@ class CardRoadmapDesignTests(unittest.TestCase):
         original = deepcopy(spec)
         plan = plan_program_roadmap(spec, generate.ContentArea(1.58, 6.85))
         first, following = plan.activities[0]
-        self.assertAlmostEqual(plan.themes[0].x, first.x1)
-        self.assertGreater(following.lane_top, plan.themes[0].goal_y)
+        self.assertAlmostEqual(plan.grid_x, 3.5)
+        self.assertAlmostEqual(first.lane_top, following.lane_top)
         self.assertGreater(plan.milestones[0].y, following.lane_top)
         self.assertLess(plan.bottom, 6.85)
         self.assertEqual(spec, original)
         with self.assertRaises(FitError):
-            plan_program_roadmap(spec, generate.ContentArea(1.58, 2.5))
+            plan_program_roadmap(spec, generate.ContentArea(1.58, 2.0))
 
 
 if __name__ == "__main__":

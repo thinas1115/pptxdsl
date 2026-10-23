@@ -225,11 +225,12 @@ def main():
     short_line = short_lines[0]
     theme = next(shape for shape in short_slide.shapes
                  if shape.has_text_frame and shape.text == "短期作業")
-    assert abs(theme.left - short_line.left) < Inches(0.01)
+    assert theme.left + theme.width < Inches(3.5)
+    assert short_line.left > Inches(3.5)
     assert short_label.left > theme.left + theme.width
     following_label = next(shape for shape in short_slide.shapes
                            if shape.has_text_frame and shape.text == "後続作業")
-    assert following_label.top > short_label.top + short_label.height
+    assert abs(following_label.top - short_label.top) < Inches(0.01)
     assert abs((following_label.left + following_label.width / 2)
                - (short_lines[1].left + short_lines[1].width / 2)) < Inches(0.01)
 

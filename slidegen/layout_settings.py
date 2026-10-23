@@ -65,13 +65,14 @@ class SwimlaneSettings:
 
 @dataclass(frozen=True)
 class RoadmapSettings:
-    # テーマ欄を独立させず、旧フレーム全体を時間軸に使う。
+    # 時間軸の既存幅を保持する。一般図解の11.89inと同じ値とは扱わない。
     label_x: float = 0.72
-    grid_width: float = 11.87
-    period_min_pt: float = 9.0
-    track_min_pt: float = 10.0
-    activity_min_pt: float = 9.0
-    line_pt: float = 2.4
+    track_width: float = 2.78
+    grid_width: float = 9.09
+    period_min_pt: float = 7.5
+    track_min_pt: float = 8.5
+    activity_min_pt: float = 7.5
+    line_pt: float = 1.4
 
 
 @dataclass(frozen=True)

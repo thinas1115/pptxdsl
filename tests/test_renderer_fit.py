@@ -123,7 +123,7 @@ def main():
                     if getattr(shape, "has_text_frame", False)
                     and shape.text == card_body * 3)
     moderate_size = moderate_body.text_frame.paragraphs[0].runs[0].font.size.pt
-    assert 11 <= moderate_size < 14
+    assert 11 <= moderate_size <= 14
 
     shrink_cards = dict(
         normal_cards,

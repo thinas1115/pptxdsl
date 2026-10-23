@@ -1,11 +1,10 @@
 """工程表rendererの期間解決・レーン割当・収容計算。"""
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from slidegen.layout_fit import FitCandidate, FitError, FitResult, select_fit, stepped
 from slidegen.layout_settings import BodyArea, ROADMAP
-from slidegen.textfit import text_width_in
 
 PROGRAM_ROADMAP_STEP = 0.25
 
@@ -137,9 +136,9 @@ def fit_program_roadmap(
         "track_pad": 0.08,
         "track_gap": 0.03,
         "lane_pitch": 0.34,
-        "period_pt": 11.0,
-        "track_pt": 12.5,
-        "activity_pt": 10.5,
+        "period_pt": 10.0,
+        "track_pt": 11.5,
+        "activity_pt": 9.5,
     }
     candidates.append(("standard", standard, used(standard)))
     for lane_pitch in stepped(0.32, 0.30, 0.02):
@@ -149,9 +148,9 @@ def fit_program_roadmap(
             "track_pad": 0.06,
             "track_gap": 0.01,
             "lane_pitch": lane_pitch,
-            "period_pt": 11.0,
-            "track_pt": 12.5,
-            "activity_pt": 10.5,
+            "period_pt": 9.5,
+            "track_pt": 11.0,
+            "activity_pt": 9.0,
         }
         candidates.append(("gap", values, used(values)))
     for lane_pitch in stepped(0.28, 0.24, 0.02):
@@ -162,9 +161,9 @@ def fit_program_roadmap(
             "track_pad": 0.05,
             "track_gap": 0.01,
             "lane_pitch": lane_pitch,
-            "period_pt": ROADMAP.period_min_pt + ratio,
-            "track_pt": ROADMAP.track_min_pt + ratio,
-            "activity_pt": ROADMAP.activity_min_pt + 0.5 * ratio,
+            "period_pt": 8.0 + ratio,
+            "track_pt": 9.5 + ratio,
+            "activity_pt": 8.0 + 0.5 * ratio,
         }
         candidates.append(("element", values, used(values)))
     return select_fit(
@@ -194,20 +193,6 @@ class RoadmapMilestone:
 
 
 @dataclass(frozen=True)
-class RoadmapTheme:
-    """最初の作業バーと一体で読むテーマ名。目標行は他の作業と共有しない。"""
-
-    x: float
-    y: float
-    width: float
-    size: float
-    activity_size: float
-    activity_index: int
-    goal_y: float | None
-    goal_width: float
-
-
-@dataclass(frozen=True)
 class RoadmapPlan:
     fitted: FitResult
     grid_x: float
@@ -219,77 +204,6 @@ class RoadmapPlan:
     bottom: float
     activities: list[list[RoadmapActivity]]
     milestones: list[RoadmapMilestone | None]
-    themes: list[RoadmapTheme]
-
-
-def _theme_caption_sizes(
-    name: str, label: str, width: float, theme_pt: float, activity_pt: float, emphasized: bool
-) -> tuple[float, float, float]:
-    """両方の文字を省略せず収め、テーマだけが作業名を押し出すのを防ぐ。"""
-    size, body_size = theme_pt, activity_pt
-    while True:
-        name_width = float(text_width_in(name, size, "bold"))
-        body_width = float(text_width_in(label, body_size, "bold" if emphasized else "regular"))
-        if name_width + 0.16 + body_width <= width - 0.04:
-            return size, body_size, name_width + 0.02
-        if size <= ROADMAP.track_min_pt and body_size <= ROADMAP.activity_min_pt:
-            raise FitError(
-                "program_roadmap: テーマ名と最初の作業名が最小文字でも収まりません。"
-                "名称を短くするか工程を分割してください。"
-            )
-        size = max(ROADMAP.track_min_pt, size - 0.5)
-        body_size = max(ROADMAP.activity_min_pt, body_size - 0.5)
-
-
-def _pack_theme_activities(
-    track: Mapping[str, Any], periods: Sequence[str]
-) -> tuple[list[ActivityPlacement], int]:
-    """短い先頭バーの見出しが隣へ入る場合は、先頭作業の行を独立させる。"""
-    placements, count = pack_activities(track["activities"], periods)
-    first = min(placements, key=lambda item: (item.start, item.lane, item.end, item.index))
-    following = sorted(
-        (item for item in placements if item.lane == first.lane and item.index != first.index),
-        key=lambda item: (item.start, item.end, item.index),
-    )
-    if not following:
-        return placements, count
-    width = ROADMAP.grid_width / len(periods)
-
-    def center(item: ActivityPlacement) -> float:
-        return ROADMAP.label_x + (item.start + item.end) * width / 2
-
-    next_left, _ = centered_label_box(
-        center(following[0]),
-        center(first),
-        center(following[1]) if len(following) > 1 else None,
-        ROADMAP.label_x,
-        ROADMAP.label_x + ROADMAP.grid_width,
-        3.0,
-    )
-    first_x = ROADMAP.label_x + first.start * width + 0.035
-    try:
-        _theme_caption_sizes(
-            track["name"],
-            first.activity["label"],
-            min(4.6, next_left - 0.08 - first_x),
-            ROADMAP.track_min_pt,
-            ROADMAP.activity_min_pt,
-            bool(first.activity.get("emph")),
-        )
-    except FitError:
-        # 行を独立させてもページ右端へ収まらなければ、文字を省略せず停止する。
-        _theme_caption_sizes(
-            track["name"],
-            first.activity["label"],
-            min(4.6, ROADMAP.label_x + ROADMAP.grid_width - first_x),
-            ROADMAP.track_min_pt,
-            ROADMAP.activity_min_pt,
-            bool(first.activity.get("emph")),
-        )
-        return [
-            item if item is first else replace(item, lane=item.lane + 1) for item in placements
-        ], count + 1
-    return placements, count
 
 
 def plan_program_roadmap(spec: Mapping[str, Any], area: BodyArea) -> RoadmapPlan:
@@ -299,14 +213,14 @@ def plan_program_roadmap(spec: Mapping[str, Any], area: BodyArea) -> RoadmapPlan
         raise FitError("program_roadmap: 期間は3〜12件までです。期間をまとめてください。")
     if not 1 <= len(tracks) <= 6:
         raise FitError("program_roadmap: テーマは1〜6件までです。複数スライドへ分割してください。")
-    packed = [_pack_theme_activities(track, periods) for track in tracks]
+    packed = [pack_activities(track["activities"], periods) for track in tracks]
     counts = [
-        count + int(bool(track.get("milestone"))) + int(bool(track.get("goal")))
+        count + int(bool(track.get("milestone")))
         for track, (_placements, count) in zip(tracks, packed)
     ]
     fitted = fit_program_roadmap(area.height, counts, has_note=bool(spec.get("note")))
     values = fitted.values
-    grid_x = ROADMAP.label_x
+    grid_x = ROADMAP.label_x + ROADMAP.track_width
     period_width = ROADMAP.grid_width / len(periods)
     top = area.top + values["top_gap"]
     row_heights = [2 * values["track_pad"] + count * values["lane_pitch"] for count in counts]
@@ -315,7 +229,6 @@ def plan_program_roadmap(spec: Mapping[str, Any], area: BodyArea) -> RoadmapPlan
     cursor = top + values["header_h"]
     activities: list[list[RoadmapActivity]] = []
     milestones: list[RoadmapMilestone | None] = []
-    themes: list[RoadmapTheme] = []
     for track, row_height, (placements, lane_count) in zip(tracks, row_heights, packed):
         row_top = cursor
         row_tops.append(row_top)
@@ -332,10 +245,8 @@ def plan_program_roadmap(spec: Mapping[str, Any], area: BodyArea) -> RoadmapPlan
                     items[position + 1] if position + 1 < len(items) else None,
                 )
         planned = []
-        goal_rows = int(bool(track.get("goal")))
         for placement in placements:
-            lane = placement.lane + (goal_rows if placement.lane > 0 else 0)
-            lane_top = row_top + values["track_pad"] + lane * values["lane_pitch"]
+            lane_top = row_top + values["track_pad"] + placement.lane * values["lane_pitch"]
             x1 = grid_x + placement.start * period_width + 0.035
             x2 = grid_x + placement.end * period_width - 0.035
             previous, following = neighbors[placement.index]
@@ -355,65 +266,15 @@ def plan_program_roadmap(spec: Mapping[str, Any], area: BodyArea) -> RoadmapPlan
                 following_center,
                 grid_x,
                 grid_x + ROADMAP.grid_width,
-                3.0,
+                1.45,
             )
             planned.append(RoadmapActivity(placement, lane_top, x1, x2, label_x, label_width))
-        first = min(
-            planned,
-            key=lambda item: (
-                item.placement.start,
-                item.placement.lane,
-                item.placement.end,
-                item.placement.index,
-            ),
-        )
-        following = neighbors[first.placement.index][1]
-        right = grid_x + ROADMAP.grid_width
-        if following is not None:
-            right = (
-                next(item.label_x for item in planned if item.placement.index == following.index)
-                - 0.08
-            )
-        caption_width = min(4.6, right - first.x1)
-        theme_size, activity_size, theme_width = _theme_caption_sizes(
-            track["name"],
-            first.placement.activity["label"],
-            caption_width,
-            values["track_pt"],
-            values["activity_pt"],
-            bool(first.placement.activity.get("emph")),
-        )
-        activity_x = first.x1 + theme_width + 0.14
-        planned = [
-            replace(item, label_x=activity_x, label_width=caption_width - theme_width - 0.14)
-            if item is first
-            else item
-            for item in planned
-        ]
-        # 先頭作業の本文サイズも描画前に確定する。
-        themes.append(
-            RoadmapTheme(
-                first.x1,
-                first.lane_top + 0.07,
-                theme_width,
-                theme_size,
-                activity_size,
-                first.placement.index,
-                first.lane_top + values["lane_pitch"] + 0.07 if goal_rows else None,
-                grid_x + ROADMAP.grid_width - first.x1,
-            )
-        )
         activities.append(planned)
         milestone = track.get("milestone")
         if milestone:
             x = grid_x + resolve_marker(milestone["at"], periods) * period_width
-            y = (
-                row_top
-                + values["track_pad"]
-                + (lane_count + goal_rows) * values["lane_pitch"]
-                + 0.035
-            )
-            width = min(2.0, max(0.78, period_width * 1.7))
+            y = row_top + values["track_pad"] + lane_count * values["lane_pitch"] + 0.035
+            width = min(1.45, max(0.78, period_width * 1.7))
             left = min(max(x - width / 2, grid_x), grid_x + ROADMAP.grid_width - width)
             milestones.append(RoadmapMilestone(x, y, left, width))
         else:
@@ -429,5 +290,4 @@ def plan_program_roadmap(spec: Mapping[str, Any], area: BodyArea) -> RoadmapPlan
         cursor - values["track_gap"],
         activities,
         milestones,
-        themes,
     )

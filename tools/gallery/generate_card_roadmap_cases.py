@@ -1,4 +1,4 @@
-"""用途別カード9枚と工程表7枚を、同じ品質ゲートで比較する。"""
+"""用途別カード9枚と工程表6枚を、同じ品質ゲートで比較する。"""
 
 from copy import deepcopy
 from pathlib import Path

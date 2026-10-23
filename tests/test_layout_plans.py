@@ -150,12 +150,8 @@ class LayoutPlanTests(unittest.TestCase):
         self.assertAlmostEqual(marker.x, plan.grid_x + ROADMAP.grid_width)
         self.assertLessEqual(marker.label_x + marker.label_width, plan.grid_x + ROADMAP.grid_width)
         for activity in plan.activities[0]:
-            if activity.placement.index == plan.themes[0].activity_index:
-                self.assertAlmostEqual(plan.themes[0].x, activity.x1)
-                self.assertGreater(activity.label_x, plan.themes[0].x + plan.themes[0].width)
-            else:
-                self.assertAlmostEqual(activity.label_x + activity.label_width / 2,
-                                       (activity.x1 + activity.x2) / 2)
+            self.assertAlmostEqual(activity.label_x + activity.label_width / 2,
+                                   (activity.x1 + activity.x2) / 2)
         with self.assertRaises(FitError):
             plan_program_roadmap(roadmap(), Area(bottom=1.8))
         for key, value in (("periods", ["a", "b"]), ("tracks", [])):
@@ -185,7 +181,7 @@ class LayoutPlanTests(unittest.TestCase):
         self.assertEqual(PAGE.margin, .55)
         self.assertEqual(PAGE.body_width, 13.333 - 2 * .55)
         self.assertEqual(SWIMLANE.frame_width, 12.59)
-        self.assertAlmostEqual(ROADMAP.grid_width, 11.87)
+        self.assertAlmostEqual(ROADMAP.track_width + ROADMAP.grid_width, 11.87)
 
 
 if __name__ == "__main__":

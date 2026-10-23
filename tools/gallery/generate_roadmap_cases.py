@@ -11,6 +11,15 @@ from tests.fixtures.gallery.content_lead_patterns import LEAD_PATTERN_DECK
 from tests.fixtures.gallery.content_stress_patterns import PROGRAM_ROADMAP_STRESS
 
 
+def overlong_label_case():
+    """撤回した横幅拡張でのみ収容できた入力を、明示停止の検証用に残す。"""
+    return {"type": "program_roadmap", "kicker": "少期間", "title": "長い工程名と完了条件",
+            "periods": ["第1期", "第2期", "第3期"], "tracks": [{
+                "name": "問い合わせ受付の試行", "goal": "手順と記録様式を整備", "activities": [
+                    {"label": "問い合わせ受付手順の整備と試行", "start": 0, "end": 3}],
+                "milestone": {"at": 3, "label": "試行結果の確認完了"}}]}
+
+
 def make_deck():
     normal = [deepcopy(s) for s in PATTERN_DECK["slides"] if s["type"] == "program_roadmap"]
     normal[0]["title"] = "12か月の多段工程"
@@ -24,18 +33,13 @@ def make_deck():
                   "milestone": {"at": 3, "label": "確認完了"}},
                  {"name": "連絡先の整理", "activities": [
                      {"label": "連絡先の確認と共有", "start": 0, "end": 2.5, "emph": True}]}]}
-    long = deepcopy(short)
-    long["title"] = "長い工程名と完了条件"
-    long["tracks"] = [{"name": "問い合わせ受付の試行", "goal": "手順と記録様式を整備", "activities": [
-        {"label": "問い合わせ受付手順の整備と試行", "start": 0, "end": 3}],
-        "milestone": {"at": 3, "label": "試行結果の確認完了"}}]
     dense = deepcopy(PROGRAM_ROADMAP_STRESS)
     dense["title"] = "5テーマと15作業の期間"
     lead = [deepcopy(s) for s in LEAD_PATTERN_DECK["slides"] if s["type"] == "program_roadmap"]
     for index, spec in enumerate(lead, 1):
         spec["title"] = f"説明付きの年間工程{index}"
     return {"meta": {"title": "工程表の回帰検証", "footer": "架空の工程による表示検証"},
-            "slides": normal + [short, long, dense] + lead}
+            "slides": normal + [short, dense] + lead}
 
 
 def main(output):

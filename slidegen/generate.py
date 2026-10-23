@@ -480,12 +480,11 @@ def render_cards_body(slide, spec, area, *, region=None):
     ]
     fitted = fit_vertical_stacks(
         "cards", fit_available, [row_cards],
-        # 描画は全行を同じ高さに揃えるため、各行の平均ではなく最大必要高さで測る。
-        lambda _cards_in_row, size: (
-            1.02 + max(
-                len(wrap_text(card["body"], cw - 0.48, size))
+        lambda cards_in_row, size: (
+            0.72 + max(
+                len(wrap_text(card["body"], cw - 0.92, size))
                 * line_height_in(size, 1.2)
-                for card in cards
+                for card in cards_in_row
             )
         ),
         standard_size=14,
@@ -505,20 +504,19 @@ def render_cards_body(slide, spec, area, *, region=None):
         row, col = divmod(i, cols)
         x = left + col * (cw + gap_x)
         y = top + row * (ch + gap_y)
-        panel = add_rect(slide, x, y, cw, ch, SURFACE, line=RULE)
-        panel.name = f"cards:editorial:panel:{i}"
-        accent = add_rect(slide, x, y, cw, 0.035, ACCENT)
-        accent.name = f"cards:editorial:accent:{i}"
+        add_text(slide, x, y + 0.02, 0.58, 0.36, f"{i + 1:02d}", 14,
+                 bold=True, color=GRAY)
         head_size, _ = fit_text_or_raise(
             "cards", f"cards[{i}].heading", card["heading"],
-            cw - 0.48, 0.42, 16.5, min_pt=13,
+            cw - 0.72, 0.42, 16.5, min_pt=13,
             weight="bold", spacing=1.1)
-        heading = add_text(slide, x + 0.24, y + 0.24, cw - 0.48, 0.42,
-                 card["heading"], head_size, bold=True, color=NAVY)
-        heading.name = f"cards:editorial:heading:{i}"
-        body = add_text(slide, x + 0.24, y + 0.90, cw - 0.48, ch - 1.02, card["body"],
+        head_color = CORAL if card["emphasis"] else NAVY
+        add_text(slide, x + 0.72, y, cw - 0.72, 0.42,
+                 card["heading"], head_size, bold=True, color=head_color)
+        add_text(slide, x + 0.72, y + 0.58, cw - 0.82, ch - 0.64, card["body"],
                  body_size, color=TEXT, spacing=1.2)
-        body.name = f"cards:editorial:body:{i}"
+        if row < rows - 1:
+            add_rect(slide, x + 0.72, y + ch + gap_y / 2, cw - 0.72, 0.012, RULE)
 
 
 def _split_metric_head(head):
