@@ -241,6 +241,57 @@ def _theme_caption_sizes(
         body_size = max(ROADMAP.activity_min_pt, body_size - 0.5)
 
 
+def _pack_theme_activities(
+    track: Mapping[str, Any], periods: Sequence[str]
+) -> tuple[list[ActivityPlacement], int]:
+    """短い先頭バーの見出しが隣へ入る場合は、先頭作業の行を独立させる。"""
+    placements, count = pack_activities(track["activities"], periods)
+    first = min(placements, key=lambda item: (item.start, item.lane, item.end, item.index))
+    following = sorted(
+        (item for item in placements if item.lane == first.lane and item.index != first.index),
+        key=lambda item: (item.start, item.end, item.index),
+    )
+    if not following:
+        return placements, count
+    width = ROADMAP.grid_width / len(periods)
+
+    def center(item: ActivityPlacement) -> float:
+        return ROADMAP.label_x + (item.start + item.end) * width / 2
+
+    next_left, _ = centered_label_box(
+        center(following[0]),
+        center(first),
+        center(following[1]) if len(following) > 1 else None,
+        ROADMAP.label_x,
+        ROADMAP.label_x + ROADMAP.grid_width,
+        3.0,
+    )
+    first_x = ROADMAP.label_x + first.start * width + 0.035
+    try:
+        _theme_caption_sizes(
+            track["name"],
+            first.activity["label"],
+            min(4.6, next_left - 0.08 - first_x),
+            ROADMAP.track_min_pt,
+            ROADMAP.activity_min_pt,
+            bool(first.activity.get("emph")),
+        )
+    except FitError:
+        # 行を独立させてもページ右端へ収まらなければ、文字を省略せず停止する。
+        _theme_caption_sizes(
+            track["name"],
+            first.activity["label"],
+            min(4.6, ROADMAP.label_x + ROADMAP.grid_width - first_x),
+            ROADMAP.track_min_pt,
+            ROADMAP.activity_min_pt,
+            bool(first.activity.get("emph")),
+        )
+        return [
+            item if item is first else replace(item, lane=item.lane + 1) for item in placements
+        ], count + 1
+    return placements, count
+
+
 def plan_program_roadmap(spec: Mapping[str, Any], area: BodyArea) -> RoadmapPlan:
     """正規化・収容・全座標を確定する。図形やPPTXを生成しない。"""
     periods, tracks = spec["periods"], spec["tracks"]
@@ -248,7 +299,7 @@ def plan_program_roadmap(spec: Mapping[str, Any], area: BodyArea) -> RoadmapPlan
         raise FitError("program_roadmap: 期間は3〜12件までです。期間をまとめてください。")
     if not 1 <= len(tracks) <= 6:
         raise FitError("program_roadmap: テーマは1〜6件までです。複数スライドへ分割してください。")
-    packed = [pack_activities(track["activities"], periods) for track in tracks]
+    packed = [_pack_theme_activities(track, periods) for track in tracks]
     counts = [
         count + int(bool(track.get("milestone"))) + int(bool(track.get("goal")))
         for track, (_placements, count) in zip(tracks, packed)

@@ -223,10 +223,15 @@ def main():
     )
     assert len(short_lines) == 2
     short_line = short_lines[0]
-    assert abs(
-        (short_label.left + short_label.width / 2)
-        - (short_line.left + short_line.width / 2)
-    ) < Inches(0.01)
+    theme = next(shape for shape in short_slide.shapes
+                 if shape.has_text_frame and shape.text == "短期作業")
+    assert abs(theme.left - short_line.left) < Inches(0.01)
+    assert short_label.left > theme.left + theme.width
+    following_label = next(shape for shape in short_slide.shapes
+                           if shape.has_text_frame and shape.text == "後続作業")
+    assert following_label.top > short_label.top + short_label.height
+    assert abs((following_label.left + following_label.width / 2)
+               - (short_lines[1].left + short_lines[1].width / 2)) < Inches(0.01)
 
     image_area = generate.header(
         _slide(), IMAGE_STRESS["kicker"], IMAGE_STRESS["title"],

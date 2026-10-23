@@ -94,6 +94,25 @@ class CardRoadmapDesignTests(unittest.TestCase):
         with self.assertRaises(FitError):
             plan_program_roadmap(spec, generate.ContentArea(1.58, 2.0))
 
+    def test_short_first_bar_gets_own_lane_without_losing_goal_or_milestone(self):
+        spec = {"periods": [str(index) for index in range(12)], "tracks": [{
+            "name": "短期作業", "goal": "結果の確認",
+            "milestone": {"at": 6, "label": "完了"},
+            "activities": [
+                {"label": "半月作業", "start": 4.25, "end": 4.75},
+                {"label": "後続作業", "start": 5, "end": 6},
+            ]}]}
+        original = deepcopy(spec)
+        plan = plan_program_roadmap(spec, generate.ContentArea(1.58, 6.85))
+        first, following = plan.activities[0]
+        self.assertAlmostEqual(plan.themes[0].x, first.x1)
+        self.assertGreater(following.lane_top, plan.themes[0].goal_y)
+        self.assertGreater(plan.milestones[0].y, following.lane_top)
+        self.assertLess(plan.bottom, 6.85)
+        self.assertEqual(spec, original)
+        with self.assertRaises(FitError):
+            plan_program_roadmap(spec, generate.ContentArea(1.58, 2.5))
+
 
 if __name__ == "__main__":
     unittest.main()
