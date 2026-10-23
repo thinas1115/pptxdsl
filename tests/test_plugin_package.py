@@ -30,10 +30,6 @@ def _hashes(root: Path, *, source_text: bool = False) -> dict[str, str]:
 def _plugin_smoke_deck() -> dict:
     deck = _smoke_deck()
     deck["slides"].extend([
-        {"type": "split", "kicker": "読み合わせ", "title": "画面と確認項目",
-         "left": {"type": "image", "image": "images/pptxdsl-repository.png"},
-         "right": {"type": "bullets", "bullets": [
-             {"text": "利用者が確認する情報と、その操作対象を説明します。"}]}},
         {"type": "section_divider", "kicker": "第2章", "title": "ネットワーク構成",
          "lead": "VPCとsubnetの境界"},
         {"type": "aws_vpc_layout", "kicker": "構成", "title": "VPC構成",
@@ -74,6 +70,8 @@ def _check_archive_and_runtime() -> None:
         installed = base / "installed" / "pptxdsl"
         with zipfile.ZipFile(archive) as bundle:
             assert "plugin.json" in bundle.namelist()
+            assert not any("split_layout" in name or "split_renderer" in name
+                           or "split-layout" in name for name in bundle.namelist())
             assert not any(set(Path(name).parts) & {"tests", "tools", ".git", "out", "__pycache__"}
                            for name in bundle.namelist())
             bundle.extractall(installed)

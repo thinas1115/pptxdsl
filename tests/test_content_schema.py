@@ -14,6 +14,21 @@ from tools.schema.generate import ROOT, _fixture, artifacts
 
 
 class ContentSchemaTests(unittest.TestCase):
+    def test_withdrawn_split_is_rejected_before_generation(self):
+        from slidegen.generate_from_json import RENDER, build_presentation
+
+        spec = {"type": "split", "kicker": "確認", "title": "画面と説明",
+                "left": {"type": "image", "image": "images/pptxdsl-repository.png"},
+                "right": {"type": "bullets", "bullets": [{"text": "入力の確認"}]}}
+        deck = {"meta": {"title": "廃止typeの確認"}, "slides": [spec]}
+        self.assertNotIn("split", RENDER)
+        self.assertNotIn("split", slide_schemas())
+        self.assertFalse(any("split" in name for name in content_schema()["$defs"]))
+        self.assertTrue(any("未対応のtype" in error for error in validate(deck)))
+        self.assertFalse(Draft202012Validator(content_schema()).is_valid(deck))
+        with self.assertRaisesRegex(ValueError, "未対応のtype"):
+            build_presentation(deck)
+
     def test_schema_is_standard_and_uses_local_references_only(self):
         schema = content_schema()
         Draft202012Validator.check_schema(schema)

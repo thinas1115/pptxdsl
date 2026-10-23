@@ -18,8 +18,6 @@ def _dereference(schema: Schema, root: Schema) -> Schema:
 
 
 def _description(schema: Schema) -> str:
-    if "x-display-type" in schema:
-        return schema["x-display-type"]
     if "const" in schema:
         return f'固定値 `{schema["const"]}`'
     if "enum" in schema:
@@ -40,8 +38,6 @@ def _description(schema: Schema) -> str:
 
 def _rows(schema: Schema, root: Schema, path: str = "") -> list[str]:
     schema = _dereference(schema, root)
-    if schema.get("x-reference-only"):
-        return []
     result = []
     for name, child in schema.get("properties", {}).items():
         field = f"{path}.{name}" if path else name
@@ -75,9 +71,8 @@ def _fixture(schema: Schema, root: Schema) -> Any:
         return schema["const"]
     if "enum" in schema:
         return schema["enum"][0]
-    for keyword in ("anyOf", "oneOf"):
-        if keyword in schema and "type" not in schema:
-            return _fixture(schema[keyword][0], root)
+    if "anyOf" in schema and "type" not in schema:
+        return _fixture(schema["anyOf"][0], root)
     kind = schema.get("type")
     if kind == "object":
         result = {name: _fixture(schema["properties"][name], root) for name in schema.get("required", [])}
@@ -90,8 +85,6 @@ def _fixture(schema: Schema, root: Schema) -> Any:
         if schema.get("anyOf"):
             for name in schema["anyOf"][0].get("required", []):
                 result[name] = _fixture(schema["properties"][name], root)
-        for name, reference in schema.get("x-fixture-references", {}).items():
-            result[name] = _fixture({"$ref": reference}, root)
         return result
     if kind == "array":
         if "prefixItems" in schema:

@@ -10,7 +10,7 @@
 
 | category | type |
 |---|---|
-| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `split`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check`, `references` |
+| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check`, `references` |
 | NW | `aws_vpc_layout`, `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
 
 ## 参照情報の役割
@@ -41,7 +41,6 @@
 | `section_divider` | 章扉・中扉。章ラベル、章タイトル、任意のleadだけを置く | 表紙、本文の見出し、章の根拠や工程を説明する | `title`、通常スライドの`title` |
 | `bullets` | 手順、順序を持たない要点、完了状態付きタスクを文字中心で示す | 数値比較、工程、階層を表す | `table`、`process`、`org` |
 | `cards` | 同格な複数の選択肢、事例、判断材料、KPIを比較する | 1つの用語の定義と要点、読み順のある要点、工程や図の要素を並べる | `concept`、`bullets`、`process`、`diagram` |
-| `split` | 図と判断材料、画像と説明など異なる情報構造を左右で読み合わせる | 同じ評価軸で2案を比較する、独立した論点を詰め込む | `two_column`、別スライドへの分割 |
 | `table` | 同じ評価軸で複数項目を比較・一覧する | 時系列の推移や関係を見せる | `chart`、`program_roadmap` |
 | `two_column` | 共通の評価軸を持たない2つの状態・観点を左右に整理する | 同じ評価軸で行ごとに対応させる比較、3つ以上の選択肢 | `paired_comparison`、`table` |
 | `chart` | 数値の大小、推移、構成を視覚比較する。`bar` / `column` / `line` / `stacked_bar` / `stacked_column`に対応 | 数値根拠がない概念比較 | `table`、`bullets` |

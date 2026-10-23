@@ -16,7 +16,6 @@ BOOL: Schema = {"type": "boolean"}
 NUMBER: Schema = {"type": "number"}
 INTEGER: Schema = {"type": "integer"}
 NUMBER_FORMAT_PATTERN = r'(?:0|#,##0)(?:\.0{1,6})?(?:%|"[^"\\\r\n]{1,12}")?'
-SPLIT_PAIRS = (("diagram", "cards"), ("image", "bullets"), ("chart", "table"), ("bullets", "cards"))
 
 
 def enum(*values: str) -> Schema:
@@ -484,7 +483,6 @@ def _slide_definitions() -> Schema:
                 "note": TEXT,
             },
         ),
-        "split": obj({"left": ref("split_block"), "right": ref("split_block")}, {"note": TEXT}),
     }
     for name, schema in definitions.items():
         common_required = {"type": {"const": name}, "title": TEXT}
@@ -543,56 +541,13 @@ def _slide_definitions() -> Schema:
     definitions["table"]["dependentRequired"] = {"note_link": ["note"]}
     definitions["program_roadmap"]["properties"]["periods"]["uniqueItems"] = True
     definitions["program_roadmap"]["x-maxActivities"] = 24
-    pairs = [*SPLIT_PAIRS, *((right, left) for left, right in SPLIT_PAIRS)]
-    definitions["split"]["anyOf"] = [
-        {
-            "properties": {
-                "left": {"properties": {"type": {"const": left}}},
-                "right": {"properties": {"type": {"const": right}}},
-            }
-        }
-        for left, right in pairs
-    ]
-    definitions["split"]["x-error-anyOf"] = (
-        "対応する組み合わせは "
-        + " / ".join(f"{left} + {right}" for left, right in SPLIT_PAIRS)
-        + " です（左右の逆順も指定可能）"
-    )
-    definitions["split"]["x-fixture-references"] = {
-        side: f"#/$defs/split_{kind}" for side, kind in zip(("left", "right"), SPLIT_PAIRS[0])
-    }
     return definitions
-
-
-def split_block_schemas() -> dict[str, Schema]:
-    """本文の契約は全幅版から導出し、共通ヘッダー・注記・再帰を子へ公開しない。"""
-    definitions = _slide_definitions()
-    kinds = dict.fromkeys(kind for pair in SPLIT_PAIRS for kind in pair)
-    common = {"kicker", "title", "lead", "footnote", "title_nominal_review", "note", "note_link"}
-    result = {}
-    for kind in kinds:
-        schema = deepcopy(definitions[kind])
-        schema["properties"] = {
-            key: value for key, value in schema["properties"].items() if key not in common
-        }
-        schema["required"] = [key for key in schema["required"] if key not in common]
-        schema.pop("dependentRequired", None)
-        result[kind] = schema
-    return result
 
 
 def content_schema() -> Schema:
     """呼び出し側が変更しても他の利用者へ影響しない、独立した標準スキーマ。"""
     definitions = _definitions()
     slides = _slide_definitions()
-    blocks = split_block_schemas()
-    definitions.update({f"split_{name}": schema for name, schema in blocks.items()})
-    definitions["split_block"] = {
-        "oneOf": [ref(f"split_{name}") for name in blocks],
-        "x-error-oneOf": "対応する子typeと本文フィールドを指定してください。子の共通ヘッダー・注記やsplitの入れ子は指定できません",
-        "x-reference-only": True,
-        "x-display-type": "半幅の子本文: " + " / ".join(blocks),
-    }
     definitions.update({f"slide_{name}": schema for name, schema in slides.items()})
     root = obj(
         {

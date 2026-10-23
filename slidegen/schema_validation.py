@@ -10,7 +10,7 @@ from jsonschema.protocols import Validator
 from referencing import Registry
 
 from slidegen.chart_model import finite_number
-from slidegen.schema_definition import content_schema, slide_schemas, split_block_schemas
+from slidegen.schema_definition import content_schema, slide_schemas
 
 
 SCHEMA = content_schema()
@@ -46,7 +46,6 @@ _SLIDES = {
     name: _ROOT.evolve(schema={**schema, "$defs": SCHEMA["$defs"]})
     for name, schema in SLIDE_SCHEMAS.items()
 }
-_BLOCKS = split_block_schemas()
 
 
 def _path(parts: Iterable[object]) -> str:
@@ -144,20 +143,8 @@ def slide_errors(value: dict[str, Any]) -> list[str]:
     kind = value.get("type")
     if not isinstance(kind, str) or kind not in _SLIDES:
         return [f"未対応のtypeです。使用可能: {', '.join(sorted(_SLIDES))}"]
-    validator = _SLIDES[kind]
-    if kind == "split":
-        # typeが分かる子だけへ絞り、無関係な全分岐のエラーを利用者へ列挙しない。
-        properties = dict(SLIDE_SCHEMAS[kind]["properties"])
-        for side in ("left", "right"):
-            block = value.get(side)
-            block_kind = block.get("type") if isinstance(block, dict) else None
-            if isinstance(block_kind, str) and block_kind in _BLOCKS:
-                properties[side] = {"$ref": f"#/$defs/split_{block_kind}"}
-        validator = validator.evolve(
-            schema={**SLIDE_SCHEMAS[kind], "properties": properties, "$defs": SCHEMA["$defs"]}
-        )
     return list(
         dict.fromkeys(
-            message for error in validator.iter_errors(value) for message in _message(error)
+            message for error in _SLIDES[kind].iter_errors(value) for message in _message(error)
         )
     )

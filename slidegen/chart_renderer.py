@@ -223,8 +223,6 @@ def _layout(chart, area, stage, size, gap):
                        for (name, values), labels in zip(series, value_texts)]
     line_h = line_height_in(size, 1.3) + 0.02
     x, y, w = 0.76, area.top + 0.18, 11.80
-    if hasattr(area, "left"):
-        x, w = area.left + 0.02, area.width - 0.04
     legend_entries, legend_heights = ([], [])
     if chart.get("show_legend", len(series) > 1):
         legend_entries, legend_heights = _legend(plan, [name for name, _ in series], w, gap)

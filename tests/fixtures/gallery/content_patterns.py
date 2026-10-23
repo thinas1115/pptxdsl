@@ -3,7 +3,6 @@
 from copy import deepcopy
 
 from tests.fixtures.gallery.diagram_specs import AWS_MULTIAZ_EXAMPLE, AWS_SIMPLE_EXAMPLE
-from tests.fixtures.gallery.split_patterns import SPLIT_SLIDES
 
 PATTERN_DECK = {
     "meta": {
@@ -887,7 +886,6 @@ PATTERN_DECK = {
     ],
 }
 
-PATTERN_DECK["slides"].extend(deepcopy(SPLIT_SLIDES))
 PATTERN_DECK["slides"][0]["subtitle"] = (
     f"意思決定から技術研修まで、{len({slide['type'] for slide in PATTERN_DECK['slides']})}のTypeを"
     f"{len(PATTERN_DECK['slides'])}枚で検証")

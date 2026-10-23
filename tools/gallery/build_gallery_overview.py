@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import zlib
 from collections import defaultdict
 from pathlib import Path
 
@@ -38,7 +37,6 @@ TYPE_ORDER = (
     "cards",
     "table",
     "two_column",
-    "split",
     "chart",
     "image",
     "image_compare",
@@ -68,7 +66,6 @@ TYPE_CATEGORIES = {
     "cards": "Common",
     "table": "Common",
     "two_column": "Common",
-    "split": "Common",
     "chart": "Common",
     "image": "Common",
     "image_compare": "Common",
@@ -224,8 +221,7 @@ def build(png_dir: Path, output: Path, *, width: int = 960) -> None:
     if width != CANVAS_WIDTH:
         canvas = canvas.resize((width, round(canvas_height * width / CANVAS_WIDTH)),
                                Image.Resampling.LANCZOS)
-    # 画素を変えずに圧縮する。文字・図形を含む一覧ではFILTEREDより小さい。
-    canvas.save(output, optimize=True, compress_type=zlib.Z_DEFAULT_STRATEGY)
+    canvas.save(output, optimize=True)
 
 
 def main() -> None:

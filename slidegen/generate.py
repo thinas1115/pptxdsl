@@ -328,20 +328,11 @@ def _bullet_first_line_center(y, size):
 
 def s_bullets(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    return render_bullets_body(slide, spec, area)
-
-
-def render_bullets_body(slide, spec, area, *, region=None):
-    """全幅・半幅で同じ文字実測と収容を使い、共通ヘッダーは呼び出さない。"""
     style = spec.get("style", "numbered")
     bullets = [_normalize_bullet(item) for item in spec["bullets"]]
     top_gap = 0.27 if area.shifted else 0.32
     area_h = area.height - top_gap - 0.28
     tx, tw = 1.48, 9.65
-    number_x, bullet_x, checkbox_x = 0.80, 1.04, 0.99
-    if region is not None:
-        tx, tw = region.left + 0.60, region.width - 0.64
-        number_x, bullet_x, checkbox_x = region.left, region.left + 0.24, region.left + 0.19
     preferred_size = 22 if len(bullets) <= 2 else 20 if len(bullets) <= 4 else 18
 
     fitted = fit_vertical_stacks(
@@ -364,20 +355,18 @@ def render_bullets_body(slide, spec, area, *, region=None):
         6.30,
         max(text_width_in(text, size) for text, _checked in bullets) + 0.30,
     ))
-    if region is not None:
-        rule_w = min(tw, max(text_width_in(text, size) for text, _checked in bullets) + 0.30)
     y = area.top + top_gap
     for i, ((text, checked), bh) in enumerate(zip(bullets, heights), 1):
         marker_center = _bullet_first_line_center(y, size)
         if style == "numbered":
             # Latin numerals sit slightly below the geometric center when
             # vertically anchored, so keep the text box 0.012in higher.
-            add_text(slide, number_x, marker_center - 0.162, 0.46, 0.30,
+            add_text(slide, 0.80, marker_center - 0.162, 0.46, 0.30,
                      f"{i:02d}", 15.5, bold=True, color=ACCENT,
                      align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE)
         elif style == "bullet":
             marker = slide.shapes.add_shape(
-                MSO_SHAPE.OVAL, Inches(bullet_x), Inches(marker_center - 0.07),
+                MSO_SHAPE.OVAL, Inches(1.04), Inches(marker_center - 0.07),
                 Inches(0.14), Inches(0.14))
             marker.fill.solid()
             marker.fill.fore_color.rgb = ACCENT
@@ -386,12 +375,12 @@ def render_bullets_body(slide, spec, area, *, region=None):
         else:
             checkbox_top = marker_center - 0.12
             add_rect(
-                slide, checkbox_x, checkbox_top, 0.24, 0.24,
+                slide, 0.99, checkbox_top, 0.24, 0.24,
                 ACCENT if checked else CANVAS,
                 line=ACCENT if checked else GRAY,
             )
             if checked:
-                add_text(slide, checkbox_x, checkbox_top - 0.028, 0.24, 0.25, "✓", 12,
+                add_text(slide, 0.99, checkbox_top - 0.028, 0.24, 0.25, "✓", 12,
                          bold=True, color=WHITE, align=PP_ALIGN.CENTER,
                          anchor=MSO_ANCHOR.MIDDLE, spacing=1.0, wrap=False)
         add_text(slide, tx, y, tw, bh + 0.08, text, size,
@@ -405,22 +394,13 @@ def render_bullets_body(slide, spec, area, *, region=None):
 def s_cards(slide, spec, page):
     """同格の独立項目、またはKPIを2〜6件のグリッドで描画する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    return render_cards_body(slide, spec, area)
-
-
-def render_cards_body(slide, spec, area, *, region=None):
-    """本文だけを描画し、半幅でも読みやすさの下限を変更しない。"""
     cards = [_normalize_card(card) for card in spec["cards"]]
     n = len(cards)
     style = spec.get("style", "editorial")
     left, usable_w = 0.78, 11.78
-    if region is not None:
-        left, usable_w = region.left + 0.02, region.width - 0.04
 
     if style == "metrics":
         cols = n if n <= 4 else 3
-        if region is not None:
-            cols = min(n, 2)
         rows = math.ceil(n / cols)
         gap_x, gap_y = 0.46, 0.42
         cw = (usable_w - gap_x * (cols - 1)) / cols
@@ -464,15 +444,11 @@ def render_cards_body(slide, spec, area, *, region=None):
         return
 
     cols = n if n <= 3 else (2 if n == 4 else 3)
-    if region is not None:
-        cols = min(n, 2)
     rows = math.ceil(n / cols)
     gap_x, gap_y = 0.72, 0.44
     cw = (usable_w - gap_x * (cols - 1)) / cols
     area_h = area.height - 0.62
     fit_available = area_h if rows == 2 else min(3.32, area_h)
-    if region is not None and rows > 1:
-        fit_available = area_h
 
     row_cards = [
         cards[row * cols:(row + 1) * cols]
@@ -536,13 +512,10 @@ def _normalize_card(card):
     }
 
 
-def _auto_table_widths(columns, rows, *, total_width=None):
+def _auto_table_widths(columns, rows):
     """見出しとセル内容を実測し、本文幅を列へ決定論的に配分する。"""
-    total_width = BODY_W if total_width is None else total_width
     count = len(columns)
-    min_width = max(0.92, min(1.38, total_width / count * 0.58))
-    if count * min_width > total_width:
-        raise FitError("table: 最小列幅を確保できません。列数を減らすか表を分割してください。")
+    min_width = max(0.92, min(1.38, BODY_W / count * 0.58))
     natural = []
     for index, heading in enumerate(columns):
         samples = [text_width_in(heading, 12, "bold")]
@@ -550,7 +523,7 @@ def _auto_table_widths(columns, rows, *, total_width=None):
         natural.append(min(4.65, max(min_width, max(samples) + 0.34)))
 
     widths = [min_width] * count
-    remaining = total_width - sum(widths)
+    remaining = BODY_W - sum(widths)
     unmet = {index for index in range(count) if natural[index] > widths[index]}
     while remaining > 0.001 and unmet:
         share = remaining / len(unmet)
@@ -571,7 +544,7 @@ def _auto_table_widths(columns, rows, *, total_width=None):
         total_weight = sum(weights)
         widths = [width + remaining * weight / total_weight
                   for width, weight in zip(widths, weights)]
-    widths[-1] += total_width - sum(widths)
+    widths[-1] += BODY_W - sum(widths)
     return widths
 
 
@@ -617,15 +590,10 @@ def _table_column_alignments(columns, rows):
 
 def s_table(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    return render_table_body(slide, spec, area)
-
-
-def render_table_body(slide, spec, area, *, region=None):
     cols, rows = spec["columns"], spec["rows"]
     alignments = _table_column_alignments(cols, rows)
-    x, width = (MARGIN, BODY_W) if region is None else (region.left, region.width)
-    widths = spec.get("col_widths") or _auto_table_widths(cols, rows, total_width=width)
-    assert abs(sum(widths) - width) < 0.6, f"列幅合計={sum(widths)}"
+    widths = spec.get("col_widths") or _auto_table_widths(cols, rows)
+    assert abs(sum(widths) - BODY_W) < 0.6, f"列幅合計={sum(widths)}"
     hdr_h = TABLE_HEADER_H
     table_available = (
         area.height - TABLE_TOP_GAP - TABLE_BOTTOM_GAP
@@ -636,8 +604,8 @@ def render_table_body(slide, spec, area, *, region=None):
     size = fitted.values["size"]
     table_h = hdr_h + sum(row_hs)
     top = area.top + TABLE_TOP_GAP + max(0.0, (table_available - table_h) * 0.12)
-    gt = slide.shapes.add_table(len(rows) + 1, len(cols), Inches(x),
-                                Inches(top), Inches(width), Inches(table_h))
+    gt = slide.shapes.add_table(len(rows) + 1, len(cols), Inches(MARGIN),
+                                Inches(top), Inches(BODY_W), Inches(table_h))
     table = gt.table
     table.first_row = False
     table.horz_banding = False
