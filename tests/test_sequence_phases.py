@@ -26,6 +26,36 @@ def render(spec):
 
 
 class SequencePhasesTest(unittest.TestCase):
+    def test_whole_diagram_is_centered_with_phase_rail_and_rightmost_self_loop(self):
+        for count in range(2, 7):
+            for with_phases in (False, True):
+                for self_loop in (False, True):
+                    with self.subTest(count=count, phases=with_phases, self_loop=self_loop):
+                        participants = [{"id": f"p{i}", "label": f"参加者{i + 1}"}
+                                        for i in range(count)]
+                        spec = {"type": "message_sequence", "kicker": "中央配置の検証",
+                                "title": "送受信の流れ", "participants": participants,
+                                "messages": [
+                                    {"id": "m0", "from": "p0", "to": f"p{count - 1}", "label": "要求"},
+                                    {"id": "m1", "from": f"p{count - 1}",
+                                     "to": f"p{count - 1}" if self_loop else "p0", "label": "確認"}]}
+                        if with_phases:
+                            spec["phases"] = [{"label": "確認工程", "from": "m0", "to": "m1"}]
+                        prs, slide = render(spec)
+                        # ヘッダー・凡例・フッターを除いた図全体の描画範囲で判定する。
+                        shapes = [shape for shape in slide.shapes
+                                  if shape.name.startswith("sequence-")]
+                        left = min(shape.left for shape in shapes)
+                        right = max(shape.left + shape.width for shape in shapes)
+                        self.assertAlmostEqual((left + right) / 2, prs.slide_width / 2, delta=2)
+                        self.assertGreaterEqual(left, Inches(generate.MARGIN))
+                        self.assertLessEqual(right, Inches(generate.MARGIN + generate.BODY_W))
+                        lifelines = [shape for shape in shapes
+                                     if shape.name.startswith(SEQUENCE_LIFELINE_PREFIX)]
+                        span = max(shape.left for shape in lifelines) - min(shape.left for shape in lifelines)
+                        half = 4.18 if count <= 3 else min(4.45, 2.80 + .55 * (count - 2))
+                        self.assertAlmostEqual(span / 914400, 2 * half, places=5)
+
     def test_phase_rail_does_not_cover_lifelines_or_message_labels(self):
         for spec in make_deck()["slides"]:
             with self.subTest(case=spec["kicker"]):

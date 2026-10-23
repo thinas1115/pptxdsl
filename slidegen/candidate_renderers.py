@@ -611,6 +611,21 @@ def s_sequence(slide, spec, page):
     sequence_center = MARGIN + BODY_W / 2
     half_span = (4.18 if len(participants) <= 3
                  else min(4.45, 2.80 + 0.55 * (len(participants) - 2)))
+    box_w = min(2.08 if sparse else 1.74,
+                2 * half_span / len(participants) * 0.88)
+    phase_rail, phase_right_pad = 1.50, 0.48
+    loop_w, self_label_gap, self_label_w = 0.54, 0.10, 1.10
+    # ライフラインだけでなく、左のフェーズ欄・見出し・自己処理も含めて中央へ置く。
+    heading_overhang = box_w / 2 - 0.08
+    left_edge = -half_span - max(heading_overhang, phase_rail if phases else 0)
+    right_edge = half_span + max(heading_overhang, phase_right_pad if phases else 0)
+    offsets = {participant["id"]: -half_span + i * 2 * half_span / (len(participants) - 1)
+               for i, participant in enumerate(participants)}
+    for message in messages:
+        if message["from"] == message["to"]:
+            right_edge = max(right_edge, offsets[message["from"]]
+                             + loop_w + self_label_gap + self_label_w)
+    sequence_center -= (left_edge + right_edge) / 2
     participant_x0 = sequence_center - half_span
     participant_x1 = sequence_center + half_span
     used_h = (len(messages) * fitted.values["row_h"]
@@ -641,11 +656,12 @@ def s_sequence(slide, spec, page):
             y2 = lifeline_bottom
         # 左端ライフラインより手前をフェーズ名専用のレールにする。
         # 矢印上のラベル背景へ重ねず、参加者の中心位置・メッセージ行高も保つ。
-        phase_x = participant_x0 - 1.50
-        phase_w = participant_x1 - phase_x + 0.48
+        phase_x = participant_x0 - phase_rail
+        phase_w = participant_x1 - phase_x + phase_right_pad
         phase_fill = LIGHT if phase_index % 2 == 0 else ZEBRA
-        _flat_rect(slide, phase_x, y1, phase_w, y2 - y1,
-                   phase_fill)
+        band = _flat_rect(slide, phase_x, y1, phase_w, y2 - y1,
+                          phase_fill)
+        band.name = f"sequence-phase-band:{phase_index}"
         for message in messages[start_index:end_index + 1]:
             message_fill[message["id"]] = phase_fill
         phase_h = min(0.56, y2 - y1 - 0.08)
@@ -662,14 +678,13 @@ def s_sequence(slide, spec, page):
         phase_box.fill.solid()
         phase_box.fill.fore_color.rgb = LIGHT if phase_index % 2 == 0 else ZEBRA
     for index, (participant, x) in enumerate(zip(participants, xs)):
-        box_w = min(2.08 if sparse else 1.74,
-                    (participant_x1 - participant_x0) / len(participants) * 0.88)
-        _text_in_box(slide, "message_sequence", f"participants[{index}].label",
+        participant_box = _text_in_box(slide, "message_sequence", f"participants[{index}].label",
                      x - box_w / 2 + 0.08, top, box_w - 0.16, header_h,
                      participant["label"], 12.5 if sparse else 11.0, 8.5,
                      bold=True, color=NAVY,
                      align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
                      role="compact")
+        participant_box.name = f"sequence-participant:{participant['id']}"
         plain_line(slide, x - box_w / 2 + 0.08, top + header_h,
                    x + box_w / 2 - 0.08, top + header_h,
                    color=RULE, width=0.8)
@@ -682,7 +697,7 @@ def s_sequence(slide, spec, page):
         kind = message.get("kind", "request")
         message_color = ACCENT if kind == "async" else GRAY if kind == "return" else NAVY
         if sx == tx:
-            loop_w, loop_h = 0.54, max(0.26, fitted.values["row_h"] * 0.76)
+            loop_h = max(0.26, fitted.values["row_h"] * 0.76)
             dash = "dash" if message.get("kind") == "return" else None
             # 自己処理は割り当て行の上側で完結させ、次行のラベル領域を侵食しない。
             route_top = y - loop_h
@@ -703,8 +718,8 @@ def s_sequence(slide, spec, page):
                 if dash:
                     segment.line.dash_style = MSO_LINE_DASH_STYLE.DASH
             # ラベルをループ外へ置き、自己処理を示す3辺を背景マスクで隠さない。
-            label_w = 1.10
-            label_left = route_right + 0.10
+            label_w = self_label_w
+            label_left = route_right + self_label_gap
             label_x = label_left + label_w / 2
         else:
             arrow = add_arrow(slide, sx, y, tx, y,
