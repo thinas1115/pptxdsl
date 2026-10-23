@@ -1,19 +1,21 @@
 """図解系スライド第2弾: プロセスタイムライン・工程表・2軸マップ。"""
 
+from math import hypot
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
 from slidegen.generate import (ACCENT, CORAL, GRAY, LIGHT, NAVY, RULE, SURFACE, TEXT, WHITE,
                       ZEBRA, ContentArea, add_rect, add_text, header, note_line)
-from slidegen.diagrams import add_arrow, arrow_label
-from slidegen.diagrams3 import route
+from slidegen.diagrams import add_arrow
+from slidegen.diagrams3 import plain_line, route
 from slidegen.layout_fit import FitError, ensure_within, fit_text_or_raise, select_fit
-from slidegen.textfit import text_width_in
-from slidegen.timeline_layout import (centered_label_box, fit_program_roadmap,
-                             pack_activities, resolve_marker)
+from slidegen.textfit import line_height_in, text_width_in
+from slidegen.timeline_layout import plan_program_roadmap
+from slidegen.layout_settings import ROADMAP
 
-PROGRAM_LINE_PT = 1.4
+PROGRAM_LINE_PT = ROADMAP.line_pt
+MATRIX_LABEL_DISTANCE = 0.45
 
 
 def _rects_overlap(a, b, gap=0.04):
@@ -29,6 +31,7 @@ def _matrix_label_positions(
     point_boxes = [(x - 0.17, y - 0.17, x + 0.17, y + 0.17)
                    for x, y in point_xy]
     placed = {}
+    leaders = {}
     order = sorted(
         range(len(points)),
         key=lambda i: (
@@ -39,21 +42,26 @@ def _matrix_label_positions(
         ),
     )
     label_h = 0.31
-    offsets = [
-        (-label_w / 2, -0.49), (-label_w / 2, 0.18),
-        (0.22, -label_h / 2), (-label_w - 0.22, -label_h / 2),
-        (0.18, -0.43), (-label_w - 0.18, -0.43),
-        (0.18, 0.14), (-label_w - 0.18, 0.14),
-    ]
     for index in order:
         px, py = point_xy[index]
         manual = (points[index].get("lx"), points[index].get("ly"))
-        candidates = offsets
+        weight = "bold" if points[index].get("emph") else "regular"
+        size = _fit_single_line("matrix", "points.name", points[index]["name"], label_w - 0.08, 11, 9,
+                                bold=bool(points[index].get("emph")))
+        width = max(0.40, min(label_w, text_width_in(points[index]["name"], size, weight) + 0.08))
+        candidates = [
+            (-width / 2, -label_h - 0.24), (-width / 2, 0.24),
+            (0.32, -label_h / 2), (-width - 0.32, -label_h / 2),
+            (0.26, -label_h - 0.20), (-width - 0.26, -label_h - 0.20),
+            (0.26, 0.20), (-width - 0.26, 0.20),
+        ]
         if manual[0] is not None or manual[1] is not None:
+            # 非公開の旧内部呼び出しだけは従来の枠幅を維持する。JSONでは指定不可。
+            width = label_w
             candidates = [(-label_w / 2 + (manual[0] or 0.0),
                            manual[1] if manual[1] is not None else -0.36)]
         for dx, dy in candidates:
-            rect = (px + dx, py + dy, px + dx + label_w, py + dy + label_h)
+            rect = (px + dx, py + dy, px + dx + width, py + dy + label_h)
             inside = (rect[0] >= ox + 0.04 and rect[2] <= ox + aw - 0.04
                       and rect[1] >= top + 0.04 and rect[3] <= top + ah - 0.04)
             if not inside:
@@ -64,11 +72,24 @@ def _matrix_label_positions(
                 continue
             if any(_rects_overlap(rect, other, gap)
                    for other_index, other in enumerate(point_boxes)
-                   if other_index != index):
+                   if other_index != index or manual == (None, None)):
                 continue
             if any(_rects_overlap(rect, other, gap) for other in placed.values()):
                 continue
+            nearest = _matrix_nearest_edge((px, py), rect)
+            if hypot(nearest[0] - px, nearest[1] - py) > MATRIX_LABEL_DISTANCE:
+                continue
+            leader = _matrix_leader_box((px, py), rect)
+            if leader and (any(_rects_overlap(leader, box, 0.015) for box in placed.values())
+                           or any(_rects_overlap(leader, box, 0.015)
+                                  for j, box in enumerate(point_boxes) if j != index)
+                           or any(_rects_overlap(leader, box, 0.015) for box in leaders.values())):
+                continue
+            if any(_rects_overlap(rect, box, 0.015) for box in leaders.values()):
+                continue
             placed[index] = rect
+            if leader:
+                leaders[index] = leader
             break
         else:
             raise FitError(
@@ -76,6 +97,24 @@ def _matrix_label_positions(
                 "他の点と重ならずに配置できません。点を減らすか座標の粒度を"
                 "見直してください。")
     return point_xy, placed
+
+
+def _matrix_nearest_edge(point, rect):
+    """点からラベル枠への最短接続点。図形を生成せず計算する。"""
+    return (min(max(point[0], rect[0]), rect[2]),
+            min(max(point[1], rect[1]), rect[3]))
+
+
+def _matrix_leader_box(point, rect):
+    """引出線の短い通路。矩形で保守的に他の点・文字・引出線との交差を避ける。"""
+    ex, ey = _matrix_nearest_edge(point, rect)
+    distance = hypot(ex - point[0], ey - point[1])
+    if distance <= 0.26:
+        return None
+    ux, uy = (ex - point[0]) / distance, (ey - point[1]) / distance
+    sx, sy = point[0] + ux * 0.17, point[1] + uy * 0.17
+    tx, ty = ex - ux * 0.025, ey - uy * 0.025
+    return min(sx, tx), min(sy, ty), max(sx, tx), max(sy, ty)
 
 
 def fit_matrix_labels(points, ox, top, aw, ah, *, barriers=()):
@@ -103,6 +142,7 @@ def _grid_line(slide, x1, y1, x2, y2):
     line.line.color.rgb = RULE
     line.line.width = Pt(0.6)
     line.shadow.inherit = False
+    line.name = "roadmap:grid"
     return line
 
 
@@ -173,32 +213,46 @@ def s_process(slide, spec, page):
         name_size, name_lines = fit_text_or_raise(
             "process", f"steps[{i}].name", st["name"], w - 0.2, 0.42,
             15.5, min_pt=12.5, weight="bold", spacing=1.1)
-        add_text(slide, x + 0.1, y(2.94), w - 0.2, 0.42,
-                 st["name"], name_size,
+        name_box = add_text(slide, x + 0.1, y(2.94), w - 0.2, 0.42,
+                 "\n".join(name_lines), name_size,
                  bold=True, color=NAVY, align=PP_ALIGN.CENTER)
+        name_box.name = f"process:name:{i}"
+        name_box.text_frame.word_wrap = False
         attribute = _process_attribute(st)
         desc_h = 1.35 if attribute else 1.95
         size, desc_lines = fit_text_or_raise(
             "process", f"steps[{i}].desc", st["desc"],
-            w - 0.34, desc_h, 13.5, min_pt=11.5, spacing=1.2)
-        add_text(slide, x + 0.17, y(3.56), w - 0.34, desc_h,
-                 st["desc"], size,
+            # LibreOffice 26.2はwrap=Falseでも和欧混在行を再折り返す場合がある。
+            # 計画幅と実際の文字枠の間に余裕を残し、説明が補足欄へ伸びるのを防ぐ。
+            w - 0.34 - 0.12, desc_h, 13.5, min_pt=11.5, spacing=1.2)
+        desc_h = len(desc_lines) * line_height_in(size, 1.2) + 0.03
+        desc_box = add_text(slide, x + 0.17, y(3.56), w - 0.34, desc_h,
+                 "\n".join(desc_lines), size,
                  color=TEXT, align=PP_ALIGN.CENTER, spacing=1.2)
+        desc_box.name = f"process:desc:{i}"
+        desc_box.text_frame.word_wrap = False
         if attribute:
             label, value = attribute
-            label_size, _ = fit_text_or_raise(
+            attribute_y = y(3.56) + desc_h + 0.20
+            label_size, label_lines = fit_text_or_raise(
                 "process", f"steps[{i}].attribute.label", label,
-                w - 0.3, 0.22, 9.5, min_pt=7.5,
+                w - 0.3, 0.22, 10.5, min_pt=9.5,
                 weight="bold", spacing=1.05)
-            add_text(slide, x + 0.15, y(5.27), w - 0.3, 0.22, label,
-                     label_size, bold=True, color=GRAY,
+            label_box = add_text(slide, x + 0.15, attribute_y, w - 0.3, 0.22,
+                     "\n".join(label_lines), label_size, bold=True, color=TEXT,
                      align=PP_ALIGN.CENTER)
+            label_box.name = f"process:attribute-label:{i}"
+            label_box.text_frame.word_wrap = False
             value_size, value_lines = fit_text_or_raise(
                 "process", f"steps[{i}].attribute.value", value,
                 w - 0.3, 0.3, 11.5, min_pt=9.5, weight="bold", spacing=1.1)
-            add_text(slide, x + 0.15, y(5.56), w - 0.3, 0.3,
-                     value, value_size,
+            value_box = add_text(slide, x + 0.15, attribute_y + 0.27, w - 0.3, 0.3,
+                     "\n".join(value_lines), value_size,
                      bold=True, color=color, align=PP_ALIGN.CENTER)
+            value_box.name = f"process:attribute-value:{i}"
+            value_box.text_frame.word_wrap = False
+            ensure_within("process.attribute", attribute_y + 0.57 - area.top,
+                          area.height, guidance="工程説明または補足を短くしてください。")
     ensure_within(
         "process", y(5.86) - area.top, area.height,
         guidance="工程説明を短くしてください。")
@@ -239,7 +293,7 @@ def _s_process_flow(slide, spec, page):
     left, usable_w = 0.72, 11.90
     level_count = len(levels)
     # 分岐ラベルを箱に重ねず置けるよう、列数に応じて必要な間隔を確保する。
-    gap_x = 0.56 if level_count <= 5 else 0.52
+    gap_x = 0.90 if level_count <= 5 else 0.52
     node_w = (usable_w - gap_x * (level_count - 1)) / level_count
     if node_w < 1.55:
         raise FitError(
@@ -319,7 +373,8 @@ def _s_process_flow(slide, spec, page):
                      node["actor"], actor_size, bold=True, color=ACCENT,
                      align=PP_ALIGN.CENTER)
 
-    for edge, points in routed:
+    placed_labels = []
+    for edge_index, (edge, points) in enumerate(routed):
         if not edge.get("label"):
             continue
         if edge.get("kind") == "feedback":
@@ -330,17 +385,37 @@ def _s_process_flow(slide, spec, page):
                 + abs(segment[1][1] - segment[0][1]),
             )
             label_x, label_y, label_w = (
-                (start[0] + end[0]) / 2, (start[1] + end[1]) / 2, 1.35)
+                (start[0] + end[0]) / 2, (start[1] + end[1]) / 2 + 0.20, 1.35)
         else:
             sx, _sy, sw, _sh = rects[edge["from"]]
             tx, _ty, _tw, _th = rects[edge["to"]]
             end = points[-1]
-            label_w = min(1.20, max(0.32, tx - (sx + sw) - 0.06))
-            # 分岐元と接続先の間へ置き、どちらの枠も背景マスクで欠かさない。
+            label_w = min(1.20, tx - (sx + sw) - 0.06)
+            # 縦の分岐線が延びていない側へ避け、接続経路を一切マスクしない。
             label_x = (sx + sw + tx) / 2
-            label_y = end[1]
-        arrow_label(slide, label_x, label_y, edge["label"],
-                    w=label_w, size=8.5)
+            label_y = end[1] + (0.20 if end[1] > points[0][1] + 0.03 else -0.20)
+        size = _fit_single_line("process.flow", f"edges[{edge_index}].label",
+                                edge["label"], label_w, 10.5, 9.5)
+        label_w = text_width_in(edge["label"], size) + 0.02
+        label_h = line_height_in(size, 1.1) + 0.03
+        bounds = (label_x - label_w / 2, label_y - label_h / 2,
+                  label_x + label_w / 2, label_y + label_h / 2)
+        obstacles = [(x, yy, x + w, yy + h) for x, yy, w, h in rects.values()]
+        obstacles.extend(placed_labels)
+        for _other, path in routed:
+            obstacles.extend((min(a[0], b[0]), min(a[1], b[1]),
+                              max(a[0], b[0]), max(a[1], b[1]))
+                             for a, b in zip(path, path[1:]))
+        if (bounds[1] < area.top or bounds[3] > area.bottom
+                or any(_rects_overlap(bounds, obstacle, 0.025) for obstacle in obstacles)):
+            raise FitError("process.flow: 分岐条件を線や工程に重ねず配置できません。"
+                           "条件を短くするかフローを分割してください。")
+        label_box = add_text(slide, bounds[0], bounds[1], label_w, label_h,
+                             edge["label"], size, color=TEXT, spacing=1.1,
+                             align=PP_ALIGN.CENTER, role="compact")
+        label_box.name = f"process:condition:{edge_index}"
+        label_box.text_frame.word_wrap = False
+        placed_labels.append(bounds)
     if spec.get("note"):
         note_line(slide, spec["note"])
 
@@ -348,36 +423,18 @@ def _s_process_flow(slide, spec, page):
 # ---- 複数テーマ・複数作業のプログラム工程表 ----
 def s_program_roadmap(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    periods = spec["periods"]
-    tracks = spec["tracks"]
-    if not 3 <= len(periods) <= 12:
-        raise FitError(
-            "program_roadmap: 期間は3〜12件までです。期間をまとめてください。")
-    if not 1 <= len(tracks) <= 6:
-        raise FitError(
-            "program_roadmap: テーマは1〜6件までです。複数スライドへ分割してください。")
+    plan = plan_program_roadmap(spec, area)
+    _draw_program_roadmap(slide, spec, plan)
+    if spec.get("note"):
+        note_line(slide, spec["note"])
 
-    packed = [pack_activities(track["activities"], periods) for track in tracks]
-    activity_lane_counts = [lane_count for _placements, lane_count in packed]
-    lane_counts = [
-        lane_count + int(bool(track.get("milestone")))
-        for track, lane_count in zip(tracks, activity_lane_counts)
-    ]
-    fitted = fit_program_roadmap(
-        area.height, lane_counts, has_note=bool(spec.get("note")))
-    values = fitted.values
 
-    label_x, track_col_w = 0.72, 2.78
-    grid_x, grid_w = label_x + track_col_w, 9.09
-    period_w = grid_w / len(periods)
-    top = area.top + values["top_gap"]
-    header_h = values["header_h"]
-    row_heights = [
-        2 * values["track_pad"] + count * values["lane_pitch"]
-        for count in lane_counts
-    ]
-    grid_h = header_h + sum(row_heights) + values["track_gap"] * (len(tracks) - 1)
-
+def _draw_program_roadmap(slide, spec, plan):
+    periods, tracks = spec["periods"], spec["tracks"]
+    values = plan.fitted.values
+    label_x, track_col_w, grid_w = ROADMAP.label_x, ROADMAP.track_width, ROADMAP.grid_width
+    grid_x, period_w = plan.grid_x, plan.period_width
+    top, header_h, grid_h = plan.top, values["header_h"], plan.grid_height
     add_rect(slide, label_x, top, track_col_w, header_h, NAVY)
     add_text(slide, label_x + 0.18, top + 0.07, track_col_w - 0.36, 0.28,
              "テーマ", values["period_pt"], bold=True, color=WHITE)
@@ -386,28 +443,24 @@ def s_program_roadmap(slide, spec, page):
         size, _ = fit_text_or_raise(
             "program_roadmap", f"periods[{index}]", period,
             period_w - 0.04, 0.28, values["period_pt"],
-            min_pt=7.5, weight="bold", spacing=1.0)
-        add_text(slide, grid_x + index * period_w, top + 0.07,
+            min_pt=ROADMAP.period_min_pt, weight="bold", spacing=1.0)
+        period_box = add_text(slide, grid_x + index * period_w, top + 0.07,
                  period_w, 0.28, period, size, bold=True, color=WHITE,
                  align=PP_ALIGN.CENTER, spacing=1.0)
+        period_box.name = f"roadmap:period:{index}"
 
-    row_tops = []
-    cursor = top + header_h
-    for index, row_h in enumerate(row_heights):
-        row_tops.append(cursor)
-        add_rect(slide, label_x, cursor, track_col_w + grid_w, row_h,
+    for index, (row_top, row_h) in enumerate(zip(plan.row_tops, plan.row_heights)):
+        add_rect(slide, label_x, row_top, track_col_w + grid_w, row_h,
                  SURFACE if index % 2 == 0 else ZEBRA)
-        cursor += row_h + values["track_gap"]
-
     body_top = top + header_h
     for index in range(len(periods) + 1):
         _grid_line(slide, grid_x + index * period_w, body_top,
                    grid_x + index * period_w, top + grid_h)
-    for index, row_top in enumerate(row_tops):
+    for index, row_top in enumerate(plan.row_tops):
         _grid_line(slide, label_x, row_top,
                    label_x + track_col_w + grid_w, row_top)
         track = tracks[index]
-        row_h = row_heights[index]
+        row_h = plan.row_heights[index]
         has_goal = bool(track.get("goal"))
         number_y = row_top + (0.07 if has_goal else 0.11)
         name_y = row_top + (0.05 if has_goal else 0.09)
@@ -416,11 +469,12 @@ def s_program_roadmap(slide, spec, page):
                  color=ACCENT)
         track_size = _fit_single_line(
             "program_roadmap", f"tracks[{index}].name", track["name"],
-            track_col_w - 0.66, values["track_pt"], 8.5, bold=True)
-        add_text(slide, label_x + 0.52, name_y,
+            track_col_w - 0.66, values["track_pt"], ROADMAP.track_min_pt, bold=True)
+        track_box = add_text(slide, label_x + 0.52, name_y,
                  track_col_w - 0.66, min(0.28, row_h - 0.14),
                  track["name"], track_size, bold=True, color=NAVY,
                  spacing=1.0, wrap=False)
+        track_box.name = f"roadmap:track:{index}"
         if has_goal:
             goal_size = _fit_single_line(
                 "program_roadmap", f"tracks[{index}].goal", track["goal"],
@@ -429,41 +483,22 @@ def s_program_roadmap(slide, spec, page):
                      track_col_w - 0.66, 0.18, track["goal"], goal_size,
                      color=GRAY, spacing=1.0, wrap=False)
 
-        placements, _lane_count = packed[index]
-        lane_neighbors = {}
-        for lane in range(_lane_count):
-            lane_items = sorted(
-                (placement for placement in placements if placement.lane == lane),
-                key=lambda placement: (placement.start, placement.end),
-            )
-            for position, placement in enumerate(lane_items):
-                previous = lane_items[position - 1] if position else None
-                following = lane_items[position + 1] if position + 1 < len(lane_items) else None
-                lane_neighbors[placement.index] = (previous, following)
-        for placement in placements:
+        for activity_plan in plan.activities[index]:
+            placement = activity_plan.placement
             activity = placement.activity
-            lane_top = (row_top + values["track_pad"]
-                        + placement.lane * values["lane_pitch"])
-            x1 = grid_x + placement.start * period_w + 0.035
-            x2 = grid_x + placement.end * period_w - 0.035
+            lane_top = activity_plan.lane_top
+            x1, x2 = activity_plan.x1, activity_plan.x2
             color = CORAL if activity.get("emph") else ACCENT
-            _activity_line(slide, x1, lane_top + 0.035, x2, color)
+            activity_line = _activity_line(slide, x1, lane_top + 0.035, x2, color)
+            activity_line.name = f"roadmap:span:{index}:{placement.index}"
             text_h = values["lane_pitch"] - 0.07
-            previous, following = lane_neighbors[placement.index]
-            label_center = (x1 + x2) / 2
-            previous_center = None if previous is None else (
-                grid_x + (previous.start + previous.end) * period_w / 2)
-            following_center = None if following is None else (
-                grid_x + (following.start + following.end) * period_w / 2)
-            activity_label_x, activity_label_w = centered_label_box(
-                label_center, previous_center, following_center,
-                grid_x, grid_x + grid_w, 1.45,
-            )
+            activity_label_x = activity_plan.label_x
+            activity_label_w = activity_plan.label_width
             activity_size = _fit_single_line(
                 "program_roadmap",
                 f"tracks[{index}].activities[{placement.index}].label",
                 activity["label"], activity_label_w - 0.04,
-                values["activity_pt"], 7.5,
+                values["activity_pt"], ROADMAP.activity_min_pt,
                 bold=bool(activity.get("emph")))
             label = add_text(
                 slide, activity_label_x + 0.02, lane_top + 0.07,
@@ -472,12 +507,11 @@ def s_program_roadmap(slide, spec, page):
                 align=PP_ALIGN.CENTER, spacing=1.0, wrap=False)
             label.fill.solid()
             label.fill.fore_color.rgb = SURFACE if index % 2 == 0 else ZEBRA
+            label.name = f"roadmap:activity:{index}:{placement.index}"
         milestone = track.get("milestone")
         if milestone:
-            marker_x = grid_x + resolve_marker(milestone["at"], periods) * period_w
-            marker_y = (row_top + values["track_pad"]
-                        + activity_lane_counts[index] * values["lane_pitch"]
-                        + 0.035)
+            marker = plan.milestones[index]
+            marker_x, marker_y = marker.x, marker.y
             diamond_size = 0.13
             diamond = slide.shapes.add_shape(
                 MSO_SHAPE.DIAMOND,
@@ -488,11 +522,8 @@ def s_program_roadmap(slide, spec, page):
             diamond.fill.fore_color.rgb = CORAL
             diamond.line.fill.background()
             diamond.shadow.inherit = False
-            milestone_w = min(1.45, max(0.78, period_w * 1.7))
-            milestone_x = min(
-                max(marker_x - milestone_w / 2, grid_x),
-                grid_x + grid_w - milestone_w,
-            )
+            diamond.name = f"roadmap:milestone:{index}"
+            milestone_w, milestone_x = marker.label_width, marker.label_x
             milestone_size = _fit_single_line(
                 "program_roadmap", f"tracks[{index}].milestone.label",
                 milestone["label"], milestone_w - 0.04,
@@ -505,10 +536,9 @@ def s_program_roadmap(slide, spec, page):
             milestone_label.fill.solid()
             milestone_label.fill.fore_color.rgb = (
                 SURFACE if index % 2 == 0 else ZEBRA)
-    _grid_line(slide, label_x, cursor - values["track_gap"],
-               label_x + track_col_w + grid_w, cursor - values["track_gap"])
-    if spec.get("note"):
-        note_line(slide, spec["note"])
+            milestone_label.name = f"roadmap:milestone-label:{index}"
+    _grid_line(slide, label_x, plan.bottom,
+               label_x + track_col_w + grid_w, plan.bottom)
 
 
 # ---- 2軸ポジショニングマップ ----
@@ -564,7 +594,7 @@ def s_matrix(slide, spec, page):
     _stage, label_w, point_xy, labels = fit_matrix_labels(
         spec["points"], ox, oy - ah, aw, ah,
         barriers=(mid_x, mid_y) if quadrants else ())
-    for p, (px, py) in zip(spec["points"], point_xy):
+    for index, (p, (px, py)) in enumerate(zip(spec["points"], point_xy)):
         r = 0.15
         sp = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(px - r), Inches(py - r),
                                     Inches(2 * r), Inches(2 * r))
@@ -573,16 +603,25 @@ def s_matrix(slide, spec, page):
         sp.line.color.rgb = WHITE
         sp.line.width = Pt(1.0)
         sp.shadow.inherit = False
+        sp.name = f"matrix:point:{index}"
     for index, p in enumerate(spec["points"]):
         left, top, right, bottom = labels[index]
-        point_size, point_lines = fit_text_or_raise(
-            "matrix", "points.name", p["name"], label_w, 0.3, 11,
-            min_pt=9, weight="bold" if p.get("emph") else "regular",
-            spacing=1.1)
-        add_text(slide, left, top, right - left, bottom - top,
+        point_size = _fit_single_line("matrix", "points.name", p["name"], right - left - 0.06,
+                                      11, 9, bold=bool(p.get("emph")))
+        px, py = point_xy[index]
+        ex, ey = _matrix_nearest_edge((px, py), labels[index])
+        distance = hypot(ex - px, ey - py)
+        if distance > 0.26:
+            ux, uy = (ex - px) / distance, (ey - py) / distance
+            leader = plain_line(slide, px + ux * 0.17, py + uy * 0.17,
+                                ex - ux * 0.025, ey - uy * 0.025,
+                                color=GRAY, width=0.7)
+            leader.name = f"matrix:leader:{index}"
+        label = add_text(slide, left, top, right - left, bottom - top,
                  p["name"], point_size,
                  bold=bool(p.get("emph")), color=CORAL if p.get("emph") else TEXT,
-                 align=PP_ALIGN.CENTER)
+                 align=PP_ALIGN.CENTER, wrap=False)
+        label.name = f"matrix:label:{index}"
     ensure_within(
         "matrix", oy - area.top, area.height,
         guidance="軸ラベルまたは点の名称を短くしてください。")

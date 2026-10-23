@@ -223,10 +223,16 @@ def main():
     )
     assert len(short_lines) == 2
     short_line = short_lines[0]
-    assert abs(
-        (short_label.left + short_label.width / 2)
-        - (short_line.left + short_line.width / 2)
-    ) < Inches(0.01)
+    theme = next(shape for shape in short_slide.shapes
+                 if shape.has_text_frame and shape.text == "短期作業")
+    assert theme.left + theme.width < Inches(3.5)
+    assert short_line.left > Inches(3.5)
+    assert short_label.left > theme.left + theme.width
+    following_label = next(shape for shape in short_slide.shapes
+                           if shape.has_text_frame and shape.text == "後続作業")
+    assert abs(following_label.top - short_label.top) < Inches(0.01)
+    assert abs((following_label.left + following_label.width / 2)
+               - (short_lines[1].left + short_lines[1].width / 2)) < Inches(0.01)
 
     image_area = generate.header(
         _slide(), IMAGE_STRESS["kicker"], IMAGE_STRESS["title"],
@@ -235,9 +241,9 @@ def main():
     assert image_fit.stage == "element", image_fit
     assert image_fit.values["min_image_h"] < 3.20, image_fit
 
-    generate.DECK = STRESS_PATTERN_DECK
-    for idx, spec in enumerate(STRESS_PATTERN_DECK["slides"], 1):
-        generate.render_slide(RENDER[spec["type"]], _slide(), spec, idx)
+    from slidegen.generate_from_json import build_presentation
+    built = build_presentation(STRESS_PATTERN_DECK, allow_sample_content=True)
+    assert len(built.slides) == len(STRESS_PATTERN_DECK["slides"])
 
     print(
         "shrink behavior tests passed "

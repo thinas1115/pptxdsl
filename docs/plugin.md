@@ -1,8 +1,8 @@
-# ChatGPT・Codex向けPlugin
+# ChatGPT・Codex・Claude Code向けPlugin
 
 pptxdslをskills-only Pluginとして配布する。資料要件と情報源の確認から、JSON成形、PPTX生成、
 機械検証、実行環境のPNGレンダリング、全ページの目視QAまでを1つのSkillで扱う。
-外部MCPサーバーやGitHub認証は必要ない。Python実行ができるChatGPT WorkまたはCodexが対象であり、
+外部MCPサーバーやGitHub認証は必要ない。Python実行ができるChatGPT Work、Codex、Claude Codeが対象であり、
 通常チャットにZIPを添付するだけでPluginとしてインストールされるわけではない。
 
 ## 配布物の作成
@@ -34,7 +34,7 @@ Release workflowはタグとmanifestのバージョンが一致しない場合�
 タグがmainに含まれることを確認してからReleaseを公開する。
 
 追跡する正本は`.agents/skills/pptxdsl/`、`slidegen/`、公開スキーマと説明文書、
-`plugins/pptxdsl/.codex-plugin/plugin.json`。Plugin専用のrendererやSkill複製を管理しない。
+`plugins/pptxdsl/`の各manifest。Plugin専用のrendererやSkill複製を管理しない。
 ビルド時に正本を集め、`skills/pptxdsl/project/`へ必要なPPTX生成コード・素材・依存一覧・ライセンスを同梱する。
 テスト、回帰入力、開発ツール、ローカル設定、生成デッキは配布へ含めない。
 PPTX生成コードと素材はGit追跡対象だけを同梱し、未追跡の利用者画像などは公開しない。
@@ -42,6 +42,10 @@ PPTX生成コードと素材はGit追跡対象だけを同梱し、未追跡の�
 Portable形式の`plugin.json`を生成し、`.codex-plugin/plugin.json`も互換用に同梱する。
 表示情報は互換manifestを正本としてPortable側の`extensions.com.openai.interface`へ反映する。
 形式と固定の`skills/`検出については[公式のPluginパッケージ仕様](https://developers.openai.com/plugins/build/plugins)を参照する。
+
+Claude Code用の`.claude-plugin/plugin.json`も同梱し、3つのmanifestで名前とバージョンを一致させる。
+テキストはLF、ZIP内日時は固定値、圧縮方式は非圧縮へ統一する。
+OSの改行やzlibの版でSHA-256が変わることを防ぎ、画像などのバイナリは無改変で保持する。
 
 ## 導入と受け入れ確認
 
@@ -97,6 +101,51 @@ ChatGPT WorkまたはCodexを再読み込みしてPlugins Directoryからイン�
 PluginがPython依存、フォント、Office互換ソフトを自動的に提供するわけではない。
 同梱Skillの[Release配布の実行環境](../.agents/skills/pptxdsl/references/bundled-runtime.md)に前提条件と
 インストール先を変更せずに実行する入口を記載している。
+
+### Claude Codeでの導入
+
+Python 3.10以上、日本語フォント、PNG化の手段は利用環境側に必要。
+同じ配布物を使うが、Codexの個人marketplaceとClaude CodeのMarketplaceは別々に登録する。
+
+まずローカルで試す場合は、ビルド済みPluginを指定してClaude Codeを起動する。
+このコマンドはMarketplaceへ登録せず、指定したPluginをその起動にだけ読み込む。
+
+```text
+claude --plugin-dir ./out/plugins/pptxdsl
+```
+
+新しい会話で`/pptxdsl:pptxdsl`と資料要件・情報源を渡す。
+clone側ではなく`skills/pptxdsl/project/`の生成コードが使われ、利用者の作業領域に
+PPTX・PNG・一覧画像が生成されることを確認する。
+
+公開済みReleaseを導入する場合は、利用者が次の登録とインストールを実行する。
+
+```text
+/plugin marketplace add thinas1115/pptxdsl
+/plugin install pptxdsl@pptxdsl-marketplace
+```
+
+リポジトリ直下の`.claude-plugin/marketplace.json`はReleaseのPlugin ZIPを
+HTTPS URLとSHA-256で固定する。URLの版が未公開ならインストールできない。
+開発中の版は上記のローカル読み込みで確認し、未公開URLを導入成功として扱わない。
+更新時はRelease候補を再生成し、MarketplaceのSHA-256も合わせて更新する。
+整合性は`python -m tests.test_release_package`で検査する。
+
+Skillだけを使う場合は、Skill ZIPを展開し、`pptxdsl/`をClaude Codeの個人Skillディレクトリ
+またはプロジェクトの`.claude/skills/`へ配置する。既存の同名Skillは上書きせず、
+バックアップや更新方法を利用者が選ぶ。Plugin版との二重導入は避ける。
+標準の配置先や検出方法は[Claude Code公式のSkill手順](https://code.claude.com/docs/en/skills)を確認する。
+
+配布元とmanifestは、公式CLIがある環境で次のように検証できる。
+検証は個人環境への登録・インストールとは別であり、Releaseの取得成功を保証しない。
+
+```text
+claude plugin validate .claude-plugin/marketplace.json
+claude plugin validate out/plugins/pptxdsl
+```
+
+仕様は[Claude Codeのmanifest](https://code.claude.com/docs/en/plugins-reference)と
+[Marketplaceのarchive形式](https://code.claude.com/docs/en/plugins/marketplace-reference#archive-plugin-source)を参照する。
 
 ## 自動検証
 

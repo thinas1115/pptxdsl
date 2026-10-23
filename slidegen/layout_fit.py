@@ -3,14 +3,24 @@
 レイアウト計算そのものは各rendererが持ち、このモジュールは候補選択、
 テキスト実測、明示停止の契約だけを共有する。
 """
-from dataclasses import dataclass
-from typing import Callable, Iterable, Mapping, Sequence
 
-from slidegen.textfit import (fit_font_size, line_height_in, text_width_in,
-                     title_lines_are_natural, wrapper_for_role)
+from dataclasses import dataclass
+from typing import Callable, Generic, Iterable, Iterator, Mapping, Sequence, TypeVar
+
+from slidegen.textfit import (
+    fit_font_size,
+    line_height_in,
+    text_width_in,
+    title_lines_are_natural,
+    wrapper_for_role,
+)
 
 
 FIT_EPS = 0.01
+Item = TypeVar("Item")
+Payload = TypeVar("Payload")
+FitCandidate = tuple[str, Mapping[str, float], float]
+TextWrapper = Callable[[str, float, float, str], list[str]]
 
 
 class FitError(ValueError):
@@ -21,6 +31,16 @@ class FitError(ValueError):
 class FitResult:
     stage: str
     values: Mapping[str, float]
+    used: float
+    available: float
+
+
+@dataclass(frozen=True)
+class PayloadFitResult(Generic[Payload]):
+    """型付きのジャンル固有計画を保持する収容結果。図形は作らない。"""
+
+    stage: str
+    values: Payload
     used: float
     available: float
 
@@ -37,7 +57,7 @@ class VerticalPackResult:
     available: float
 
 
-def stepped(start, minimum, step):
+def stepped(start: float, minimum: float, step: float) -> Iterator[float]:
     """startからminimumまで、浮動小数誤差を抑えて降順生成する。"""
     value = start
     while value >= minimum - FIT_EPS:
@@ -45,7 +65,9 @@ def stepped(start, minimum, step):
         value -= step
 
 
-def select_fit(renderer, available, candidates: Iterable, *, guidance):
+def select_fit(
+    renderer: str, available: float, candidates: Iterable[FitCandidate], *, guidance: str
+) -> FitResult:
     """標準→圧縮→縮小の順に渡された候補から最初に収まるものを返す。"""
     last = None
     for stage, values, used in candidates:
@@ -62,37 +84,91 @@ def select_fit(renderer, available, candidates: Iterable, *, guidance):
     )
 
 
-def fit_vertical_stacks(
+def select_payload_fit(
+    renderer: str,
+    available: float,
+    candidates: Iterable[tuple[str, Payload, float]],
+    *,
+    guidance: str,
+) -> PayloadFitResult[Payload]:
+    """候補選択の規則は共有し、配列等を含む固有計画は数値dictへ偽装しない。"""
+    payloads: list[Payload] = []
+
+    def numeric_candidates() -> Iterator[FitCandidate]:
+        for stage, payload, used in candidates:
+            payloads.append(payload)
+            yield stage, {}, used
+
+    selected = select_fit(renderer, available, numeric_candidates(), guidance=guidance)
+    return PayloadFitResult(selected.stage, payloads[-1], selected.used, selected.available)
+
+
+def fit_rows(
+    renderer: str,
+    available: float,
+    count: int,
+    *,
+    row_h: float,
+    min_row_h: float,
+    gap: float,
+    min_gap: float,
+    font: float,
+    min_font: float,
+    reserve: float = 0.0,
+) -> FitResult:
+    """標準・行間・行高・文字の順に収容する。配置と描画で同じ結果を使う。"""
+
+    def used(values: Mapping[str, float]) -> float:
+        return reserve + count * values["row_h"] + max(0, count - 1) * values["gap"]
+
+    def candidates() -> Iterator[FitCandidate]:
+        standard = {"row_h": row_h, "gap": gap, "font": font}
+        yield "standard", standard, used(standard)
+        for current_gap in stepped(gap - 0.03, min_gap, 0.03):
+            values = {"row_h": row_h, "gap": current_gap, "font": font}
+            yield "gap", values, used(values)
+        for current_h in stepped(row_h - 0.04, min_row_h, 0.04):
+            values = {"row_h": current_h, "gap": min_gap, "font": font}
+            yield "element", values, used(values)
+        for current_font in stepped(font - 0.5, min_font, 0.5):
+            values = {"row_h": min_row_h, "gap": min_gap, "font": current_font}
+            yield "font", values, used(values)
+
+    return select_fit(
         renderer,
         available,
-        stacks,
-        measure_item: Callable[[object, float], float],
-        *,
-        standard_size,
-        min_size,
-        font_step,
-        standard_gap,
-        min_gap,
-        gap_step,
-        fixed_height=0.0,
-        guidance):
+        candidates(),
+        guidance="項目を減らすか、文言を短くするか、複数スライドへ分割してください。",
+    )
+
+
+def fit_vertical_stacks(
+    renderer: str,
+    available: float,
+    stacks: Sequence[Sequence[Item]],
+    measure_item: Callable[[Item, float], float],
+    *,
+    standard_size: float,
+    min_size: float,
+    font_step: float,
+    standard_gap: float,
+    min_gap: float,
+    gap_step: float,
+    fixed_height: float = 0.0,
+    guidance: str,
+) -> VerticalPackResult:
     """自然高さのstackを、gap圧縮後に文字縮小して収容する。"""
     if not stacks or any(not stack for stack in stacks):
         raise ValueError("縦詰め対象は空でないstackにしてください")
 
-    def measure(size, gap):
-        measured = [
-            [measure_item(item, size) for item in stack]
-            for stack in stacks
-        ]
+    def measure(size: float, gap: float) -> tuple[list[list[float]], float]:
+        measured = [[measure_item(item, size) for item in stack] for stack in stacks]
         used = max(
-            fixed_height + sum(heights)
-            + gap * max(0, len(heights) - 1)
-            for heights in measured
+            fixed_height + sum(heights) + gap * max(0, len(heights) - 1) for heights in measured
         )
         return measured, used
 
-    def candidates():
+    def candidates() -> Iterator[FitCandidate]:
         for gap in stepped(standard_gap, min_gap, gap_step):
             _measured, used = measure(standard_size, gap)
             yield (
@@ -100,42 +176,56 @@ def fit_vertical_stacks(
                 {"size": standard_size, "gap": gap},
                 used,
             )
-        for size in stepped(
-                standard_size - font_step, min_size, font_step):
+        for size in stepped(standard_size - font_step, min_size, font_step):
             _measured, used = measure(size, min_gap)
             yield "font", {"size": size, "gap": min_gap}, used
 
-    fitted = select_fit(
-        renderer, available, candidates(), guidance=guidance)
+    fitted = select_fit(renderer, available, candidates(), guidance=guidance)
     size, gap = fitted.values["size"], fitted.values["gap"]
     measured, used = measure(size, gap)
-    return VerticalPackResult(
-        fitted.stage, size, gap, measured, used, available)
+    return VerticalPackResult(fitted.stage, size, gap, measured, used, available)
 
 
-def ensure_within(renderer, used, available, *, guidance):
+def ensure_within(renderer: str, used: float, available: float, *, guidance: str) -> FitResult:
     """固定構図の使用量を検証し、超過時は不足量つきで停止する。"""
-    return select_fit(
-        renderer, available, [("standard", {}, used)], guidance=guidance)
+    return select_fit(renderer, available, [("standard", {}, used)], guidance=guidance)
 
 
-def fit_text_or_raise(renderer, field, text, box_w, box_h, max_pt, *,
-                      min_pt, weight="regular", spacing=1.3, pad_in=0.0,
-                      wrapper=None, line_validator=None, role=None):
+def fit_text_or_raise(
+    renderer: str,
+    field: str,
+    text: str,
+    box_w: float,
+    box_h: float,
+    max_pt: float,
+    *,
+    min_pt: float,
+    weight: str = "regular",
+    spacing: float = 1.3,
+    pad_in: float = 0.0,
+    wrapper: TextWrapper | None = None,
+    line_validator: Callable[[list[str]], bool] | None = None,
+    role: str | None = None,
+) -> tuple[float, list[str]]:
     """最小フォントでも入らない文字列を黙って描画せず停止する。"""
     role = role or ("natural" if weight in {"medium", "bold"} else "body")
     wrapper = wrapper or wrapper_for_role(role)
     if role == "natural" and line_validator is None:
         line_validator = title_lines_are_natural
     size, lines = fit_font_size(
-        text, box_w, box_h, max_pt, min_pt=min_pt, weight=weight,
-        spacing=spacing, pad_in=pad_in, wrapper=wrapper,
+        text,
+        box_w,
+        box_h,
+        max_pt,
+        min_pt=min_pt,
+        weight=weight,
+        spacing=spacing,
+        pad_in=pad_in,
+        wrapper=wrapper,
         line_validator=line_validator,
     )
     usable_w = box_w - pad_in * 2
-    widest = max(
-        (text_width_in(line, size, weight) for line in lines),
-        default=0.0)
+    widest = max((text_width_in(line, size, weight) for line in lines), default=0.0)
     if widest > usable_w + FIT_EPS:
         shortage = widest - usable_w
         raise FitError(

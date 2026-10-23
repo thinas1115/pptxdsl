@@ -7,6 +7,7 @@ import subprocess
 import shutil
 import sys
 import tempfile
+import unittest
 import zipfile
 
 from PIL import Image
@@ -16,8 +17,13 @@ from tools.plugin.build import PROJECT_FILES, ROOT, build
 from tests.test_pptxdsl_skill import _broken_local_links, _smoke_deck
 
 
-def _hashes(root: Path) -> dict[str, str]:
-    return {path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+def _hashes(root: Path, *, source_text: bool = False) -> dict[str, str]:
+    def content(path: Path) -> bytes:
+        data = path.read_bytes()
+        if source_text and (path.suffix.lower() in {".md", ".json", ".svg", ".txt"} or path.name == "LICENSE"):
+            return data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        return data
+    return {path.relative_to(root).as_posix(): hashlib.sha256(content(path)).hexdigest()
             for path in root.rglob("*") if path.is_file()}
 
 
@@ -46,7 +52,7 @@ def _run(script: Path, cwd: Path, *args: str, success: bool = True):
     return result
 
 
-def test_archive_and_runtime() -> None:
+def _check_archive_and_runtime() -> None:
     with tempfile.TemporaryDirectory(prefix="pptxdsl-plugin-") as temporary:
         base = Path(temporary)
         plugin, archive = build(base / "build")
@@ -64,6 +70,8 @@ def test_archive_and_runtime() -> None:
         installed = base / "installed" / "pptxdsl"
         with zipfile.ZipFile(archive) as bundle:
             assert "plugin.json" in bundle.namelist()
+            assert not any("split_layout" in name or "split_renderer" in name
+                           or "split-layout" in name for name in bundle.namelist())
             assert not any(set(Path(name).parts) & {"tests", "tools", ".git", "out", "__pycache__"}
                            for name in bundle.namelist())
             bundle.extractall(installed)
@@ -77,7 +85,7 @@ def test_archive_and_runtime() -> None:
         project = skill / "project"
         for markdown in installed.rglob("*.md"):
             assert not _broken_local_links(markdown), markdown.relative_to(installed)
-        assert _hashes(ROOT / "slidegen/assets") == _hashes(project / "slidegen/assets")
+        assert _hashes(ROOT / "slidegen/assets", source_text=True) == _hashes(project / "slidegen/assets")
         assert (project / "LICENSE").is_file()
         assert (project / "THIRD_PARTY_NOTICES.md").is_file()
         assert (project / "slidegen/data/sample_fingerprints.json").is_file()
@@ -88,9 +96,24 @@ def test_archive_and_runtime() -> None:
         deck = _plugin_smoke_deck()
         (task / "content.json").write_text(json.dumps(deck, ensure_ascii=False), encoding="utf-8")
         runner = skill / "scripts/run.py"
+        example = project / "examples/authoring/type-selection.json"
+        assert example.read_text(encoding="utf-8") == (ROOT / "examples/authoring/type-selection.json").read_text(encoding="utf-8")
+        _run(runner, task, "validate", str(example))
+        _run(runner, task, "generate", str(example), "out/authoring.pptx")
+        _run(runner, task, "check", "out/authoring.pptx")
+        assert len(Presentation(task / "out/authoring.pptx").slides) == 4
+        image_example = project / "examples/authoring/image-reading.json"
+        _run(runner, task, "validate", str(image_example))
+        _run(runner, task, "generate", str(image_example), "out/image-reading.pptx")
+        _run(runner, task, "check", "out/image-reading.pptx")
+        assert len(Presentation(task / "out/image-reading.pptx").slides) == 4
         _run(runner, task, "validate", "content.json")
         _run(runner, task, "generate", "content.json", "out/deck.pptx")
         _run(runner, task, "check", "out/deck.pptx")
+        fonts = json.loads(_run(runner, task, "fonts").stdout)
+        assert fonts["regular"]["family"] == fonts["bold"]["family"]
+        assert fonts["regular"]["style"] == "Regular" and fonts["bold"]["style"] == "Bold"
+        assert all("path" not in face for face in fonts.values())
         assert len(Presentation(task / "out/deck.pptx").slides) == len(deck["slides"])
         details = json.loads(_run(runner, task, "probe").stdout)
         # Windowsの一時ディレクトリは短縮名・長い名前のどちらでも同じ場所を指す。
@@ -109,7 +132,7 @@ def test_archive_and_runtime() -> None:
                 assert image.size[0] > 0 and image.size[1] > 0
             print(f"Plugin実レンダリング: {backend}")
         else:
-            print("Plugin実レンダリング: 未実行（CIまたは環境変数で有効化）")
+            print("SKIP: Plugin実レンダリング: PPTXDSL_PLUGIN_REQUIRE_RENDER未指定")
         (task / "invalid.json").write_text("{", encoding="utf-8")
         failure = _run(runner, task, "generate", "invalid.json", "out/invalid.pptx", success=False)
         assert not (task / "out/invalid.pptx").exists()
@@ -120,10 +143,11 @@ def test_archive_and_runtime() -> None:
         assert before == _hashes(installed), "インストール先に生成物が書き込まれました"
 
 
-def test_untracked_files_excluded() -> None:
+def _check_untracked_files_excluded() -> None:
     with tempfile.TemporaryDirectory(prefix="pptxdsl-plugin-source-") as temporary:
         source = Path(temporary) / "source"
         for relative in (*PROJECT_FILES, "plugins/pptxdsl/.codex-plugin/plugin.json",
+                         "plugins/pptxdsl/.claude-plugin/plugin.json",
                          ".agents/skills/pptxdsl/SKILL.md", "slidegen/generate_from_json.py"):
             target = source / relative
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -138,7 +162,13 @@ def test_untracked_files_excluded() -> None:
             assert "skills/pptxdsl/project/slidegen/generate_from_json.py" in bundle.namelist()
 
 
+class PluginPackageTests(unittest.TestCase):
+    def test_untracked_files_excluded(self):
+        _check_untracked_files_excluded()
+
+    def test_archive_and_runtime(self):
+        _check_archive_and_runtime()
+
+
 if __name__ == "__main__":
-    test_untracked_files_excluded()
-    test_archive_and_runtime()
-    print("Plugin配布・隔離実行: ALL OK")
+    unittest.main()

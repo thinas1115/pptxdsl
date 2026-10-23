@@ -207,14 +207,10 @@ def _assert_sequence_structure():
     redundant = {f"{index + 1:02d}" for index in range(len(spec["messages"]))}
     assert texts.isdisjoint(redundant), texts & redundant
     assert {phase["label"] for phase in spec["phases"]} <= texts
-    participant_shapes = [
-        shape for shape in slide.shapes
-        if getattr(shape, "has_text_frame", False)
-        and shape.text.strip() in {item["label"] for item in spec["participants"]}
-    ]
-    center = sum(
-        shape.left + shape.width / 2 for shape in participant_shapes
-    ) / len(participant_shapes)
+    diagram_shapes = [shape for shape in slide.shapes
+                      if shape.name.startswith("sequence-")]
+    center = (min(shape.left for shape in diagram_shapes)
+              + max(shape.left + shape.width for shape in diagram_shapes)) / 2
     assert abs(center - _presentation().slide_width / 2) <= Inches(0.05)
     lifelines = [
         shape for shape in slide.shapes

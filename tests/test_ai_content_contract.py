@@ -16,7 +16,7 @@ def _deck(content_slide=None):
 def _bullets():
     return {
         "type": "bullets", "kicker": "分類", "title": "要点",
-        "bullets": [["本文A", None], ["本文B", None]],
+        "bullets": [{"text": "本文A"}, {"text": "本文B"}],
     }
 
 
@@ -52,7 +52,7 @@ def main():
     _assert_error(invalid_note_link, "https://")
 
     ignored_bullet_value = _deck(_bullets())
-    ignored_bullet_value["slides"][1]["bullets"][0][1] = "描画されない値"
+    ignored_bullet_value["slides"][1]["bullets"][0] = ["本文A", "描画されない値"]
     _assert_error(ignored_bullet_value, "text を持つオブジェクト")
 
     for style in ("numbered", "bullet", "checklist"):
@@ -163,7 +163,7 @@ def main():
     _assert_error(unknown_slide, "caption: 未対応")
 
     unresolved = _deck(_bullets())
-    unresolved["slides"][1]["bullets"][0][0] = "TBD"
+    unresolved["slides"][1]["bullets"][0]["text"] = "TBD"
     _assert_error(unresolved, "未確定マーカー")
 
     process = {
@@ -271,8 +271,12 @@ def main():
         "x"] = 0.3
     invalid_aws_vpc["slides"][1]["flows"][0]["to"] = "missing"
     errors = validate(invalid_aws_vpc)
-    for expected in ("resources[0].x", "未定義resource"):
+    for expected in ("resources[0].x",):
         assert any(expected in error for error in errors), "\n".join(errors)
+    # 構造と意味は段階別に検査する。構造を直しても未定義接続を拒否する。
+    del invalid_aws_vpc["slides"][1]["azs"][0]["subnets"][0]["resources"][0]["x"]
+    errors = validate(invalid_aws_vpc)
+    assert any("未定義resource" in error for error in errors), "\n".join(errors)
 
     for endpoint in ([], {}, None, 1):
         for key in ("from", "to"):

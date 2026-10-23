@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "title": "設定キーと確認条件の対応例",
+    "footer": "架空の設定による表示・記述検証"
+  },
+  "slides": [
+    {
+      "type": "config_lab",
+      "kicker": "設定と確認",
+      "title": "設定キー別の確認条件",
+      "lead": "左のPython設定例と確認コードを、右の同じキー名で照合します。実システムへの設定変更はありません。",
+      "sections": [
+        {
+          "label": "設定例（Python）",
+          "code": "cfg = {\n    \"replicas\": 3,\n    \"health_path\": \"/health\",\n    \"timeout_s\": 5,\n}"
+        },
+        {
+          "label": "確認コード（設定例に続けて実行）",
+          "code": "assert cfg[\"replicas\"] == 3\nassert cfg[\"health_path\"] == \"/health\"\nassert cfg[\"timeout_s\"] == 5"
+        }
+      ],
+      "check_label": "キーと期待値の照合",
+      "checks": [
+        "replicas: 3。確認コードの同名キーと一致し、設定値が整数3であること。",
+        "health_path: /health。確認コードの同名キーと一致し、パス文字列が保たれていること。",
+        "timeout_s: 5。確認コードの同名キーと一致し、秒単位の設定値が5であること。"
+      ]
+    }
+  ]
+}
