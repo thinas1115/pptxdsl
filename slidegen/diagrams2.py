@@ -432,13 +432,11 @@ def s_program_roadmap(slide, spec, page):
 def _draw_program_roadmap(slide, spec, plan):
     periods, tracks = spec["periods"], spec["tracks"]
     values = plan.fitted.values
-    label_x, track_col_w, grid_w = ROADMAP.label_x, ROADMAP.track_width, ROADMAP.grid_width
+    grid_w = ROADMAP.grid_width
     grid_x, period_w = plan.grid_x, plan.period_width
     top, header_h, grid_h = plan.top, values["header_h"], plan.grid_height
-    add_rect(slide, label_x, top, track_col_w, header_h, NAVY)
-    add_text(slide, label_x + 0.18, top + 0.07, track_col_w - 0.36, 0.28,
-             "テーマ", values["period_pt"], bold=True, color=WHITE)
-    add_rect(slide, grid_x, top, grid_w, header_h, NAVY)
+    period_band = add_rect(slide, grid_x, top, grid_w, header_h, NAVY)
+    period_band.name = "qa-surface-on-canvas:roadmap:periods"
     for index, period in enumerate(periods):
         size, _ = fit_text_or_raise(
             "program_roadmap", f"periods[{index}]", period,
@@ -450,38 +448,33 @@ def _draw_program_roadmap(slide, spec, plan):
         period_box.name = f"roadmap:period:{index}"
 
     for index, (row_top, row_h) in enumerate(zip(plan.row_tops, plan.row_heights)):
-        add_rect(slide, label_x, row_top, track_col_w + grid_w, row_h,
+        add_rect(slide, grid_x, row_top, grid_w, row_h,
                  SURFACE if index % 2 == 0 else ZEBRA)
     body_top = top + header_h
     for index in range(len(periods) + 1):
         _grid_line(slide, grid_x + index * period_w, body_top,
                    grid_x + index * period_w, top + grid_h)
     for index, row_top in enumerate(plan.row_tops):
-        _grid_line(slide, label_x, row_top,
-                   label_x + track_col_w + grid_w, row_top)
+        _grid_line(slide, grid_x, row_top, grid_x + grid_w, row_top)
         track = tracks[index]
-        row_h = plan.row_heights[index]
-        has_goal = bool(track.get("goal"))
-        number_y = row_top + (0.07 if has_goal else 0.11)
-        name_y = row_top + (0.05 if has_goal else 0.09)
-        add_text(slide, label_x + 0.12, number_y, 0.38, 0.25,
-                 f"{index + 1:02d}", values["track_pt"], bold=True,
-                 color=ACCENT)
-        track_size = _fit_single_line(
-            "program_roadmap", f"tracks[{index}].name", track["name"],
-            track_col_w - 0.66, values["track_pt"], ROADMAP.track_min_pt, bold=True)
-        track_box = add_text(slide, label_x + 0.52, name_y,
-                 track_col_w - 0.66, min(0.28, row_h - 0.14),
-                 track["name"], track_size, bold=True, color=NAVY,
+        theme = plan.themes[index]
+        track_box = add_text(slide, theme.x, theme.y,
+                 theme.width, values["lane_pitch"] - 0.07,
+                 track["name"], theme.size, bold=True, color=NAVY,
                  spacing=1.0, wrap=False)
         track_box.name = f"roadmap:track:{index}"
-        if has_goal:
+        track_box.fill.solid()
+        track_box.fill.fore_color.rgb = SURFACE if index % 2 == 0 else ZEBRA
+        if theme.goal_y is not None:
             goal_size = _fit_single_line(
                 "program_roadmap", f"tracks[{index}].goal", track["goal"],
-                track_col_w - 0.66, min(values["activity_pt"], 9.5), ROADMAP.activity_min_pt)
-            add_text(slide, label_x + 0.52, row_top + 0.29,
-                     track_col_w - 0.66, 0.18, track["goal"], goal_size,
+                theme.goal_width, min(values["activity_pt"], 9.5), ROADMAP.activity_min_pt)
+            goal_box = add_text(slide, theme.x, theme.goal_y,
+                     theme.goal_width, values["lane_pitch"] - 0.07, track["goal"], goal_size,
                      color=TEXT, spacing=1.0, wrap=False)
+            goal_box.name = f"roadmap:goal:{index}"
+            goal_box.fill.solid()
+            goal_box.fill.fore_color.rgb = SURFACE if index % 2 == 0 else ZEBRA
 
         for activity_plan in plan.activities[index]:
             placement = activity_plan.placement
@@ -494,7 +487,8 @@ def _draw_program_roadmap(slide, spec, plan):
             text_h = values["lane_pitch"] - 0.07
             activity_label_x = activity_plan.label_x
             activity_label_w = activity_plan.label_width
-            activity_size = _fit_single_line(
+            first_activity = placement.index == theme.activity_index
+            activity_size = theme.activity_size if first_activity else _fit_single_line(
                 "program_roadmap",
                 f"tracks[{index}].activities[{placement.index}].label",
                 activity["label"], activity_label_w - 0.04,
@@ -504,7 +498,8 @@ def _draw_program_roadmap(slide, spec, plan):
                 slide, activity_label_x + 0.02, lane_top + 0.07,
                 activity_label_w - 0.04, text_h, activity["label"], activity_size,
                 bold=bool(activity.get("emph")), color=TEXT,
-                align=PP_ALIGN.CENTER, spacing=1.0, wrap=False)
+                align=PP_ALIGN.LEFT if first_activity else PP_ALIGN.CENTER,
+                spacing=1.0, wrap=False)
             label.fill.solid()
             label.fill.fore_color.rgb = SURFACE if index % 2 == 0 else ZEBRA
             label.name = f"roadmap:activity:{index}:{placement.index}"
@@ -537,8 +532,7 @@ def _draw_program_roadmap(slide, spec, plan):
             milestone_label.fill.fore_color.rgb = (
                 SURFACE if index % 2 == 0 else ZEBRA)
             milestone_label.name = f"roadmap:milestone-label:{index}"
-    _grid_line(slide, label_x, plan.bottom,
-               label_x + track_col_w + grid_w, plan.bottom)
+    _grid_line(slide, grid_x, plan.bottom, grid_x + grid_w, plan.bottom)
 
 
 # ---- 2軸ポジショニングマップ ----

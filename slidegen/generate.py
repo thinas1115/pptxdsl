@@ -457,8 +457,8 @@ def s_cards(slide, spec, page):
     fitted = fit_vertical_stacks(
         "cards", fit_available, [row_cards],
         lambda cards_in_row, size: (
-            0.72 + max(
-                len(wrap_text(card["body"], cw - 0.92, size))
+            1.02 + max(
+                len(wrap_text(card["body"], cw - 0.48, size))
                 * line_height_in(size, 1.2)
                 for card in cards_in_row
             )
@@ -480,19 +480,20 @@ def s_cards(slide, spec, page):
         row, col = divmod(i, cols)
         x = left + col * (cw + gap_x)
         y = top + row * (ch + gap_y)
-        add_text(slide, x, y + 0.02, 0.58, 0.36, f"{i + 1:02d}", 14,
-                 bold=True, color=GRAY)
+        panel = add_rect(slide, x, y, cw, ch, SURFACE, line=RULE)
+        panel.name = f"cards:editorial:panel:{i}"
+        accent = add_rect(slide, x, y, cw, 0.035, ACCENT)
+        accent.name = f"cards:editorial:accent:{i}"
         head_size, _ = fit_text_or_raise(
             "cards", f"cards[{i}].heading", card["heading"],
-            cw - 0.72, 0.42, 16.5, min_pt=13,
+            cw - 0.48, 0.42, 16.5, min_pt=13,
             weight="bold", spacing=1.1)
-        head_color = CORAL if card["emphasis"] else NAVY
-        add_text(slide, x + 0.72, y, cw - 0.72, 0.42,
-                 card["heading"], head_size, bold=True, color=head_color)
-        add_text(slide, x + 0.72, y + 0.58, cw - 0.82, ch - 0.64, card["body"],
+        heading = add_text(slide, x + 0.24, y + 0.24, cw - 0.48, 0.42,
+                 card["heading"], head_size, bold=True, color=NAVY)
+        heading.name = f"cards:editorial:heading:{i}"
+        body = add_text(slide, x + 0.24, y + 0.90, cw - 0.48, ch - 1.02, card["body"],
                  body_size, color=TEXT, spacing=1.2)
-        if row < rows - 1:
-            add_rect(slide, x + 0.72, y + ch + gap_y / 2, cw - 0.72, 0.012, RULE)
+        body.name = f"cards:editorial:body:{i}"
 
 
 def _split_metric_head(head):

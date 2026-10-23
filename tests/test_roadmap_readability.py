@@ -9,6 +9,7 @@ from pptx import Presentation
 from slidegen.check_layout import check
 from slidegen.diagrams2 import PROGRAM_LINE_PT, s_program_roadmap
 from slidegen.layout_fit import FitError
+from slidegen.layout_settings import ROADMAP
 from slidegen.timeline_layout import fit_program_roadmap, pack_activities
 from tools.gallery.generate_roadmap_cases import main, make_deck
 
@@ -29,13 +30,20 @@ class RoadmapReadabilityTests(unittest.TestCase):
                     for item in placements:
                         line = shapes[f"roadmap:span:{i}:{item.index}"]
                         self.assertEqual(line.line.width.pt, PROGRAM_LINE_PT)
-                        width = (item.end - item.start) * 9.09 / len(spec["periods"]) - .07
+                        width = (item.end - item.start) * ROADMAP.grid_width / len(spec["periods"]) - .07
                         self.assertAlmostEqual(line.width.inches, width, places=4)
                         label = shapes[f"roadmap:activity:{i}:{item.index}"]
                         self.assertEqual(label.text, item.activity["label"])
                         self.assertGreaterEqual(label.text_frame.paragraphs[0].runs[0].font.size.pt, 9)
-                        self.assertAlmostEqual((line.left + line.width / 2) / 914400,
-                                               (label.left + label.width / 2) / 914400, places=4)
+                        first = min(placements, key=lambda item: (item.start, item.lane, item.end, item.index))
+                        if item.index == first.index:
+                            theme = shapes[f"roadmap:track:{i}"]
+                            self.assertAlmostEqual(theme.left.inches, line.left.inches, places=4)
+                            self.assertLess(theme.left + theme.width, label.left)
+                            self.assertEqual(theme.text, track["name"])
+                        else:
+                            self.assertAlmostEqual((line.left + line.width / 2) / 914400,
+                                                   (label.left + label.width / 2) / 914400, places=4)
                     if "milestone" in track:
                         label = shapes[f"roadmap:milestone-label:{i}"]
                         self.assertGreaterEqual(label.text_frame.paragraphs[0].runs[0].font.size.pt, 9)
