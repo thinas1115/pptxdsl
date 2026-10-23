@@ -1,11 +1,13 @@
 """共通補足欄の全type描画、本文の予約領域、収容停止を検証する。"""
 from copy import deepcopy
 from pathlib import Path
+import unittest
 
 from pptx import Presentation
 from pptx.util import Inches
 
 from slidegen import generate
+from slidegen.check_layout import check
 from slidegen.generate_from_json import RENDER
 from slidegen.layout_fit import FitError
 from slidegen.slide_footnote import fit_footnote
@@ -47,10 +49,12 @@ def _run():
                 continue
             assert shape.top + shape.height <= notes['slide-footnote:rule'].top + Inches(.02), (spec['type'], shape.name)
         assert current_context().content_bottom == generate.BODY_BOTTOM
-        generate.footer(slide, index)
+        if spec['type'] != 'title':
+            generate.footer(slide, index)
     output = Path('out/footnote-all-types.pptx')
     output.parent.mkdir(exist_ok=True)
     prs.save(output)
+    assert not check(output), "全typeの補足欄付きPPTXに配置・文字の収容違反があります"
 
     spec = deepcopy(specimens['bullets'])
     spec.pop('footnote')
@@ -101,5 +105,10 @@ def _run():
     print('共通補足欄: 全type・収容3段階・明示停止・旧フィールド拒否を確認')
 
 
+class SlideFootnoteTests(unittest.TestCase):
+    def test_all_types_and_fit_stages(self):
+        main()
+
+
 if __name__ == '__main__':
-    main()
+    unittest.main()

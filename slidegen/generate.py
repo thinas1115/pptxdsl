@@ -480,11 +480,12 @@ def render_cards_body(slide, spec, area, *, region=None):
     ]
     fitted = fit_vertical_stacks(
         "cards", fit_available, [row_cards],
-        lambda cards_in_row, size: (
+        # 描画は全行を同じ高さに揃えるため、各行の平均ではなく最大必要高さで測る。
+        lambda _cards_in_row, size: (
             1.02 + max(
                 len(wrap_text(card["body"], cw - 0.48, size))
                 * line_height_in(size, 1.2)
-                for card in cards_in_row
+                for card in cards
             )
         ),
         standard_size=14,
