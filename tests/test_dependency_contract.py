@@ -73,7 +73,8 @@ class DependencyContractTests(unittest.TestCase):
                         bundle.extractall(installed)
                     skill = installed / ("pptxdsl" if kind == "skill" else "skills/pptxdsl")
                     project = skill / "project"
-                    self.assertEqual((project / "requirements.txt").read_bytes(), (ROOT / "requirements.txt").read_bytes())
+                    self.assertEqual((project / "requirements.txt").read_text(encoding="utf-8"),
+                                     (ROOT / "requirements.txt").read_text(encoding="utf-8"))
                     task = base / (kind + " task")
                     task.mkdir()
                     (task / "content.json").write_text(json.dumps(_smoke_deck(), ensure_ascii=False), encoding="utf-8")

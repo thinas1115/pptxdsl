@@ -55,6 +55,9 @@ macOSのフォント準備、生成・機械検査、PowerPointの全ページPN
 | Skill | Skillとして直接導入する、またはこのリポジトリ内で開発する | ReleaseのSkill ZIP、または`.agents/skills/pptxdsl/`とcloneしたPPTX生成コード |
 | Plugin | Plugins Directoryから導入する、他の利用者へPluginとして配布する | ReleaseのPlugin ZIPに同梱されたmanifest・Skill・PPTX生成コード・素材 |
 
+Claude Codeでも同じSkill ZIPとPlugin ZIPを使えます。導入先やMarketplaceの登録は
+[Claude Code向けの手順](docs/plugin.md#claude-codeでの導入)を参照してください。
+
 どちらも、資料要件と情報源の確認、`content.json`の設計、PPTX生成、機械検証、PNG化、
 全ページの目視QA、修正後の再確認までを1つの作業として実行します。
 

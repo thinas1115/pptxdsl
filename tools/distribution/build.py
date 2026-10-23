@@ -39,6 +39,11 @@ SEMVER = re.compile(
     r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
     r"(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?"
 )
+TEXT_SUFFIXES = {
+    ".csv", ".json", ".md", ".ps1", ".py", ".svg", ".toml", ".tsv",
+    ".txt", ".xml", ".yaml", ".yml",
+}
+TEXT_FILENAMES = {"LICENSE"}
 
 
 @dataclass(frozen=True)
@@ -55,6 +60,11 @@ def _manifest(source_root: Path) -> dict:
     if manifest.get("name") != "pptxdsl" or not SEMVER.fullmatch(
             str(manifest.get("version", ""))):
         raise ValueError("Plugin名またはバージョンが不正です")
+    claude = json.loads((source_root / "plugins/pptxdsl/.claude-plugin/plugin.json")
+                        .read_text(encoding="utf-8"))
+    if (claude.get("name"), claude.get("version")) != (
+            manifest["name"], manifest["version"]):
+        raise ValueError("CodexとClaude CodeのPlugin名またはバージョンが一致しません")
     return manifest
 
 
@@ -71,8 +81,18 @@ def _copy_tree(source: Path, destination: Path) -> None:
             raise ValueError("配布対象にシンボリックリンクがあります")
         if path.is_file():
             target = destination / path.relative_to(source)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, target)
+            _copy_content(path, target)
+
+
+def _copy_content(source: Path, target: Path) -> None:
+    """テキストだけをLFへ統一し、画像などのバイナリは無改変で同梱する。"""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if source.suffix.lower() in TEXT_SUFFIXES or source.name in TEXT_FILENAMES:
+        text = source.read_text(encoding="utf-8")
+        target.write_text(text.replace("\r\n", "\n").replace("\r", "\n"),
+                          encoding="utf-8", newline="\n")
+    else:
+        shutil.copyfile(source, target)
 
 
 def _copy_file(source: Path, target: Path, root: Path) -> None:
@@ -81,8 +101,7 @@ def _copy_file(source: Path, target: Path, root: Path) -> None:
             raise ValueError("配布対象にシンボリックリンクがあります")
         if path == root:
             break
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, target)
+    _copy_content(source, target)
 
 
 def _populate_skill(skill: Path, source_root: Path) -> None:
@@ -100,15 +119,17 @@ def _populate_skill(skill: Path, source_root: Path) -> None:
 
 def _write_zip(source: Path, archive: Path, *, include_root: bool) -> None:
     relative_to = source.parent if include_root else source
-    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
-        for path in sorted(source.rglob("*")):
+    # zlibの版による圧縮結果の差を避け、各OSで同じMarketplaceのSHAを使う。
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_STORED) as bundle:
+        for path in sorted(source.rglob("*"), key=lambda path: path.relative_to(relative_to).as_posix()):
             if not path.is_file():
                 continue
             info = zipfile.ZipInfo(
                 path.relative_to(relative_to).as_posix(),
                 date_time=(2020, 1, 1, 0, 0, 0),
             )
-            info.compress_type = zipfile.ZIP_DEFLATED
+            info.compress_type = zipfile.ZIP_STORED
+            info.create_system = 3
             info.external_attr = 0o100644 << 16
             bundle.writestr(info, path.read_bytes())
 
@@ -143,13 +164,15 @@ def build_plugin(output_dir: Path, source_root: Path = ROOT) -> tuple[Path, Path
         staging = Path(temporary) / "pptxdsl"
         _copy_file(source_root / "plugins/pptxdsl/.codex-plugin/plugin.json",
                    staging / ".codex-plugin/plugin.json", source_root)
+        _copy_file(source_root / "plugins/pptxdsl/.claude-plugin/plugin.json",
+                   staging / ".claude-plugin/plugin.json", source_root)
         _populate_skill(staging / "skills/pptxdsl", source_root)
         portable = {key: value for key, value in manifest.items()
                     if key not in ("skills", "interface")}
         portable["$schema"] = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
         portable["extensions"] = {"com.openai": {"interface": manifest["interface"]}}
         (staging / "plugin.json").write_text(
-            json.dumps(portable, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            json.dumps(portable, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
         temporary_zip = Path(temporary) / archive.name
         _write_zip(staging, temporary_zip, include_root=False)
         staging.rename(plugin)
