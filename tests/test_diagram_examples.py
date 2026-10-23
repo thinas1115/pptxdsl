@@ -162,6 +162,10 @@ def main():
     errors = validate(invalid, allow_sample_content=True)
     assert any("diagram.area" in error for error in errors)
     assert any(".pad" in error for error in errors)
+    # 構造エラーを直した後も素材の実在検証は必須。
+    del invalid["slides"][0]["diagram"]["area"]
+    del invalid["slides"][0]["diagram"]["containers"][0]["pad"]
+    errors = validate(invalid, allow_sample_content=True)
     assert any("assets/ にありません" in error for error in errors)
 
     rows = [f"r{i}" for i in range(5)]

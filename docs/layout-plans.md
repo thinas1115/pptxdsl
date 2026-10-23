@@ -17,8 +17,8 @@
 | `program_roadmap` | `timeline_layout.plan_program_roadmap` | `diagrams2.s_program_roadmap` |
 
 座標や配線の修正は計画側へ、色、図形の作成、描画順の修正は描画側へ入れる。
-入力の参照切れを座標計算で補わない。構成図の検証は`diagram_contract.validate_diagram`で
-軸、ノード、コンテナ、チャネル、辺の順に行い、不正な参照型も検証エラーとして返す。
+入力の参照切れを座標計算で補わない。型・フィールド・件数は`schema_validation`で検査し、
+合格した構成図の軸、ノード、コンテナ、チャネル、辺の参照を`diagram_contract.validate_diagram`で検査する。
 収まるか、配線が成立するかは従来どおり`diagram_layout`が判定する。
 
 `layout_fit.select_fit`は数値だけの候補、`select_payload_fit`は行高の配列などを含む型付き候補を選ぶ。

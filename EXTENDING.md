@@ -41,6 +41,12 @@
 
 ## アーキテクチャ
 
+入力構造を変更するときは`slidegen/schema_definition.py`を編集し、
+`python -m tools.schema.generate`でJSON Schema、CONTENT_SCHEMA、AI向けtype一覧、構造回帰入力を更新する。
+参照整合性や素材検査は`slidegen/semantic_validation.py`、構成図固有の意味検証は
+`slidegen/diagram_contract.py`へ書く。構造条件を手続き型validatorへ重複実装しない。
+`python -m tools.schema.generate --check`と`python -m unittest tests.test_content_schema`で生成物のずれを検出する。
+
 ```
 content.json ──→ validate_content.py ──→ generate_from_json.py ──→ PPTX
  (AIが作る)      (schema機械検証)          RENDER[type] で分岐         │

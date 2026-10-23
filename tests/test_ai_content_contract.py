@@ -271,8 +271,12 @@ def main():
         "x"] = 0.3
     invalid_aws_vpc["slides"][1]["flows"][0]["to"] = "missing"
     errors = validate(invalid_aws_vpc)
-    for expected in ("resources[0].x", "未定義resource"):
+    for expected in ("resources[0].x",):
         assert any(expected in error for error in errors), "\n".join(errors)
+    # 構造と意味は段階別に検査する。構造を直しても未定義接続を拒否する。
+    del invalid_aws_vpc["slides"][1]["azs"][0]["subnets"][0]["resources"][0]["x"]
+    errors = validate(invalid_aws_vpc)
+    assert any("未定義resource" in error for error in errors), "\n".join(errors)
 
     for endpoint in ([], {}, None, 1):
         for key in ("from", "to"):

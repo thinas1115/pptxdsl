@@ -6,8 +6,10 @@ import math
 import re
 from typing import Iterable, Sequence
 
+from slidegen.schema_definition import NUMBER_FORMAT_PATTERN
 
-NUMBER_FORMAT = re.compile(r'(?:0|#,##0)(?:\.0{1,6})?(?:%|"[^"\\\r\n]{1,12}")?')
+
+NUMBER_FORMAT = re.compile(NUMBER_FORMAT_PATTERN)
 Number = int | float | Decimal
 Series = Sequence[tuple[str, Sequence[int | float]]]
 

@@ -17,6 +17,9 @@ FORMATTED = (
     "slidegen/protocol_state_layout.py",
     "slidegen/timeline_layout.py",
     "slidegen/diagram_contract.py",
+    "slidegen/schema_definition.py",
+    "slidegen/semantic_validation.py",
+    "slidegen/schema_validation.py",
     "tools/quality/static_gate.py",
 )
 

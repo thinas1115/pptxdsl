@@ -32,14 +32,15 @@ class DependencyContractTests(unittest.TestCase):
         runtime = _pins("requirements.txt")
         assets = _pins("requirements-assets.txt")
         quality = _pins("requirements-quality.txt")
-        self.assertEqual(set(runtime), {"python-pptx", "Pillow", "lxml", "XlsxWriter", "typing_extensions"})
+        self.assertEqual(set(runtime), {"python-pptx", "Pillow", "lxml", "XlsxWriter", "typing_extensions",
+                                       "jsonschema", "attrs", "jsonschema-specifications", "referencing", "rpds-py"})
         self.assertEqual(len(assets), 9)
         self.assertFalse(runtime.keys() & assets.keys())
         self.assertFalse(_pins("requirements-dev.txt"))
         self.assertIn("-r requirements.txt", (ROOT / "requirements-assets.txt").read_text(encoding="utf-8"))
         self.assertIn("-r requirements-assets.txt", (ROOT / "requirements-dev.txt").read_text(encoding="utf-8"))
         self.assertIn("-r requirements-quality.txt", (ROOT / "requirements-dev.txt").read_text(encoding="utf-8"))
-        self.assertEqual(set(quality), {"ruff", "mypy", "mypy_extensions", "pathspec", "typing_extensions", "coverage"})
+        self.assertEqual(set(quality), {"ruff", "mypy", "mypy_extensions", "pathspec", "typing_extensions", "coverage", "types-jsonschema"})
         for name in runtime.keys() & quality.keys():
             self.assertEqual(runtime[name], quality[name], f"共通依存の固定値が不一致: {name}")
         document = ROOT / "docs/dependencies.md"

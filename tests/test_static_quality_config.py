@@ -24,6 +24,8 @@ class StaticQualityConfigTests(unittest.TestCase):
                                          "slidegen/layout_settings.py", "slidegen/network_layout.py",
                                          "slidegen/swimlane_layout.py", "slidegen/protocol_state_layout.py",
                                          "slidegen/timeline_layout.py", "slidegen/diagram_contract.py",
+                                         "slidegen/schema_definition.py", "slidegen/schema_validation.py",
+                                         "slidegen/semantic_validation.py",
                                          "tools/quality/static_gate.py"})
         config = (ROOT / "mypy.ini").read_text(encoding="utf-8")
         for path in FORMATTED:

@@ -4,7 +4,7 @@
 
 | 用途 | 導入コマンド | 内容 |
 |---|---|---|
-| PPTX生成・検査・PNG一覧作成、Skill・Plugin | `python -m pip install -r requirements.txt` | 実行時5パッケージ。直接・間接依存を固定 |
+| PPTX生成・検査・PNG一覧作成、Skill・Plugin | `python -m pip install -r requirements.txt` | 実行時10パッケージ。構造検証用jsonschemaと間接依存を含め固定 |
 | テスト・ギャラリー生成・Skill/Plugin/Releaseビルド | 同上 | 実行時依存とPython標準ライブラリ。配布ビルドにはGitも必要 |
 | 素材の取得・SVG→PNG変換 | `python -m pip install -r requirements-assets.txt` | 実行時依存と素材取得用9パッケージ |
 | 静的検査・分岐coverage | `python -m pip install -r requirements.txt -r requirements-quality.txt` | 実行時依存と検査専用依存。対象範囲は[静的品質ゲート](static-quality.md)を参照 |
@@ -45,6 +45,11 @@ Pillow、lxmlなどのwheelに同梱されるネイティブライブラリの�
 | lxml | 実行時・直接 | BSD-3-Clause | [PyPI](https://pypi.org/project/lxml/) |
 | XlsxWriter | 実行時・間接 | BSD-2-Clause | [PyPI](https://pypi.org/project/XlsxWriter/) |
 | typing_extensions | 実行時・間接 | PSF-2.0 | [PyPI](https://pypi.org/project/typing-extensions/) |
+| jsonschema | 実行時・直接 | MIT | [PyPI](https://pypi.org/project/jsonschema/) |
+| attrs | 実行時・間接 | MIT | [PyPI](https://pypi.org/project/attrs/) |
+| jsonschema-specifications | 実行時・間接 | MIT | [PyPI](https://pypi.org/project/jsonschema-specifications/) |
+| referencing | 実行時・間接 | MIT | [PyPI](https://pypi.org/project/referencing/) |
+| rpds-py | 実行時・間接 | MIT | [PyPI](https://pypi.org/project/rpds-py/) |
 | reportlab | 素材取得・直接 | BSD | [PyPI](https://pypi.org/project/reportlab/) |
 | svglib | 素材取得・直接 | LGPL-3.0-or-later | [PyPI](https://pypi.org/project/svglib/) |
 | charset-normalizer | 素材取得・間接 | MIT | [PyPI](https://pypi.org/project/charset-normalizer/) |
@@ -57,5 +62,6 @@ Pillow、lxmlなどのwheelに同梱されるネイティブライブラリの�
 | ruff | 静的検査・直接 | MIT | [PyPI](https://pypi.org/project/ruff/) |
 | mypy | 静的検査・直接 | MIT | [PyPI](https://pypi.org/project/mypy/) |
 | mypy_extensions | 静的検査・間接 | MIT | [PyPI](https://pypi.org/project/mypy-extensions/) |
+| types-jsonschema | 静的検査・型定義 | Apache-2.0 | [PyPI](https://pypi.org/project/types-jsonschema/) |
 | pathspec | 静的検査・間接 | MPL-2.0 | [PyPI](https://pypi.org/project/pathspec/) |
 | coverage | 分岐coverage・直接 | Apache-2.0 | [PyPI](https://pypi.org/project/coverage/) |
