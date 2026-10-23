@@ -97,6 +97,10 @@ def _add_picture(slide, path, x, y, w, h, fit, alt=None, shadow=False):
 
 def s_image(slide, spec, page):
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
+    return render_image_body(slide, spec, area)
+
+
+def render_image_body(slide, spec, area, *, region=None):
     path = resolve_image_path(spec["image"])
     if not path.is_file():
         raise FileNotFoundError(f"画像 {spec['image']!r} がassets内にありません")
@@ -105,8 +109,9 @@ def s_image(slide, spec, page):
     values = fitted.values
     top = area.top + values["top_gap"]
     image_h = area.height - values["top_gap"] - values["bottom_gap"]
+    frame_x, frame_w = (FRAME_X, FRAME_W) if region is None else (region.left, region.width)
     _add_picture(
-        slide, path, FRAME_X, top, FRAME_W, image_h,
+        slide, path, frame_x, top, frame_w, image_h,
         spec.get("fit", "contain"), spec.get("alt"),
         spec.get("shadow", False))
 

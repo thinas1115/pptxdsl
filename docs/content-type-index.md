@@ -31,5 +31,6 @@
 | `org` | `org` |
 | `diagram` | `diagram` |
 | `aws_vpc_layout` | `vpc`, `azs` |
+| `split` | `left`, `right` |
 
 <!-- END GENERATED CONTENT TYPES -->

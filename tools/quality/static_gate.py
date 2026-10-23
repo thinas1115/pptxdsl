@@ -20,6 +20,8 @@ FORMATTED = (
     "slidegen/schema_definition.py",
     "slidegen/semantic_validation.py",
     "slidegen/schema_validation.py",
+    "slidegen/split_layout.py",
+    "slidegen/split_renderer.py",
     "tools/quality/static_gate.py",
 )
 

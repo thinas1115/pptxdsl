@@ -54,13 +54,18 @@ def validation_warnings(deck):
     if not isinstance(deck, dict) or not isinstance(deck.get("slides"), list):
         return messages
     for index, slide in enumerate(deck["slides"]):
-        if not isinstance(slide, dict) or slide.get("type") != "bullets":
+        if not isinstance(slide, dict):
             continue
-        items = slide.get("bullets")
-        if isinstance(items, list) and any(isinstance(item, list) for item in items):
-            messages.append(
-                f"slides[{index}].bullets: 旧2要素配列は非推奨です。"
-                '各項目を {"text": "本文"} へ移行してください。2.0.0で受理を終了します。')
+        candidates = [(f"slides[{index}]", slide)]
+        if slide.get("type") == "split":
+            candidates.extend((f"slides[{index}].{side}", slide[side])
+                              for side in ("left", "right") if isinstance(slide.get(side), dict))
+        for path, candidate in candidates:
+            items = candidate.get("bullets") if candidate.get("type") == "bullets" else None
+            if isinstance(items, list) and any(isinstance(item, list) for item in items):
+                messages.append(
+                    f"{path}.bullets: 旧2要素配列は非推奨です。"
+                    '各項目を {"text": "本文"} へ移行してください。2.0.0で受理を終了します。')
     return messages
 
 

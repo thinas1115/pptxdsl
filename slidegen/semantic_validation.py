@@ -404,3 +404,13 @@ def validate_semantics(s: Context) -> None:
                 s.err(f"questions[{index}].answer はoptionsの0始まりindexにしてください")
     elif kind == "diagram":
         validate_diagram(s)
+    elif kind == "split":
+        for side in ("left", "right"):
+
+            class ChildContext:
+                spec = s.spec[side]
+
+                def err(self, message: str) -> None:
+                    s.err(f"{side}.{message}")
+
+            validate_semantics(ChildContext())

@@ -37,6 +37,7 @@ from slidegen.font_config import FontConfigError, font_faces
 from slidegen.validate_content import validate, validation_warnings
 from slidegen.generation_context import bind_context, make_context
 from slidegen.layout_fit import FitError
+from slidegen.split_renderer import s_split
 
 
 def s_diagram(slide, spec, page):
@@ -64,6 +65,7 @@ RENDER = dict(generate.RENDER,
               nw_frame_anatomy=s_protocol_anatomy,
               config_lab=s_code_lab, knowledge_check=s_knowledge_check)
 RENDER["references"] = s_references
+RENDER["split"] = s_split
 
 
 def build_presentation(deck, cover_footer_config=None, *, renderers=None,

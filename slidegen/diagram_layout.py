@@ -88,7 +88,10 @@ class Layout:
             x0, y0, x1, y1 = DENSE_AREA if self.dense else AREA
         else:
             x0, x1 = AREA[0], AREA[2]
-            if self.dense:
+            if hasattr(content_area, "left"):
+                x0, x1 = content_area.left + 0.14, content_area.right - 0.14
+                y0, y1 = content_area.top + 0.16, content_area.bottom - 0.14
+            elif self.dense:
                 y0, y1 = content_area.top - 0.12, content_area.bottom
             else:
                 y0, y1 = content_area.top + 0.05, content_area.bottom
@@ -115,6 +118,8 @@ class Layout:
             self.icon_r = icon_size / 2
             try:
                 self._auto_rows()
+                if content_area is not None and hasattr(content_area, "left"):
+                    self._check_region_columns()
             except FitError as e:
                 last_error = e
                 continue
@@ -130,6 +135,17 @@ class Layout:
                 f"減らしてください。詳細: {last_error}") from last_error
         self.cont_rect = {}
         self._resolve_containers()
+
+    def _check_region_columns(self):
+        """半幅では、同じ行のラベル・アイコンが隣の列へ侵入しないことも確認する。"""
+        nodes = list(self.spec["nodes"].items())
+        for index, (name, node) in enumerate(nodes):
+            for other_name, other in nodes[index + 1:]:
+                if node["row"] != other["row"]:
+                    continue
+                separation = abs(self.col_x[node["col"]] - self.col_x[other["col"]])
+                if separation < self._half_w(name) + self._half_w(other_name) + 0.08:
+                    raise FitError("diagram: 半幅の列間へラベルとアイコンを収められません。列数か文言を減らしてください。")
 
     def _container_padding(self, name):
         """Return vertical/horizontal padding derived from diagram structure.

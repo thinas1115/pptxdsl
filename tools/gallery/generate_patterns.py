@@ -18,6 +18,7 @@ from slidegen.training_renderers import (
     s_protocol_anatomy,
 )
 from slidegen.generate_from_json import build_presentation
+from slidegen.split_renderer import s_split
 
 
 def s_diagram(slide, spec, page):
@@ -42,6 +43,7 @@ RENDER = dict(generate.RENDER,
               nw_frame_anatomy=s_protocol_anatomy,
               config_lab=s_code_lab, knowledge_check=s_knowledge_check)
 RENDER["references"] = s_references
+RENDER["split"] = s_split
 
 
 def main(out_path, cover_footer_config=None):

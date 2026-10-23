@@ -1,6 +1,6 @@
 # サンプルスライドギャラリー
 
-対応する27種類のtypeを、37枚の出力例で比較できます。Gitには下の縮小一覧を置き、
+対応する28種類のtypeを、41枚の出力例で比較できます。Gitには下の縮小一覧を置き、
 PowerPointで編集できるPPTXはRelease・CI成果物として配布します。
 
 ![TYPE別パターンギャラリー](../../docs/pattern-gallery-by-type.png)
@@ -8,6 +8,7 @@ PowerPointで編集できるPPTXはRelease・CI成果物として配布します
 ## PPTXを取得する
 
 - 安定版は[最新Release](https://github.com/thinas1115/pptxdsl/releases/latest)の`pattern_gallery.pptx`を取得してください。Pythonやcloneは不要です。
+  公開済みReleaseに目的のtypeやPPTXがない場合は、次の開発版CI成果物を利用してください。ソースの対応範囲と公開済み配布版は異なる場合があります。
 - 開発中の版は[品質ゲート](https://github.com/thinas1115/pptxdsl/actions/workflows/quality-gate.yml)で対象PR・コミットの実行を開き、`pptxdsl-distributions`を取得してください。PNGは`font-contract-*`に含まれます。CI成果物の保存期限やアクセス権に注意してください。
 - オフラインやforkでは、次の手順で手元のコミットから生成できます。Releaseの取得権限は不要です。
 

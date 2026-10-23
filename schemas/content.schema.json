@@ -117,6 +117,9 @@
           },
           {
             "$ref": "#/$defs/slide_aws_vpc_layout"
+          },
+          {
+            "$ref": "#/$defs/slide_split"
           }
         ]
       },
@@ -1729,6 +1732,247 @@
       ],
       "additionalProperties": false
     },
+    "split_diagram": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "diagram"
+        },
+        "diagram": {
+          "$ref": "#/$defs/diagram"
+        }
+      },
+      "required": [
+        "type",
+        "diagram"
+      ],
+      "additionalProperties": false
+    },
+    "split_cards": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "cards"
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/card"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "style": {
+          "enum": [
+            "editorial",
+            "metrics"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "cards"
+      ],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "style": {
+            "const": "metrics"
+          }
+        },
+        "required": [
+          "style"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cards": {
+            "items": {
+              "required": [
+                "value"
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "cards": {
+            "items": {
+              "not": {
+                "required": [
+                  "emphasis"
+                ]
+              },
+              "x-error-not": "emphasis はstyle=metricsの場合だけ指定できます"
+            }
+          }
+        }
+      }
+    },
+    "split_image": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "image"
+        },
+        "image": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "fit": {
+          "enum": [
+            "contain",
+            "cover"
+          ]
+        },
+        "shadow": {
+          "type": "boolean"
+        },
+        "alt": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "image"
+      ],
+      "additionalProperties": false
+    },
+    "split_bullets": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "bullets"
+        },
+        "bullets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bullet"
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "style": {
+          "enum": [
+            "numbered",
+            "bullet",
+            "checklist"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "bullets"
+      ],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "style": {
+            "const": "checklist"
+          }
+        },
+        "required": [
+          "style"
+        ]
+      },
+      "else": {
+        "properties": {
+          "bullets": {
+            "items": {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "checked"
+                  ]
+                },
+                "x-error-not": "checked はstyle=checklistの場合だけ指定できます"
+              }
+            }
+          }
+        }
+      }
+    },
+    "split_chart": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "chart"
+        },
+        "chart": {
+          "$ref": "#/$defs/chart"
+        }
+      },
+      "required": [
+        "type",
+        "chart"
+      ],
+      "additionalProperties": false
+    },
+    "split_table": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "table"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 2,
+          "maxItems": 8
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0
+          },
+          "minItems": 1,
+          "maxItems": 8
+        }
+      },
+      "required": [
+        "type",
+        "columns",
+        "rows"
+      ],
+      "additionalProperties": false
+    },
+    "split_block": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/split_diagram"
+        },
+        {
+          "$ref": "#/$defs/split_cards"
+        },
+        {
+          "$ref": "#/$defs/split_image"
+        },
+        {
+          "$ref": "#/$defs/split_bullets"
+        },
+        {
+          "$ref": "#/$defs/split_chart"
+        },
+        {
+          "$ref": "#/$defs/split_table"
+        }
+      ],
+      "x-error-oneOf": "対応する子typeと本文フィールドを指定してください。子の共通ヘッダー・注記やsplitの入れ子は指定できません",
+      "x-reference-only": true,
+      "x-display-type": "半幅の子本文: diagram / cards / image / bullets / chart / table"
+    },
     "slide_title": {
       "type": "object",
       "properties": {
@@ -3235,6 +3479,201 @@
         "azs"
       ],
       "additionalProperties": false
+    },
+    "slide_split": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "split"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "left": {
+          "$ref": "#/$defs/split_block"
+        },
+        "right": {
+          "$ref": "#/$defs/split_block"
+        },
+        "note": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "left": {
+              "properties": {
+                "type": {
+                  "const": "diagram"
+                }
+              }
+            },
+            "right": {
+              "properties": {
+                "type": {
+                  "const": "cards"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "left": {
+              "properties": {
+                "type": {
+                  "const": "image"
+                }
+              }
+            },
+            "right": {
+              "properties": {
+                "type": {
+                  "const": "bullets"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "left": {
+              "properties": {
+                "type": {
+                  "const": "chart"
+                }
+              }
+            },
+            "right": {
+              "properties": {
+                "type": {
+                  "const": "table"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "left": {
+              "properties": {
+                "type": {
+                  "const": "bullets"
+                }
+              }
+            },
+            "right": {
+              "properties": {
+                "type": {
+                  "const": "cards"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "left": {
+              "properties": {
+                "type": {
+                  "const": "cards"
+                }
+              }
+            },
+            "right": {
+              "properties": {
+                "type": {
+                  "const": "diagram"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "left": {
+              "properties": {
+                "type": {
+                  "const": "bullets"
+                }
+              }
+            },
+            "right": {
+              "properties": {
+                "type": {
+                  "const": "image"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "left": {
+              "properties": {
+                "type": {
+                  "const": "table"
+                }
+              }
+            },
+            "right": {
+              "properties": {
+                "type": {
+                  "const": "chart"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "left": {
+              "properties": {
+                "type": {
+                  "const": "cards"
+                }
+              }
+            },
+            "right": {
+              "properties": {
+                "type": {
+                  "const": "bullets"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "x-error-anyOf": "対応する組み合わせは diagram + cards / image + bullets / chart + table / bullets + cards です（左右の逆順も指定可能）",
+      "x-fixture-references": {
+        "left": "#/$defs/split_diagram",
+        "right": "#/$defs/split_cards"
+      }
     }
   }
 }

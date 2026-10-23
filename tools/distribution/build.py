@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PROJECT_FILES = (
     "AI_DECK_PROMPT.md", "CONTENT_SCHEMA.md", "DESIGN_CUSTOMIZATION.md",
     "schemas/content.schema.json", "docs/content-semantics.md", "docs/content-type-index.md",
+    "docs/split-layout.md",
     "docs/type-selection-guide.md", "docs/cover-footer-customization.md",
     "examples/authoring/README.md", "examples/authoring/type-selection.json",
     "examples/authoring/image-reading.json",

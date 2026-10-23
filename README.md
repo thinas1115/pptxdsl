@@ -9,7 +9,9 @@
 
 ## 出力例
 
-対応する27種類のtypeを、37枚の出力例で確認できます。
+対応する28種類のtypeを、41枚の出力例で確認できます。
+
+異なる情報構造を同じページで読み合わせる場合は、[左右分割のsplit](docs/split-layout.md)を使えます。
 
 ![TYPE別パターンギャラリー](docs/pattern-gallery-by-type.png)
 
