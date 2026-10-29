@@ -54,7 +54,10 @@ class ExternalImageTests(unittest.TestCase):
 
     def test_parallel_roots_and_nested_generation(self):
         with tempfile.TemporaryDirectory() as directory:
-            roots = [Path(directory) / name for name in ("a", "b")]
+            # OS固有の一時パス別名がない環境でも、同じ実体の別表記を通す。
+            alias = Path(directory) / "alias"
+            alias.mkdir()
+            roots = [alias / ".." / name for name in ("a", "b")]
             for root, color in zip(roots, ("red", "blue")):
                 (root / "generated").mkdir(parents=True)
                 Image.new("RGB", (100, 100), color).save(root / "generated/concept.png")
@@ -75,7 +78,8 @@ class ExternalImageTests(unittest.TestCase):
             self.assertNotEqual(*outputs)
             with image_assets(roots[0]):
                 build_presentation(deck(), asset_dir=roots[1])
-                self.assertEqual(resolve_image_path("generated/concept.png"), roots[0] / "generated/concept.png")
+                self.assertEqual(resolve_image_path("generated/concept.png"),
+                                 (roots[0] / "generated/concept.png").resolve())
 
 
 if __name__ == "__main__":
