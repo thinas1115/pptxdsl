@@ -2,7 +2,7 @@
 from PIL import Image
 from pptx.oxml import parse_xml
 from pptx.oxml.ns import nsdecls, qn
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 
 from slidegen.asset_paths import resolve_image_path
 from slidegen.generate import (
@@ -10,7 +10,7 @@ from slidegen.generate import (
 )
 from slidegen.layout_fit import select_fit, stepped
 from slidegen.layout_fit import FitError
-from slidegen.textfit import line_height_in, text_width_in, wrap_natural
+from slidegen.textfit import text_width_in, wrap_natural
 
 FRAME_X = 0.72
 FRAME_W = BODY_W - 0.34
@@ -22,6 +22,9 @@ COMPARE_LEFT = 0.76
 COMPARE_PANEL_W = (11.82 - COMPARE_GAP) / 2
 MIN_COMPARE_IMAGE_H = 2.00
 COMPARE_PICTURE_NAME = "ComparisonImage"
+COMPARE_LABEL_SPACING = 1.6
+COMPARE_LABEL_RULE_GAP = 0.08
+COMPARE_RULE_H = 0.008
 
 
 def fit_image_layout(available):
@@ -123,7 +126,11 @@ def fit_image_compare_layout(available, labels=("BEFORE", "AFTER")):
 
     def add(stage, top_pad, mid_gap, bottom_pad, min_image_h, label_size=13):
         wrapped = [_comparison_label_lines(label, label_size) for label in labels]
-        marker_h = max(len(lines) for lines in wrapped) * line_height_in(label_size, 1.3)
+        # 倍率行送りはフォント固有の行高へ掛かり、size×倍率では予測できない。
+        # 游ゴシック13ptの2行は旧計算33.8ptに対してPowerPointでは39.11pt。
+        # 行送りを固定ptへ揃え、最終行の字形にも収まる1.6emを確保する。
+        line_pitch = label_size * COMPARE_LABEL_SPACING
+        marker_h = max(len(lines) for lines in wrapped) * line_pitch / 72
         if any(text_width_in(line, label_size, "bold") > COMPARE_PANEL_W + 0.01
                for lines in wrapped for line in lines) or max(map(len, wrapped)) > 3:
             return
@@ -131,8 +138,10 @@ def fit_image_compare_layout(available, labels=("BEFORE", "AFTER")):
             "top_pad": top_pad, "marker_h": marker_h, "mid_gap": mid_gap,
             "bottom_pad": bottom_pad, "min_image_h": min_image_h,
             "label_size": label_size,
+            "line_pitch": line_pitch,
         }
-        used = top_pad + marker_h + mid_gap + min_image_h + bottom_pad
+        used = (top_pad + marker_h + COMPARE_LABEL_RULE_GAP + COMPARE_RULE_H
+                + mid_gap + min_image_h + bottom_pad)
         candidates.append((stage, values, used))
 
     add("standard", 0.24, 0.16, 0.20, 3.00)
@@ -173,12 +182,16 @@ def s_image_compare(slide, spec, page):
         lines = _comparison_label_lines(labels[i], v["label_size"])
         label = add_text(slide, x, top + v["top_pad"],
                          COMPARE_PANEL_W, v["marker_h"], "\n".join(lines),
-                         v["label_size"], bold=True, color=NAVY, spacing=1.3,
+                         v["label_size"], bold=True, color=NAVY,
+                         spacing=Pt(v["line_pitch"]),
                          wrap=False)
         label.name = f"image-compare:label:{i}"
-        add_rect(slide, x, top + v["top_pad"] + v["marker_h"] + 0.02,
-                 COMPARE_PANEL_W, 0.008, RULE)
-        image_top = top + v["top_pad"] + v["marker_h"] + v["mid_gap"]
+        for paragraph in label.text_frame.paragraphs:
+            paragraph.space_before = paragraph.space_after = Pt(0)
+        rule_top = top + v["top_pad"] + v["marker_h"] + COMPARE_LABEL_RULE_GAP
+        rule = add_rect(slide, x, rule_top, COMPARE_PANEL_W, COMPARE_RULE_H, RULE)
+        rule.name = f"image-compare:rule:{i}"
+        image_top = rule_top + COMPARE_RULE_H + v["mid_gap"]
         image_h = area.bottom - image_top - v["bottom_pad"]
         if fit == "cover":
             image_h = min(image_h, COMPARE_PANEL_W / 1.6)

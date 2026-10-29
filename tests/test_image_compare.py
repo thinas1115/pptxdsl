@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw
 
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 
 from slidegen import generate
 from slidegen.image_slide import (
@@ -120,6 +120,69 @@ def main():
 
 
 class CompareQualityTests(unittest.TestCase):
+    def test_label_rule_clearance_survives_all_fit_stages(self):
+        """1〜3行と圧縮時も、保存された固定行送り・罫線・画像の間隔を照合する。"""
+        prs = Presentation()
+        prs.slide_width = Inches(generate.SLIDE_W)
+        prs.slide_height = Inches(generate.SLIDE_H)
+        for count in (1, 2, 3):
+            labels = ("\n".join(("変更前の受付一覧", "対応状況と担当者の確認", "表示条件の比較")[:count]), "変更後")
+            for stage, available in (("standard", 5.27),
+                                     ("gap", 3.148 + count * 20.8 / 72),
+                                     ("element", 2.368 + count * 17.6 / 72)):
+                with self.subTest(lines=count, stage=stage):
+                    fitted = fit_image_compare_layout(available, labels)
+                    self.assertEqual(fitted.stage, stage)
+                    v = fitted.values
+                    self.assertAlmostEqual(v["marker_h"], count * v["line_pitch"] / 72)
+                    if stage == "element":
+                        self.assertEqual(v["label_size"], 11)
+                    spec = {"type": "image_compare", "kicker": "比較", "title": "画像比較",
+                            "left": {"image": "images/pptxdsl-repository.png", "label": labels[0]},
+                            "right": {"image": "images/pptxdsl-repository.png", "label": labels[1]}}
+                    slide = prs.slides.add_slide(prs.slide_layouts[6])
+                    area = generate.ContentArea(bottom=generate.BODY_TOP + available)
+                    with patch.object(image_slide, "header", return_value=area):
+                        s_image_compare(slide, spec, 1)
+                    shapes = {s.name: s for s in slide.shapes}
+                    pictures = [s for s in slide.shapes if s.name == COMPARE_PICTURE_NAME]
+                    self.assertEqual(pictures[0].top, pictures[1].top)
+                    for i, picture in enumerate(pictures):
+                        label = shapes[f"image-compare:label:{i}"]
+                        rule = shapes[f"image-compare:rule:{i}"]
+                        self.assertGreaterEqual(rule.top - label.top - label.height,
+                                                Inches(0.08) - 2)
+                        self.assertGreaterEqual(picture.top - rule.top - rule.height,
+                                                Inches(v["mid_gap"]) - 2)
+                        self.assertLessEqual(picture.top + picture.height,
+                                             Inches(area.bottom - v["bottom_pad"]) + 2)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "labels.pptx"
+            prs.save(path)
+            saved = Presentation(path)
+            for slide in saved.slides:
+                for shape in slide.shapes:
+                    if shape.name.startswith("image-compare:label:"):
+                        for paragraph in shape.text_frame.paragraphs:
+                            size = paragraph.runs[0].font.size.pt
+                            self.assertEqual(paragraph.line_spacing, Pt(size * 1.6))
+                            self.assertEqual(paragraph.space_before, Pt(0))
+                            self.assertEqual(paragraph.space_after, Pt(0))
+        with self.assertRaises(FitError):
+            fit_image_compare_layout(2.368 + 3 * 17.6 / 72 - 0.02,
+                                     ("確認前\n確認中\n確認後", "変更後"))
+        if os.environ.get("PPTXDSL_COMPARE_LABEL_QA_OUT"):
+            destination = Path(os.environ["PPTXDSL_COMPARE_LABEL_QA_OUT"])
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            prs.save(destination)
+
+    def test_automatic_wrap_uses_the_same_fixed_line_pitch(self):
+        text = "変更前の受付一覧と対応状況および担当者ごとの処理状況の確認" * 2
+        fitted = fit_image_compare_layout(5.27, (text, "変更後"))
+        lines = image_slide._comparison_label_lines(text, fitted.values["label_size"])
+        self.assertIn(len(lines), (2, 3))
+        self.assertAlmostEqual(fitted.values["marker_h"], len(lines) * 20.8 / 72)
+
     def test_long_labels_are_measured_and_dense_labels_stop(self):
         labels = ("変更前の画面\n表示条件を選択する前", "変更後")
         fitted = fit_image_compare_layout(5.27, labels)
