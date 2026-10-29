@@ -1,7 +1,29 @@
-# 表紙・フッター設定
+# テンプレート設定（本文背景・表紙・フッター）
 
-表紙とフッターだけをユーザーごとに変更する場合は、`content.json` とは別の設定JSONを使う。
-本文renderer、構成図レイアウト、本文領域の座標は変更されない。
+利用者のスライドテンプレートへ合わせる場合は、`content.json`とは別の設定JSONに本文背景、表紙背景、
+フッター文字と色をまとめる。本文領域の座標や図解の構造は変更しない。
+既存の`--cover-footer-config`と設定JSONはそのまま使える。新しい`--template-config`は同じ指定の別名。
+
+## 雛形を1コマンドで作る
+
+```text
+python -m slidegen.template_config out/template.json --background-color FFFFFF --footer-text "社内限定"
+python slidegen/generate_from_json.py content.json out/deck.pptx --template-config out/template.json
+```
+
+背景画像を使う場合は、文字を含まないPNG/JPEGを用意して指定する。配置場所を固定せず、
+設定ファイルからの相対参照を自動で作る。既存ファイルは上書きしない。
+
+```text
+python -m slidegen.template_config out/template.json --background-image assets/body.png --cover-background-image assets/cover.png --footer-text "{organization} / {footer}"
+```
+
+生成したJSONの`slide`、`cover`、`footer`を一か所で編集し、別のデッキにも再利用できる。
+個人設定と素材は利用者の作業領域へ置く。Pluginの同梱コードや画像を差し替える必要はない。
+これはPPTX/POTXのマスター・自由配置を丸ごと取り込む機能ではない。背景に本文やフッター文字を焼き込むと
+生成テキストと二重になるため、背景素材からは除く。
+Release配布のSkill/Pluginでは、同梱の`run.py template out/template.json`で雛形を作り、
+`run.py generate content.json out/deck.pptx --template-config out/template.json`で適用する。
 
 ## 実行方法
 
@@ -50,6 +72,18 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 
 ## 設定項目
 
+### slide
+
+| 項目 | 型 | 既定値 / 説明 |
+|---|---|---|
+| `background_color` | string | 本文・章扉の背景色。6桁HEX、既定`F7F5EF` |
+| `background_image` | string / null | 本文・章扉の背景PNG/JPEG。設定JSONからの相対パス。既定`null` |
+
+表紙には`cover`の設定を使う。画像は縦横比を保って中央基準で全面へトリミングし、PPTXへ埋め込む。
+既存の紺色文字・図形を読み取れる明るい背景を使い、本文・図形を覆わないよう背景の模様やロゴ位置を確認する。
+背景色の変更は本文の文字色・全図形の配色を自動変換しない。暗い本文背景の全面テーマ変換は対象外。
+背景画像内部のコントラストは機械検査で保証できないため、全ページPNGで文字と線を確認する。
+
 ### cover
 
 | 項目 | 型 | 既定値 / 説明 |
@@ -59,7 +93,7 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 | `show_author` | boolean | 左下の作成者を表示する。既定値は `false` |
 | `show_rail` | boolean | 右側の補足情報を表示する。既定値は `true` |
 | `rail` | array | `label` / `value` の組。0〜3件。既定値は`DATE / ORGANIZATION / AUTHOR` |
-| `background_image` | string / null | 表紙背景のPNG/JPEG。既定値は同梱の`slidegen/assets/cover/cover-background.png`。設定JSONからの相対パスを推奨。絶対パスも使用可能 |
+| `background_image` | string / null | 表紙背景のPNG/JPEG。既定値は同梱の`slidegen/assets/cover/cover-background.png`。利用者の指定は設定JSONからの相対パスに限定する |
 | `background_color` | string | 表紙背景の6桁HEX色 |
 | `title_color` | string | タイトル・作成者・rail値の6桁HEX色 |
 | `secondary_color` | string | サブタイトル・日付・rail線の6桁HEX色 |
@@ -78,12 +112,49 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 | `divider_color` | string | 境界線の6桁HEX色 |
 
 設定JSONは部分指定できる。省略した項目には標準設定が使われる。
+個人パスを公開設定へ混入させないため、背景画像の絶対パス、ドライブ相対パス、
+ホーム展開はOSにかかわらず拒否する。既存設定は画像を設定JSONの近くへ配置し、
+その場所からの相対パスへ移行する。設定JSON自体のCLI引数には絶対パスを使用できる。
 `background_image` を指定すると、画像の縦横比を維持したまま中央基準で表紙全面へトリミングする。
 標準設定では同梱の`cover-background.png`を使用する。単色背景へ戻す場合は、設定JSONで
 `background_image: null`を明示すると`background_color`が使われる。画像上の文字が読めるよう、画像に合わせて
 `title_color` と `secondary_color` も指定する。背景には16:9で十分な解像度の画像を推奨する。
 画像は生成時にPPTXへ埋め込まれるため、生成後の閲覧時に元画像は不要。
 標準表紙は、タイトルとサブタイトルの右側に`DATE / ORGANIZATION / AUTHOR`のrailを表示する。
+
+### 社内資料向けの日本語ラベル
+
+既存の`cover.rail`だけで項目名を日本語化できる。
+[日本語設定例](../examples/cover_footer.ja.json)では、標準の構図・配色・背景を維持し、
+右欄を「日付・所属・作成者」へ変更している。
+
+```powershell
+python slidegen/generate_from_json.py content.json out/deck-ja.pptx --cover-footer-config examples/cover_footer.ja.json
+python slidegen/check_layout.py out/deck-ja.pptx
+```
+
+設定JSONの内容は次のとおり。`{date}`などの参照名は翻訳せず、`label`だけを変更する。
+
+```json
+{
+  "cover": {
+    "show_date": false,
+    "show_author": false,
+    "show_rail": true,
+    "rail": [
+      {"label": "日付", "value": "{date}"},
+      {"label": "所属", "value": "{organization}"},
+      {"label": "作成者", "value": "{author}"}
+    ]
+  }
+}
+```
+
+`organization`・`author`を参照する値は、日本語ラベルでも既存と同じ最大3行を使用できる。
+会社名・部門名などを分ける場合は`meta.organization`などに`\n`で改行を入れる。
+標準の英語ラベルと既存設定の動作は変更しない。
+
+### 標準ラベルと省略時の動作
 
 - `DATE`: `meta.date`を表示する
 - `ORGANIZATION`: `meta.organization`を表示する

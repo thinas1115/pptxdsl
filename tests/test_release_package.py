@@ -1,10 +1,13 @@
 """Skill・Pluginを分けたReleaseアセットを検証する。"""
 import hashlib
+import json
 from pathlib import Path
 import tempfile
+import unittest
 import zipfile
 
 from tools.distribution.build import ROOT, build_release, version
+from tools.gallery.generate_patterns import main as generate_gallery
 
 
 VERSION = f"v{version()}"
@@ -14,7 +17,7 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_release_assets() -> None:
+def _check_release_assets() -> None:
     with tempfile.TemporaryDirectory(prefix="pptxdsl-release-test-") as temporary:
         base = Path(temporary)
         first = build_release(base / "first", tag=VERSION)
@@ -33,8 +36,12 @@ def test_release_assets() -> None:
             names = set(bundle.namelist())
             assert "pptxdsl/SKILL.md" in names
             assert "pptxdsl/project/slidegen/generate_from_json.py" in names
+            assert "pptxdsl/project/examples/authoring/config-checks.json" in names
+            assert "pptxdsl/project/docs/static-quality.md" in names
+            assert "pptxdsl/project/docs/macos.md" in names
             assert "pptxdsl/plugin.json" not in names
             assert "pptxdsl/.codex-plugin/plugin.json" not in names
+            assert "pptxdsl/.claude-plugin/plugin.json" not in names
             assert not any(set(Path(name).parts) & {"tests", "tools", ".git", "out", "__pycache__"}
                            for name in names)
 
@@ -42,8 +49,25 @@ def test_release_assets() -> None:
             names = set(bundle.namelist())
             assert "plugin.json" in names
             assert ".codex-plugin/plugin.json" in names
+            assert ".claude-plugin/plugin.json" in names
             assert "skills/pptxdsl/SKILL.md" in names
             assert "skills/pptxdsl/project/slidegen/generate_from_json.py" in names
+            assert "skills/pptxdsl/project/examples/authoring/config-checks.json" in names
+            assert "skills/pptxdsl/project/docs/static-quality.md" in names
+            assert "skills/pptxdsl/project/docs/macos.md" in names
+
+        marketplace = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text(encoding="utf-8"))
+        assert marketplace["name"] == "pptxdsl-marketplace"
+        assert marketplace["metadata"]["version"] == version()
+        assert len(marketplace["plugins"]) == 1
+        entry = marketplace["plugins"][0]
+        assert entry["name"] == "pptxdsl"
+        assert entry["source"] == {
+            "source": "archive",
+            "url": ("https://github.com/thinas1115/pptxdsl/releases/download/"
+                    f"{VERSION}/{first.plugin.name}"),
+            "sha256": _sha256(first.plugin),
+        }
 
         checksums = {}
         for line in first.checksums.read_text(encoding="utf-8").splitlines():
@@ -54,7 +78,12 @@ def test_release_assets() -> None:
             first.plugin.name: _sha256(first.plugin),
             first.gallery.name: _sha256(first.gallery),
         }
-        assert first.gallery.read_bytes() == (ROOT / "examples/gallery/pattern_gallery.pptx").read_bytes()
+        generated = base / "fresh-gallery.pptx"
+        generate_gallery(generated)
+        with zipfile.ZipFile(generated) as source, zipfile.ZipFile(first.gallery) as released:
+            assert {name: source.read(name) for name in source.namelist()} == {
+                name: released.read(name) for name in released.namelist()}
+            assert all(info.date_time == (2020, 1, 1, 0, 0, 0) for info in released.infolist())
 
         try:
             build_release(base / "wrong-tag", tag="v999.0.0")
@@ -64,6 +93,10 @@ def test_release_assets() -> None:
             raise AssertionError("manifestと異なるReleaseタグを拒否しませんでした")
 
 
+class ReleasePackageTests(unittest.TestCase):
+    def test_release_assets(self):
+        _check_release_assets()
+
+
 if __name__ == "__main__":
-    test_release_assets()
-    print("Skill・Plugin別Releaseアセット: ALL OK")
+    unittest.main()

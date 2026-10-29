@@ -7,7 +7,7 @@
 生成AIにそのまま渡して直させられる粒度のメッセージを出して終了する。
 """
 import argparse
-import json
+from copy import deepcopy
 import sys
 from pathlib import Path
 
@@ -19,12 +19,14 @@ from pptx import Presentation
 from pptx.util import Inches
 
 from slidegen import generate
+from slidegen.input_io import load_content_json
 from slidegen.aws_vpc_layout import s_aws_vpc_layout
 from slidegen.org_layout import s_org
 from slidegen.diagrams2 import s_matrix, s_process, s_program_roadmap
 from slidegen.diagram_layout import render_diagram
 from slidegen.image_slide import s_image, s_image_compare
 from slidegen.reference_renderer import s_references
+from slidegen.agenda_renderer import s_agenda
 from slidegen.candidate_renderers import (
     s_mapping, s_paired_comparison, s_scope, s_sequence, s_swimlane,
 )
@@ -32,7 +34,11 @@ from slidegen.training_renderers import (
     s_code_lab, s_concept, s_knowledge_check, s_network, s_protocol_state_flow,
     s_protocol_anatomy,
 )
-from slidegen.validate_content import validate
+from slidegen.font_config import FontConfigError, font_faces
+from slidegen.validate_content import validate, validation_warnings
+from slidegen.generation_context import bind_context, make_context
+from slidegen.layout_fit import FitError
+from slidegen.asset_paths import image_assets
 
 
 def s_diagram(slide, spec, page):
@@ -60,55 +66,62 @@ RENDER = dict(generate.RENDER,
               nw_frame_anatomy=s_protocol_anatomy,
               config_lab=s_code_lab, knowledge_check=s_knowledge_check)
 RENDER["references"] = s_references
+RENDER["agenda"] = s_agenda
 
 
-def main(json_path, out_path, cover_footer_config=None):
+def build_presentation(deck, cover_footer_config=None, *, renderers=None,
+                       allow_sample_content=False, asset_dir=None):
+    with image_assets(asset_dir):
+        return _build_presentation(deck, cover_footer_config, renderers=renderers,
+                                   allow_sample_content=allow_sample_content,
+                                   asset_dir=asset_dir)
+
+
+def _build_presentation(deck, cover_footer_config=None, *, renderers=None,
+                        allow_sample_content=False, asset_dir=None):
+    """入力を独立コピーして検証・生成する。保存やモジュール状態の書換えはしない。"""
+    snapshot = deepcopy(deck)
+    errors = validate(snapshot, allow_sample_content=allow_sample_content, asset_dir=asset_dir)
+    if errors:
+        raise ValueError("入力に問題があります:\n  - " + "\n  - ".join(errors))
+    context = make_context(snapshot, cover_footer_config)
+    registry = dict(RENDER if renderers is None else renderers)
+    prs = Presentation()
+    prs.slide_width = Inches(context.theme.SLIDE_W)
+    prs.slide_height = Inches(context.theme.SLIDE_H)
+    with bind_context(context):
+        for idx, spec in enumerate(snapshot["slides"], 1):
+            renderer = registry.get(spec["type"])
+            if renderer is None:
+                raise FitError(f"対応するrendererがありません（未対応のスライド種別）: {spec['type']!r}")
+            slide = prs.slides.add_slide(prs.slide_layouts[6])
+            generate.render_slide(renderer, slide, spec, idx)
+            if spec["type"] != "title":
+                generate.footer(slide, idx)
+    return prs
+
+
+def main(json_path, out_path, cover_footer_config=None, asset_dir=None):
     source = Path(json_path)
     display_name = source.name
-    if not source.is_file():
-        raise SystemExit(
-            f"NG: 入力JSONが見つかりません: {display_name}\n"
-            "  AI_DECK_PROMPT.md と CONTENT_SCHEMA.md に従って"
-            " content.json を新規作成してください。")
-    try:
-        raw = source.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        raise SystemExit(
-            f"NG: {display_name} はUTF-8で保存してください。") from None
-    try:
-        deck = json.loads(raw)
-    except json.JSONDecodeError as error:
-        raise SystemExit(
-            f"NG: {display_name} のJSON構文が不正です "
-            f"(行{error.lineno}, 列{error.colno}): {error.msg}\n"
-            "  指定位置の括弧、カンマ、引用符を修正して再実行してください。") from None
-    errors = validate(deck)
+    deck = load_content_json(source)
+    errors = validate(deck, asset_dir=asset_dir)
+    for message in validation_warnings(deck):
+        print(f"警告: {message}", file=sys.stderr)
     if errors:
         print(f"NG: {display_name} に {len(errors)} 件の問題 (生成を中止):",
               file=sys.stderr)
         for e in errors:
             print(f"  - {e}", file=sys.stderr)
         raise SystemExit(1)
-    generate.DECK = deck
     try:
-        generate.configure_cover_footer(cover_footer_config)
+        font_faces()
+    except FontConfigError as error:
+        raise SystemExit(f"NG: フォント設定: {error}") from None
+    try:
+        prs = build_presentation(deck, cover_footer_config, asset_dir=asset_dir)
     except ValueError as e:
-        raise SystemExit(f"NG: 表紙・フッター設定: {e}") from None
-
-    prs = Presentation()
-    prs.slide_width = Inches(generate.SLIDE_W)
-    prs.slide_height = Inches(generate.SLIDE_H)
-    blank = prs.slide_layouts[6]
-    for idx, spec in enumerate(deck["slides"], 1):
-        slide = prs.slides.add_slide(blank)
-        try:
-            renderer = RENDER[spec["type"]]
-        except KeyError as e:
-            known = ", ".join(sorted(RENDER))
-            raise SystemExit(f"unknown slide type: {spec['type']!r}. known: {known}") from e
-        generate.render_slide(renderer, slide, spec, idx)
-        if spec["type"] != "title":
-            generate.footer(slide, idx)
+        raise SystemExit(f"NG: {e}") from None
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     prs.save(out_path)
@@ -120,7 +133,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("json_path", nargs="?", default=project_root / "content.json")
     parser.add_argument("out_path", nargs="?", default=project_root / "out" / "from_json.pptx")
-    parser.add_argument("--cover-footer-config", metavar="PATH",
-                        help="表紙・フッター設定JSON")
+    parser.add_argument("--cover-footer-config", "--template-config", metavar="PATH",
+                        help="表紙・本文背景・フッター設定JSON")
+    parser.add_argument("--asset-dir", help="利用者の画像素材ディレクトリ")
     args = parser.parse_args()
-    main(args.json_path, args.out_path, args.cover_footer_config)
+    try:
+        main(args.json_path, args.out_path, args.cover_footer_config, args.asset_dir)
+    except ValueError as error:
+        raise SystemExit(f"NG: {error}") from None

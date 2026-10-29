@@ -22,23 +22,35 @@ python <Skill>/scripts/run.py sheet out/png
 ```
 
 `generate`の出力先、`render`のPNG保存先は省略できない。`render`は`--backend`、`--width`、
-`--slides`を、`generate`は`--cover-footer-config`を受け付ける。
+`--slides`を、`generate`は`--cover-footer-config`または`--template-config`を受け付ける。
+`validate`と`generate`には`--asset-dir assets`を渡せる。
+`python <Skill>/scripts/run.py template out/template.json --footer-text "社内限定"`で設定雛形を作れる。
+本文背景・表紙背景は`--background-image`・`--cover-background-image`、本文単色背景は`--background-color`で指定する。
+回帰用PNG検査仕様がある場合は、`python <Skill>/scripts/run.py raster out/raster-checks.json out/png --report out/raster-report.json`も使える。
+合否・目視・人の承認は[PNGの合否基準](visual-acceptance.md)に従って別々に記録する。
 
 ## 前提条件と停止条件
 
 Python 3.10以上、`project/requirements.txt`のPython依存、実行環境で利用できる日本語フォントが必要。
 必要な依存だけでなくバージョンも確認し、環境への導入が許可されていれば同梱の依存一覧を使う。
 ツールの配置やインターネット接続を仮定しない。導入できない場合は不足を報告して停止する。
-非Windowsではfontconfigと日本語sansフォント、または`PPTXDSL_FONT_REGULAR`、
-`PPTXDSL_FONT_MEDIUM`、`PPTXDSL_FONT_BOLD`で指定する利用可能なフォントファイルが必要。
+Windowsでは游ゴシック、非WindowsではfontconfigとNoto Sans CJK JP/Noto Sans JP、
+または`PPTXDSL_FONT_REGULAR`と`PPTXDSL_FONT_BOLD`で明示する対応フォントが必要。
+可変フォントはRegular/Boldを明示選択する。詳細は同梱の`project/docs/font-contract.md`を読み、
+`python <Skill>/scripts/run.py fonts`でfamily・style・indexを確認する。
+同じフォントをPPTXの表示・レンダリング環境にも用意し、置換が起きた出力を確認済みとしない。
 
 PNG化にはPowerPoint、またはLibreOfficeとpdftoppm/PyMuPDFなどが必要。
+自動操作するPowerPoint backendはWindows COM用であり、Mac版PowerPointを探索・操作しない。
+Mac版では同梱の`project/docs/macos.md`に従って全ページを手動PNG書出しし、
+原本を残して`slide_01.png`等へ別名コピーした後、`run.py sheet`で一覧化する。
+開発用のPNG取込ツールは配布版へ同梱しない。PNGの枚数・順序・寸法も確認する。
 `probe`の結果を確認し、未対応の環境では利用可能な代替手段を調査する。
 Python実行ができない通常チャットやレンダリング手段のない環境では完了を約束しない。
 PNG化できなければ目視QAを完了扱いにせず、不足と調査結果を報告する。
 代替backendではPowerPointとの描画差が残る可能性を報告する。
 
-追加画像や独自の配色が必要な場合は、利用者の作業領域へSkill全体をコピーし、コピー側の
-`project/slidegen/assets/`とクレジットを更新して、コピー側の`run.py`を使用する。
-インストールされた正本は変更しない。画像パスは引き続き同梱assets内の相対パスで指定する。
+追加画像は利用者の`assets/`へ保存し、`--asset-dir assets`で指定する。
+生成画像のプロンプト・採用前QA・記録は[生成画像の利用](generated-images.md)に従う。
+背景やフッターは利用者側の設定JSONを渡す。インストールされた正本や同梱assetsを変更しない。
 情報源の確認、全ページ一覧と原寸での目視QA、修正後の再確認は通常のSkill手順と同じ。

@@ -28,6 +28,11 @@ description: pptxdslで資料要件と情報源からcontent.jsonを設計し、
 - 2〜6件の同格な選択肢・事例・判断材料の整理は`cards`。`editorial`の項目へ主従を付けず、`emphasis`はKPIの数値強調だけに使う。旧`decision_summary`は廃止した。
 - 巻末の参考資料一覧は`references`を使い、各項目の`url`へ実際に確認した完全な`http`または`https` URLを必ず書く。URLを発表者ノートや別ファイルだけへ置かない。`scope`は、その情報源が裏付ける章・論点を明示したい項目だけに付け、省略時はタグを表示しない。情報源ごとに異なり得る確認日をスライド共通の`lead`で一括表示しない。
 - `concept.icon`は必須。用語・判断基準を識別できる同梱アイコンを指定する。
+- 章の一覧・発表順には`agenda`を使い、章名、必要な補足、任意の開始ページを記載する。
+- 概念や比喩を画像で説明する場合は[生成画像の利用](references/generated-images.md)を読む。
+  正確な構造や接続が主題なら、生成画像ではなく編集可能な`diagram`等を使う。
+- 利用者の既存テンプレートへ合わせる場合は`docs/cover-footer-customization.md`の
+  雛形作成手順を使う。本文背景・表紙・フッターは`content.json`と別の設定にまとめる。
 - 統合、委譲、接続経路、境界、処理連鎖を理解させるページは、名称と説明だけを`cards`や`bullets`へ並べない。
   構成要素をノード、関係をラベル付きエッジとして`diagram`、`message_sequence`、`swimlane_flow`のいずれかで示す。
   Merged APIやPipeline resolverのように内部構造が判断材料になる機能は、独立した図解ページを設ける。

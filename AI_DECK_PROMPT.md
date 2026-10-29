@@ -7,7 +7,10 @@
 1. 下の「依頼文テンプレート」全体をコピーする。
 2. 「資料要件」にある6つの入力欄を、作成対象の資料に合わせて具体値で埋める。
    **空欄のまま渡さない**(何を作るか伝わらず、サンプルの焼き直しになる)。
-3. 埋めたテンプレート、`CONTENT_SCHEMA.md`、`docs/type-selection-guide.md` の中身を生成AIに渡す。
+3. 埋めたテンプレート、`CONTENT_SCHEMA.md`、`docs/content-semantics.md`、`docs/type-selection-guide.md` の中身を生成AIに渡す。
+
+対応typeと必須項目の一覧は[自動生成のtype一覧](docs/content-type-index.md)を参照する。
+構造契約は`slidegen/schema_definition.py`から生成し、意味上の注意点は`docs/content-semantics.md`へ分けている。
 
 新規資料の内容作成に使うのは、埋めた資料要件と指定された情報源だけとする。`CONTENT_SCHEMA.md`はJSON構造、
 `docs/type-selection-guide.md`はtype選定だけに使う。`tests/fixtures/gallery/content*.py`と`tests/fixtures/gallery/diagram_specs.py`は回帰検証用であり、
@@ -99,8 +102,13 @@
    検索だけ`internal`、不一致・破棄・異常だけ`alert`とし、それ以外は`plain`にする。`encapsulated`では、
    付加されたものを`encapsulation`へ8文字以内の短い名称で必ず書き、`TAG`を一律に流用しない。
 8. `bullets` は文字中心で複数項目を示す場合に使う。手順・優先順位・読み順がある場合は`style: "numbered"`、順序を持たない要点は`style: "bullet"`、実施項目と完了状態は`style: "checklist"`を選ぶ。各項目は`text`を持つobjectで書き、`checked`はチェックリストでのみ使う。
-9. `cards` は、2〜6件の同格なKPI・選択肢・事例・判断材料を比較できる場合に使う。読み順のある要点には使わない。選択肢・事例は `style: "editorial"`、KPIは `style: "metrics"` を選ぶ。各カードは`heading / body`のobjectで書き、KPI値は`value`へ分離する。`editorial`では`emphasis`を指定せず、全項目を同格に扱う。情報量が少ないことだけを理由に使わず、フェーズ名や図のノードなど別の構造に属する要素をカード化しない。
+9. `cards` は、同格な複数のKPI・選択肢・事例・判断材料を比較できる場合に使う。件数は構造契約を参照する。読み順のある要点には使わない。選択肢・事例は `style: "editorial"`、KPIは `style: "metrics"` を選ぶ。各カードは`heading / body`のobjectで書き、KPI値は`value`へ分離する。`editorial`では`emphasis`を指定せず、全項目を同格に扱う。情報量が少ないことだけを理由に使わず、フェーズ名や図のノードなど別の構造に属する要素をカード化しない。
 10. 表紙以外では、タイトルと本文の間に要旨が必要な場合だけ任意の `lead` を使う。結論・前提・読み方を1〜2行で書き、タイトルの言い換えや本文の繰り返しは書かない。本文下部に結論・示唆・前提だけを置く帯やカードは作らない。不要なスライドにはフィールド自体を付けない。
+    同じ評価軸で2案を行ごとに比較する場合は`paired_comparison`、左右の項目が対応しない独立した
+    観点の整理には`two_column`を選ぶ。対象・対象外は`scope_boundary`で分け、左右共通の条件は
+    `lead`へ共通と明記する。判断依頼は資料要件に根拠がある場合だけ`lead`へ書き、決めない範囲と
+    判断材料を分離する。`decision_summary`や`conclusion`など廃止済みのtype・フィールドは使わない。
+    記述構造は[type選定例](examples/authoring/README.md)で確認できるが、架空の値やページ順は流用しない。
 11. 写真、イラスト、画面キャプチャなど、1枚のビジュアル自体が主メッセージになる場合は `image` を使う。
    画像生成・手元の画像・Web検索のいずれでも、利用可能な画像を先に `slidegen/assets/images/` へ用意し、
    存在する相対パスだけを書く。必要な画像が未準備なら架空のパスを作らず、作業手順1の事前確認で停止する。
@@ -123,40 +131,9 @@
 18. 巻末の参考資料一覧は`references`を使う。各項目へ情報源の名称と、実際に確認した`http`または`https`の完全なURLを必ず書く。文書名だけの表、`sources.mdに記載`、発表者ノートだけへのURL記載は禁止する。情報源ごとに異なり得る確認日をスライド共通の`lead`で一括表示しない。
 19. 生成フェーズの最終出力にはJSON以外の説明文を付けない。
 
-対応済み `type`:
-
-Common:
-
-- `title` (表紙)
-- `section_divider` (章扉・中扉。`kicker` / `title` / 任意`lead`)
-- `bullets`
-- `cards`
-- `table`
-- `two_column`
-- `chart` (横棒・縦棒・折れ線・積み上げ。`kind`は`bar` / `column` / `line` / `stacked_bar` / `stacked_column`)
-- `image` (生成・提供・検索画像を本文領域へ大きく配置)
-- `image_compare` (2枚の画像を左右に並べて変更前後を比較)
-- `process` (直線工程と、分岐・合流・差戻しを持つ工程図)
-- `program_roadmap`
-- `matrix` (ラベル位置を自動調整する2軸図)
-- `scope_boundary` (実施範囲・対象外。成立条件は`lead`)
-- `paired_comparison` (共通の評価軸による2案比較)
-- `relationship_map` (左右項目の一対一・一対多・多対多の対応確認)
-- `swimlane_flow` (担当レーンと工程段階を持つ業務フロー)
-- `message_sequence` (関係者・機器間メッセージの時系列)
-- `concept` (専門用語・判断基準の定義、要点、適用範囲、誤解しやすい境界)
-- `config_lab` (設定例・コードと確認観点)
-- `knowledge_check` (選択式の設問と正答・解説)
-- `references` (巻末の参考資料。タイトルと実URLを必須表示)
-- `org` (体制図。複数トップ・多段分岐・複数親・横連携に対応)
-- `diagram` (構成図。グリッド仕様から自動レイアウト、座標記述は禁止)
-
-NW:
-
-- `aws_vpc_layout` (AWSのVPC・AZ・Subnet境界と、配置リソース・通信経路を同時に示す構成図)
-- `nw_topology` (物理機器・論理セグメント・Access / Trunk / L3接続を同時に示すネットワーク図)
-- `nw_protocol_flow` (端末・装置・伝送区間ごとのフレームまたはパケット状態の変化)
-- `nw_frame_anatomy` (フレーム・パケットのフィールド構造と注釈)
+対応済みtypeと必須項目は[構造契約から生成した一覧](docs/content-type-index.md)を参照する。
+用途・使い分けは[type選択ガイド](docs/type-selection-guide.md)、
+フィールドと件数・選択肢は[構造契約](CONTENT_SCHEMA.md)を参照する。
 
 
 ## サンプル由来のアンチパターン
@@ -174,6 +151,12 @@ NW:
 これらを避けても、資料要件にないページや主張が残る場合はJSONを出力せず、アウトラインの根拠確認へ戻る。
 
 ## 実行コマンド
+
+章立てを一覧するページが必要なら`agenda`を選ぶ。
+概念をイメージで説明する場合はPPTX作成Skillの`references/generated-images.md`に従い、
+cloneでは`.agents/skills/pptxdsl/`、配布版では実際のSkillフォルダを起点に読む。
+シンプルさを具体的な構図・色数・線・装飾の条件にして生成し、採用前QAを行う。
+外部画像は検証・生成の両方へ`--asset-dir assets`を渡す。正確な構造・数値を画像生成で捏造しない。
 
 生成されたJSONを `content.json` として保存してから実行する。
 

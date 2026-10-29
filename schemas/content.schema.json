@@ -1,0 +1,3303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thinas1115.github.io/pptxdsl/content.schema.json",
+  "title": "pptxdsl content.json",
+  "type": "object",
+  "properties": {
+    "meta": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footer": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "date": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "organization": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "author": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "slides": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/slide_title"
+          },
+          {
+            "$ref": "#/$defs/slide_section_divider"
+          },
+          {
+            "$ref": "#/$defs/slide_agenda"
+          },
+          {
+            "$ref": "#/$defs/slide_bullets"
+          },
+          {
+            "$ref": "#/$defs/slide_cards"
+          },
+          {
+            "$ref": "#/$defs/slide_table"
+          },
+          {
+            "$ref": "#/$defs/slide_two_column"
+          },
+          {
+            "$ref": "#/$defs/slide_chart"
+          },
+          {
+            "$ref": "#/$defs/slide_image"
+          },
+          {
+            "$ref": "#/$defs/slide_image_compare"
+          },
+          {
+            "$ref": "#/$defs/slide_process"
+          },
+          {
+            "$ref": "#/$defs/slide_program_roadmap"
+          },
+          {
+            "$ref": "#/$defs/slide_matrix"
+          },
+          {
+            "$ref": "#/$defs/slide_scope_boundary"
+          },
+          {
+            "$ref": "#/$defs/slide_paired_comparison"
+          },
+          {
+            "$ref": "#/$defs/slide_relationship_map"
+          },
+          {
+            "$ref": "#/$defs/slide_swimlane_flow"
+          },
+          {
+            "$ref": "#/$defs/slide_message_sequence"
+          },
+          {
+            "$ref": "#/$defs/slide_concept"
+          },
+          {
+            "$ref": "#/$defs/slide_references"
+          },
+          {
+            "$ref": "#/$defs/slide_nw_topology"
+          },
+          {
+            "$ref": "#/$defs/slide_nw_protocol_flow"
+          },
+          {
+            "$ref": "#/$defs/slide_nw_frame_anatomy"
+          },
+          {
+            "$ref": "#/$defs/slide_config_lab"
+          },
+          {
+            "$ref": "#/$defs/slide_knowledge_check"
+          },
+          {
+            "$ref": "#/$defs/slide_org"
+          },
+          {
+            "$ref": "#/$defs/slide_diagram"
+          },
+          {
+            "$ref": "#/$defs/slide_aws_vpc_layout"
+          }
+        ]
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "meta",
+    "slides"
+  ],
+  "additionalProperties": false,
+  "x-unknown-message": "未対応のトップレベルフィールドです。meta / slidesだけを使用してください",
+  "$defs": {
+    "footnote": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "title_nominal_review": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "reason": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "title",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "bullet": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "checked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2,
+          "items": false
+        }
+      ],
+      "x-error": "text を持つオブジェクトにしてください（旧2要素配列は1.xのみ受理）"
+    },
+    "card": {
+      "type": "object",
+      "properties": {
+        "heading": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "body": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "emphasis": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "heading",
+        "body"
+      ],
+      "additionalProperties": false,
+      "x-error-type": "heading / bodyを持つオブジェクトにしてください"
+    },
+    "table_link": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "url": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "label",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "column": {
+      "type": "object",
+      "properties": {
+        "heading": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "bullets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "heading",
+        "bullets"
+      ],
+      "additionalProperties": false
+    },
+    "chart": {
+      "type": "object",
+      "properties": {
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "maxItems": 12
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 0
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2,
+            "items": false
+          },
+          "minItems": 1,
+          "maxItems": 4
+        },
+        "kind": {
+          "enum": [
+            "bar",
+            "column",
+            "line",
+            "stacked_bar",
+            "stacked_column"
+          ]
+        },
+        "show_legend": {
+          "type": "boolean"
+        },
+        "show_values": {
+          "type": "boolean"
+        },
+        "number_format": {
+          "type": "string",
+          "pattern": "^(?:(?:0|#,##0)(?:\\.0{1,6})?(?:%|\"[^\"\\\\\\r\\n]{1,12}\")?)$"
+        }
+      },
+      "required": [
+        "categories",
+        "series"
+      ],
+      "additionalProperties": false
+    },
+    "image_side": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "alt": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "image"
+      ],
+      "additionalProperties": false
+    },
+    "process_step": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "desc": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "actor": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "attribute": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "value": {
+              "type": "string",
+              "pattern": "\\S"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "desc"
+      ],
+      "additionalProperties": false,
+      "not": {
+        "required": [
+          "actor",
+          "attribute"
+        ]
+      },
+      "x-error-not": "actor と attribute を同時に指定できません"
+    },
+    "process_flow": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "desc": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "actor": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "style": {
+                "enum": [
+                  "standard",
+                  "accent",
+                  "decision"
+                ]
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "minProperties": 2,
+          "maxProperties": 12
+        },
+        "levels": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "minItems": 1,
+            "maxItems": 3
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "to": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "label": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "kind": {
+                "enum": [
+                  "forward",
+                  "feedback"
+                ]
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "nodes",
+        "levels",
+        "edges"
+      ],
+      "additionalProperties": false
+    },
+    "roadmap_track": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "activities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "start": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                ]
+              },
+              "end": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                ]
+              },
+              "emph": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "label",
+              "start",
+              "end"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "goal": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "milestone": {
+          "type": "object",
+          "properties": {
+            "at": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "\\S"
+                }
+              ]
+            },
+            "label": {
+              "type": "string",
+              "pattern": "\\S"
+            }
+          },
+          "required": [
+            "at",
+            "label"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "activities"
+      ],
+      "additionalProperties": false
+    },
+    "matrix_point": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "emph": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "paired_row": {
+      "type": "object",
+      "properties": {
+        "criterion": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "left": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "right": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "criterion",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false
+    },
+    "mapping_item": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "text": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "mapping_link": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "emphasis": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "id_label": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "swimlane_step": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "lane": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "stage": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "style": {
+          "enum": [
+            "standard",
+            "accent"
+          ]
+        },
+        "number": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "lane",
+        "stage"
+      ],
+      "additionalProperties": false
+    },
+    "flow_edge": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kind": {
+          "enum": [
+            "forward",
+            "feedback"
+          ]
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "message": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kind": {
+          "enum": [
+            "request",
+            "return",
+            "async"
+          ]
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "id",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "message_phase": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "concept_point": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "text": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "label",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "reference": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "url": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "scope": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "network_lane": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "sub": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "network_node": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "icon": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "column": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "lanes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "sub": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "icon",
+        "column",
+        "lanes"
+      ],
+      "additionalProperties": false
+    },
+    "network_link": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kind": {
+          "enum": [
+            "access",
+            "trunk",
+            "routed",
+            "control",
+            "broadcast",
+            "blocked"
+          ]
+        },
+        "lanes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "protocol_stage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "icon": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "role": {
+          "enum": [
+            "endpoint",
+            "processor",
+            "link"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "icon"
+      ],
+      "additionalProperties": false
+    },
+    "protocol_flow": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/protocol_state"
+          },
+          "minItems": 0
+        },
+        "sub": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "label",
+        "states"
+      ],
+      "additionalProperties": false
+    },
+    "protocol_state": {
+      "type": "object",
+      "properties": {
+        "stage": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "detail": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "appearance": {
+          "enum": [
+            "plain",
+            "encapsulated",
+            "internal",
+            "alert"
+          ]
+        },
+        "encapsulation": {
+          "type": "string",
+          "pattern": "\\S",
+          "x-trimmed-maxLength": 8
+        }
+      },
+      "required": [
+        "stage",
+        "label"
+      ],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "appearance": {
+            "const": "encapsulated"
+          }
+        },
+        "required": [
+          "appearance"
+        ]
+      },
+      "then": {
+        "required": [
+          "encapsulation"
+        ],
+        "x-error-required": "encapsulation はencapsulatedで必須です"
+      },
+      "else": {
+        "not": {
+          "required": [
+            "encapsulation"
+          ]
+        },
+        "x-error-not": "encapsulation はappearance=encapsulatedでのみ指定できます"
+      }
+    },
+    "frame": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/frame_field"
+          },
+          "minItems": 3,
+          "maxItems": 9
+        },
+        "annotations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "text": {
+                "type": "string",
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "field",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "label",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "frame_field": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "bits": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "size_label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "role": {
+          "enum": [
+            "standard",
+            "muted",
+            "highlight",
+            "alert"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "bits"
+      ],
+      "additionalProperties": false
+    },
+    "code_section": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "\\S",
+          "x-maxLines": 16
+        }
+      },
+      "required": [
+        "label",
+        "code"
+      ],
+      "additionalProperties": false
+    },
+    "question": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 2,
+          "maxItems": 4
+        },
+        "answer": {
+          "type": "integer"
+        },
+        "explanation": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "question",
+        "options",
+        "answer",
+        "explanation"
+      ],
+      "additionalProperties": false
+    },
+    "org": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "sub": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "members": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "minItems": 0,
+                "maxItems": 4
+              },
+              "style": {
+                "enum": [
+                  "primary",
+                  "accent",
+                  "standard",
+                  "external"
+                ]
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "minProperties": 1
+        },
+        "levels": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "minItems": 1,
+            "maxItems": 5
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "to": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "kind": {
+                "enum": [
+                  "reporting",
+                  "advice",
+                  "collaboration"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 40
+        }
+      },
+      "required": [
+        "nodes",
+        "levels"
+      ],
+      "additionalProperties": false
+    },
+    "diagram": {
+      "type": "object",
+      "properties": {
+        "cols": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "nodes": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "col": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "row": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "title": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "icon": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "sub": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "service": {
+                "type": "string",
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "col",
+              "row",
+              "title",
+              "icon"
+            ],
+            "additionalProperties": false
+          },
+          "minProperties": 1
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/diagram_edge"
+          },
+          "minItems": 1
+        },
+        "containers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "label": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "members": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "minItems": 1
+              },
+              "color": {
+                "enum": [
+                  "line",
+                  "navy",
+                  "accent"
+                ]
+              },
+              "dash": {
+                "const": "dash"
+              }
+            },
+            "required": [
+              "name",
+              "label",
+              "members"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "channels": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/diagram_channel"
+          },
+          "minProperties": 0
+        }
+      },
+      "required": [
+        "cols",
+        "rows",
+        "nodes",
+        "edges"
+      ],
+      "additionalProperties": false
+    },
+    "diagram_edge": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "exit": {
+          "enum": [
+            "left",
+            "right",
+            "top",
+            "bottom"
+          ]
+        },
+        "enter": {
+          "enum": [
+            "left",
+            "right",
+            "top",
+            "bottom"
+          ]
+        },
+        "via": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 0
+        },
+        "dash": {
+          "const": "dash"
+        },
+        "both": {
+          "type": "boolean"
+        },
+        "from_row": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "diagram_channel": {
+      "anyOf": [
+        {
+          "type": "array",
+          "prefixItems": [
+            {
+              "enum": [
+                "left_of_col",
+                "right_of_col",
+                "above_row",
+                "below_row"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "\\S"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2,
+          "items": false
+        },
+        {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "outside_container"
+            },
+            {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "minItems": 1
+                    }
+                  ]
+                },
+                {
+                  "enum": [
+                    "left",
+                    "right",
+                    "top",
+                    "bottom",
+                    "top_inside"
+                  ]
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2,
+              "items": false
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2,
+          "items": false
+        }
+      ]
+    },
+    "vpc": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "cidr": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "az": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "subnets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/subnet"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "subnets"
+      ],
+      "additionalProperties": false
+    },
+    "subnet": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "cidr": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "label": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "icon": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "sub": {
+                "type": "string",
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "icon"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "resource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "icon": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "sub": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "icon"
+      ],
+      "additionalProperties": false
+    },
+    "vpc_flow": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "\\S",
+          "x-error-type": "空でない参照文字列にしてください"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "\\S",
+          "x-error-type": "空でない参照文字列にしてください"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "dash": {
+          "const": "dash"
+        },
+        "both": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "slide_title": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "title"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "subtitle": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "subtitle"
+      ],
+      "additionalProperties": false,
+      "x-unknown-messages": {
+        "lead": "lead は表紙以外のスライドでのみ指定できます"
+      }
+    },
+    "slide_section_divider": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "section_divider"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker"
+      ],
+      "additionalProperties": false
+    },
+    "slide_agenda": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "agenda"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "detail": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9999
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 7
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "slide_bullets": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "bullets"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "bullets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bullet"
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "style": {
+          "enum": [
+            "numbered",
+            "bullet",
+            "checklist"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "bullets"
+      ],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "style": {
+            "const": "checklist"
+          }
+        },
+        "required": [
+          "style"
+        ]
+      },
+      "else": {
+        "properties": {
+          "bullets": {
+            "items": {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "not": {
+                  "required": [
+                    "checked"
+                  ]
+                },
+                "x-error-not": "checked はstyle=checklistの場合だけ指定できます"
+              }
+            }
+          }
+        }
+      }
+    },
+    "slide_cards": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "cards"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/card"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "style": {
+          "enum": [
+            "editorial",
+            "metrics"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "cards"
+      ],
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "style": {
+            "const": "metrics"
+          }
+        },
+        "required": [
+          "style"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cards": {
+            "items": {
+              "required": [
+                "value"
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "cards": {
+            "items": {
+              "not": {
+                "required": [
+                  "emphasis"
+                ]
+              },
+              "x-error-not": "emphasis はstyle=metricsの場合だけ指定できます"
+            }
+          }
+        }
+      }
+    },
+    "slide_table": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "table"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 2,
+          "maxItems": 8
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "note": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "note_link": {
+          "$ref": "#/$defs/table_link"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "columns",
+        "rows"
+      ],
+      "additionalProperties": false,
+      "dependentRequired": {
+        "note_link": [
+          "note"
+        ]
+      }
+    },
+    "slide_two_column": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "two_column"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "left": {
+          "$ref": "#/$defs/column"
+        },
+        "right": {
+          "$ref": "#/$defs/column"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false
+    },
+    "slide_chart": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "chart"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "chart": {
+          "$ref": "#/$defs/chart"
+        },
+        "note": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "chart"
+      ],
+      "additionalProperties": false
+    },
+    "slide_image": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "image"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "image": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "fit": {
+          "enum": [
+            "contain",
+            "cover"
+          ]
+        },
+        "shadow": {
+          "type": "boolean"
+        },
+        "alt": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "image"
+      ],
+      "additionalProperties": false
+    },
+    "slide_image_compare": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "image_compare"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "left": {
+          "$ref": "#/$defs/image_side"
+        },
+        "right": {
+          "$ref": "#/$defs/image_side"
+        },
+        "fit": {
+          "enum": [
+            "contain",
+            "cover"
+          ]
+        },
+        "shadow": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false
+    },
+    "slide_process": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "process"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/process_step"
+          },
+          "minItems": 3,
+          "maxItems": 6
+        },
+        "flow": {
+          "$ref": "#/$defs/process_flow"
+        },
+        "emph": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 0
+        },
+        "note": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "steps"
+          ],
+          "not": {
+            "required": [
+              "flow"
+            ]
+          }
+        },
+        {
+          "required": [
+            "flow"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "steps"
+                ]
+              },
+              {
+                "required": [
+                  "emph"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "x-error-oneOf": "stepsまたはflowの一方を指定してください。process.flowと旧steps/emphは同時に指定できません"
+    },
+    "slide_program_roadmap": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "program_roadmap"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "periods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 3,
+          "maxItems": 12,
+          "uniqueItems": true
+        },
+        "tracks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/roadmap_track"
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "note": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "periods",
+        "tracks"
+      ],
+      "additionalProperties": false,
+      "x-maxActivities": 24
+    },
+    "slide_matrix": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "matrix"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "x_axis": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "y_axis": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/matrix_point"
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "quadrants": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "target_label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "note": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "x_axis",
+        "y_axis",
+        "points"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "quadrants"
+          ]
+        },
+        {
+          "required": [
+            "target_label"
+          ]
+        }
+      ]
+    },
+    "slide_scope_boundary": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "scope_boundary"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "in_scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "out_of_scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "in_label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "out_label": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "in_scope",
+        "out_of_scope"
+      ],
+      "additionalProperties": false
+    },
+    "slide_paired_comparison": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "paired_comparison"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "left_label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "right_label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/paired_row"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "criterion_label": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "left_label",
+        "right_label",
+        "rows"
+      ],
+      "additionalProperties": false
+    },
+    "slide_relationship_map": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "relationship_map"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "left_label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "right_label": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "left_items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mapping_item"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "right_items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mapping_item"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mapping_link"
+          },
+          "minItems": 1,
+          "maxItems": 10,
+          "x-error-maxItems": "対応線は1ページ{limit}本までです。論点ごとに分割してください"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "left_label",
+        "right_label",
+        "left_items",
+        "right_items",
+        "links"
+      ],
+      "additionalProperties": false
+    },
+    "slide_swimlane_flow": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "swimlane_flow"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "lanes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id_label"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id_label"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/swimlane_step"
+          },
+          "minItems": 2,
+          "maxItems": 14
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/flow_edge"
+          },
+          "minItems": 1,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "lanes",
+        "stages",
+        "steps",
+        "edges"
+      ],
+      "additionalProperties": false
+    },
+    "slide_message_sequence": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "message_sequence"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id_label"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/message"
+          },
+          "minItems": 2,
+          "maxItems": 12
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/message_phase"
+          },
+          "minItems": 0,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "participants",
+        "messages"
+      ],
+      "additionalProperties": false
+    },
+    "slide_concept": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "concept"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "term": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "definition": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "icon": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/concept_point"
+          },
+          "minItems": 2,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "term",
+        "definition",
+        "icon",
+        "points"
+      ],
+      "additionalProperties": false
+    },
+    "slide_references": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "references"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reference"
+          },
+          "minItems": 1,
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "references"
+      ],
+      "additionalProperties": false
+    },
+    "slide_nw_topology": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "nw_topology"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "lanes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/network_lane"
+          },
+          "minItems": 1,
+          "maxItems": 4
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id_label"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/network_node"
+          },
+          "minItems": 2,
+          "maxItems": 12
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/network_link"
+          },
+          "minItems": 1,
+          "maxItems": 18
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "lanes",
+        "columns",
+        "nodes",
+        "links"
+      ],
+      "additionalProperties": false
+    },
+    "slide_nw_protocol_flow": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "nw_protocol_flow"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/protocol_stage"
+          },
+          "minItems": 3,
+          "maxItems": 6
+        },
+        "flows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/protocol_flow"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "stages",
+        "flows"
+      ],
+      "additionalProperties": false
+    },
+    "slide_nw_frame_anatomy": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "nw_frame_anatomy"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/frame"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "frames"
+      ],
+      "additionalProperties": false
+    },
+    "slide_config_lab": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "config_lab"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code_section"
+          },
+          "minItems": 1,
+          "maxItems": 2
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "minItems": 2,
+          "maxItems": 5
+        },
+        "check_label": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "sections",
+        "checks"
+      ],
+      "additionalProperties": false
+    },
+    "slide_knowledge_check": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "knowledge_check"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "mode": {
+          "enum": [
+            "questions",
+            "answers"
+          ]
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/question"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "mode",
+        "questions"
+      ],
+      "additionalProperties": false
+    },
+    "slide_org": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "org"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "org": {
+          "$ref": "#/$defs/org"
+        },
+        "note": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "org"
+      ],
+      "additionalProperties": false
+    },
+    "slide_diagram": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "diagram"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "diagram": {
+          "$ref": "#/$defs/diagram"
+        },
+        "note": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "diagram"
+      ],
+      "additionalProperties": false
+    },
+    "slide_aws_vpc_layout": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "aws_vpc_layout"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "vpc": {
+          "$ref": "#/$defs/vpc"
+        },
+        "azs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/az"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "external": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resource"
+          },
+          "minItems": 0,
+          "maxItems": 2
+        },
+        "flows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/vpc_flow"
+          },
+          "minItems": 0,
+          "maxItems": 10
+        },
+        "note": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "vpc",
+        "azs"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

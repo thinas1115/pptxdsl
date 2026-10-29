@@ -10,7 +10,8 @@ rendererと共通部品の範囲に閉じ込めやすい。
 
 表紙とフッターだけは `--cover-footer-config` でユーザー別の設定JSONを選択できる。
 詳細は [`docs/cover-footer-customization.md`](docs/cover-footer-customization.md) を参照する。
-本文を含むテーマ全体を実行時に切り替える仕組みはなく、デザインはPythonコード内の単一テーマとして
+本文背景の色・画像も同じ設定JSONの`slide`で切り替えられる。`python -m slidegen.template_config`で
+雛形を作れる。本文の文字・図形の配色を含むテーマ全体を実行時に切り替える仕組みはなく、デザインはPythonコード内の単一テーマとして
 定義されているため、「テーマA / テーマBを切り替える」には別途テーマ層の実装が必要になる。
 
 ## 変更規模と難易度
@@ -29,8 +30,8 @@ rendererと共通部品の範囲に閉じ込めやすい。
 | 対象 | ファイル / シンボル | 変更内容 |
 |---|---|---|
 | 基本配色 | `slidegen/generate.py` の `NAVY`〜`RULE` | 背景、本文、アクセント、罫線、薄色面のカラートークン。`WHITE`は濃色上の反転文字、`SURFACE`は通常の明るい塗り面に使い分ける |
-| 基本フォント | `slidegen/generate.py` の `FONT` / `set_run()` | PowerPointに設定する日本語フォント、言語、太字、文字色 |
-| フォント実測 | `slidegen/textfit.py` の `_font()` | `FONT` を変える場合に、Pillowが同じフォントファイルを測るよう変更 |
+| 基本フォント | `slidegen/font_config.py` / `generate.set_run()` | 実測とPPTXで共有するfamily・face・ウェイト。言語・文字色はset_run |
+| フォント実測 | `slidegen/textfit.py` の `_font()` | 共有設定からPillowへ同じface・可変軸を渡す |
 | スライド寸法・本文領域 | `generate.py` の `SLIDE_W` / `SLIDE_H` / `MARGIN` / `BODY_*` | 画面比率、余白、本文の使用可能領域。変更影響が大きいため全rendererを再検証 |
 | 表紙・フッター | `slidegen/cover_footer.py` / `--cover-footer-config` | 表紙、ページ番号、フッター文言。利用者別設定はコード変更不要 |
 | 共通ヘッダー・注記 | `generate.py` の `header()` / `note_line()` | 全本文スライドの背景、見出し、注記 |
@@ -38,16 +39,22 @@ rendererと共通部品の範囲に閉じ込めやすい。
 | カード / KPI | `generate.py` の `s_cards()` | 列数計算、強調カード、背景面、見出しと本文の階層 |
 | 比較表 | `generate.py` の `s_table()` / `_cell()` | ヘッダー、行高、交互色、列見出し、文字位置 |
 | 2カラム比較 | `two_column` (`generate.py` の `s_twocol()`) | 左右のコントラスト、見出し、箇条書き、区切り |
-| グラフ | `generate.py` の `s_chart()` | グラフ面、系列色、凡例、余白、データラベル |
+| グラフ | `chart_renderer.py`の`plan_chart()` / `render_chart()`、`chart_model.py` | 実測した軸・カテゴリ・凡例・値、符号付き数値範囲、段階的収容 |
 | 大判画像 | `slidegen/image_slide.py` の `s_image()` / `fit_image_layout()` | 画像枠、contain/cover、右下影、縮小限界 |
 | 図解共通部品 | `slidegen/diagrams.py` の `LINE` / `add_arrow()` / `arrow_label()` / `container()` / `icon_node()` | アイコンノード、枠、矢印、線上ラベルの見た目 |
 | 体制図 | `org_layout.py` の `OrgLayout` | 階層DAG、関係線、ノードstyle、段階的収容 |
 | 工程 / ロードマップ / 2軸図 | `slidegen/diagrams2.py` の各 `s_*()` | 各ジャンル固有の線、帯、点、ラベル、余白 |
 | 構成図の色名 | `slidegen/diagram_layout.py` の `COLORS` | diagram specで指定できる離散的な色名と実色の対応 |
 | 構成図レイアウト | `diagram_layout.py` の `Layout` / `render_diagram()` | 座標、行間、配線、コンテナ。色だけの変更では触らない |
+| VPC階層図 | `aws_vpc_layout.py` の `_frame()` / `s_aws_vpc_layout()` | Subnetの境界は薄い罫線、Subnet名・CIDRは濃い文字色として分離する。VPC・AZ・Subnetの階層を保ち、通信線やアイコンは変更しない |
 | アイコン | `slidegen/assets/icons/` / `slidegen/assets/CREDITS.md` | 素材の追加とクレジット。AWSアイコン自体の色・比率・形状は変更禁止 |
 | デザイン検証一覧 | `tests/fixtures/gallery/content_patterns.py` | 全rendererを1デッキで確認するためのサンプル内容 |
 | 品質検証 | `check_layout.py` / `render.ps1` / `contact_sheet.py` | 衝突検査、PowerPoint実レンダリング、一覧目視 |
+
+`diagram`では実線の主経路を濃色1.6pt、破線の補助経路を灰色1.1pt、配置境界を0.85ptとする。
+線上ラベルは標準10pt、下限9ptで実測し、収まらないときは説明を分割する。
+破線は`set_line_dash()`から公開APIを使う。OOXMLの`prstDash`を塗り指定より前へ挿入すると、
+PowerPointが指定色を無視することがあるため、手動で順序を入れ替えない。
 
 ## 変更内容別の最小修正範囲
 
@@ -65,9 +72,9 @@ rendererと共通部品の範囲に閉じ込めやすい。
 
 ### フォントを変える
 
-1. `generate.py` の `FONT` を変更する。
-2. `textfit.py` のフォントファイル参照を同じ書体へ変更する。
-3. グラフの `chart.font.name` も `FONT` を参照していることを確認する。
+1. [フォント契約](docs/font-contract.md)に従い、対応フォントを環境変数で選択する。
+2. 未対応familyの追加は`font_config.py`で実測・PPTX指定を同時に拡張する。
+3. グラフの文字も`set_run()`を経由し、同じfamilyを参照していることを確認する。
 4. 全パターンを再生成し、折り返し・禁則・表の行高を再検証する。
 
 PowerPoint側だけフォントを変え、`textfit.py` を変えない状態は禁止。測定値と実描画がずれて溢れの原因になる。

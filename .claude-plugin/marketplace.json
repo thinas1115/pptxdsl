@@ -1,0 +1,17 @@
+{
+  "name": "pptxdsl-marketplace",
+  "owner": {"name": "pptxdsl"},
+  "metadata": {
+    "description": "pptxdslのClaude Code向けPlugin配布元",
+    "version": "1.0.2"
+  },
+  "plugins": [{
+    "name": "pptxdsl",
+    "description": "資料要件からPPTX生成・機械検証・PNG目視QAまで行うPlugin",
+    "source": {
+      "source": "archive",
+      "url": "https://github.com/thinas1115/pptxdsl/releases/download/v1.0.2/pptxdsl-plugin-v1.0.2.zip",
+      "sha256": "abe61720e9bba4792cd0bfb4b3e3b9d28348495222d3a35dfe35afcc3498df4b"
+    }
+  }]
+}

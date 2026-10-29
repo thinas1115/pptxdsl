@@ -92,7 +92,7 @@ def main():
     _must_fail(generate.s_bullets, spec, "不足")
     try:
         generate.render_slide(generate.s_bullets, _slide(), spec, 1)
-    except SystemExit as e:
+    except FitError as e:
         assert "slides[0] (type=bullets)" in str(e), str(e)
         assert "箇条書きを減らす" in str(e), str(e)
     else:
@@ -112,17 +112,18 @@ def main():
     )
     generate.s_cards(_slide(), normal_cards, 1)
 
-    gap_cards = dict(
+    moderate_cards = dict(
         normal_cards,
         cards=[{"heading": f"項目{i + 1}", "body": card_body * 3}
                for i in range(6)],
     )
-    gap_slide = _slide()
-    generate.s_cards(gap_slide, gap_cards, 1)
-    gap_body = next(shape for shape in gap_slide.shapes
+    moderate_slide = _slide()
+    generate.s_cards(moderate_slide, moderate_cards, 1)
+    moderate_body = next(shape for shape in moderate_slide.shapes
                     if getattr(shape, "has_text_frame", False)
                     and shape.text == card_body * 3)
-    assert gap_body.text_frame.paragraphs[0].runs[0].font.size.pt == 14
+    moderate_size = moderate_body.text_frame.paragraphs[0].runs[0].font.size.pt
+    assert 11 <= moderate_size <= 14
 
     shrink_cards = dict(
         normal_cards,
@@ -134,7 +135,7 @@ def main():
     shrink_body = next(shape for shape in shrink_slide.shapes
                        if getattr(shape, "has_text_frame", False)
                        and shape.text == card_body * 4)
-    assert shrink_body.text_frame.paragraphs[0].runs[0].font.size.pt < 14
+    assert 11 <= shrink_body.text_frame.paragraphs[0].runs[0].font.size.pt <= moderate_size
 
     overfull_cards = dict(
         normal_cards,

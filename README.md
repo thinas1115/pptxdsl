@@ -9,16 +9,22 @@
 
 ## 出力例
 
-対応する27種類のtypeを、37枚の出力例で確認できます。
+対応する28種類のtypeを、38枚の出力例で確認できます。
 
 ![TYPE別パターンギャラリー](docs/pattern-gallery-by-type.png)
 
-PowerPointで確認・編集できる実物は
-[パターンギャラリー](examples/gallery/pattern_gallery.pptx)に収録しています。
+PowerPointで確認・編集できる実物は、[パターンギャラリーの取得・生成手順](examples/gallery/README.md)から入手できます。
+Gitには軽量な一覧画像を置き、PPTXはRelease・CI成果物で配布します。
 研修資料の構成例は[VLAN基礎研修](examples/training/vlan/README.md)で確認できます。
 [AWSネットワーク資料の入力例](examples/training/aws-network/README.md)も収録しています。
 
+理解度チェックの問題・解答、2〜4選択肢、長い選択肢、leadありの専用ギャラリー（8ページ）は、
+`python -m tools.gallery.generate_knowledge_cases out/knowledge_gallery.pptx`で生成できます。
+同じ内容の問題と正答・解説を隣接ページで比較し、選択肢の列位置と長文の縦並びを確認できます。
+
 ## セットアップ
+
+開発時のlint・型検査・coverageは[静的品質ゲート](docs/static-quality.md)を参照してください。
 
 ```powershell
 git clone https://github.com/thinas1115/pptxdsl.git
@@ -26,11 +32,17 @@ cd pptxdsl
 python -m pip install -r requirements.txt
 ```
 
-- Python 3.10以上を前提とします。Windowsでは游ゴシック、非Windowsでは`fontconfig`から検出できる
-  日本語sansフォントを使用します。Noto Sans CJKを推奨します。
+- Python 3.10以上を前提とします。Windowsでは游ゴシック、非Windowsではfontconfigから
+  Noto Sans CJK JPまたはNoto Sans JPを検出します。測定とPPTX指定は同じfamilyへ統一します。
+  可変フォント・TTC・明示指定・再現性の条件は[フォント契約](docs/font-contract.md)を参照してください。
 - 生成結果を再現できるよう、直接・間接依存のバージョンを`requirements.txt`へ固定しています。
+- 素材の再取得を含む開発環境は`python -m pip install -r requirements-dev.txt`で導入します。
+  通常生成・Skill・Pluginには不要です。依存区分とOS側の前提は[依存関係](docs/dependencies.md)を参照してください。
 - PPTXの生成にPowerPointは不要です。PNG化と目視確認にだけ使用します。
 - AWS・Fluentアイコンは`slidegen/assets/icons/`へ同梱済みです。
+
+macOSのフォント準備、生成・機械検査、PowerPointの全ページPNG書出しと実機受入は
+[Mac向け手順](docs/macos.md)を参照してください。Windows COM用の`render.ps1`はMacでは使いません。
 
 アイコンの出典とライセンスは[クレジット](slidegen/assets/CREDITS.md)を参照してください。
 
@@ -40,6 +52,9 @@ python -m pip install -r requirements.txt
 |---|---|---|
 | Skill | Skillとして直接導入する、またはこのリポジトリ内で開発する | ReleaseのSkill ZIP、または`.agents/skills/pptxdsl/`とcloneしたPPTX生成コード |
 | Plugin | Plugins Directoryから導入する、他の利用者へPluginとして配布する | ReleaseのPlugin ZIPに同梱されたmanifest・Skill・PPTX生成コード・素材 |
+
+Claude Codeでも同じSkill ZIPとPlugin ZIPを使えます。導入先やMarketplaceの登録は
+[Claude Code向けの手順](docs/plugin.md#claude-codeでの導入)を参照してください。
 
 どちらも、資料要件と情報源の確認、`content.json`の設計、PPTX生成、機械検証、PNG化、
 全ページの目視QA、修正後の再確認までを1つの作業として実行します。
@@ -124,6 +139,11 @@ OpenAI公式の基本仕様は[Skills](https://developers.openai.com/docs/build-
 
 ## CLIで直接使う
 
+目次・発表順は`agenda`を使います。生成画像による概念説明は
+[画像生成から取込・QAまでの手順](.agents/skills/pptxdsl/references/generated-images.md)を参照してください。
+手元の画像は`--asset-dir assets`で利用でき、Plugin本体の書き換えは不要です。
+背景とフッターを合わせる設定は[テンプレート設定](docs/cover-footer-customization.md)から1コマンドで雛形を作れます。
+
 AIエージェントを使わず、自分で`content.json`を作成して生成・検証する場合の手順です。
 
 ### 1. content.jsonを作る
@@ -157,14 +177,20 @@ python contact_sheet.py out\png
 ```
 
 `generate_from_json.py`は生成前にschemaを検証し、不正な入力ではPPTXを生成しません。
+Pythonから組み込む場合は、状態がデッキ間で混ざらない[Python生成API](docs/generation-api.md)を使用します。
 エラーが出た場合は、表示された`slides[番号] (type=種別)`の内容を修正して再実行します。
 
 `out\png\sheet.png`の一覧と各ページの原寸画像を確認してください。レンダリング補助スクリプトは、
 WindowsではPowerPointを優先し、それ以外ではLibreOfficeとPDF画像化手段の組み合わせを探索します。
+`--probe`は一時領域で1枚のPPTXを実際にPNGへ変換し、backendの利用可否と失敗時の対処法を返します。
+実行ファイルがあるだけでは利用可能と判定しません。LibreOfficeはImpressモジュールも必要です。
+最小変換を使う環境判定では各コマンドに60秒の制限を設けますが、通常の資料の変換にはこの制限を適用しません。
 機械検証だけでは、文字の読みやすさ、内容の正確性、余白や配線の印象までは判断できません。
 
 Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テスト、主要デッキ生成、
 `check_layout.py`を実行します。PowerPointによるPNG化と目視確認はCIで代替せず、提出前に実施します。
+固定書体の主要5デッキはWindows・Ubuntu・macOSで生成し、各OSで相互検査します。
+macOS CIの構造検査と、PowerPoint for Macでの実機受入は別の工程です。
 
 ## 目的別ガイド
 
@@ -173,7 +199,7 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 | `content.json`のフィールドと制約を確認する | [CONTENT_SCHEMA.md](CONTENT_SCHEMA.md) |
 | 内容に合うtypeを選ぶ | [docs/type-selection-guide.md](docs/type-selection-guide.md) |
 | 生成AIへの依頼文を作る | [AI_DECK_PROMPT.md](AI_DECK_PROMPT.md) |
-| 対応レイアウトを人間が見て確認する | [サンプルスライドギャラリー](examples/gallery/pattern_gallery.pptx) |
+| 対応レイアウトを人間が見て確認する | [サンプルスライドギャラリー](examples/gallery/README.md) |
 | 新しいtypeやレイアウタを追加する | [EXTENDING.md](EXTENDING.md) |
 | 配色・フォント・表紙デザインを変更する | [DESIGN_CUSTOMIZATION.md](DESIGN_CUSTOMIZATION.md) |
 | 表紙・フッターだけを利用者別に変更する | [docs/cover-footer-customization.md](docs/cover-footer-customization.md) |
@@ -202,12 +228,19 @@ Pull Requestと`main`へのpushでは、Windows CIがPython 3.10・3.13の全テ
 実行時の生成物はすべて`out/`へ保存します。`docs/`には保守対象の説明文書と、
 その文書から参照する掲載素材だけを置きます。
 
-`examples/gallery/pattern_gallery.pptx`はclone後に人間が確認する配布用サンプルです。
+ギャラリーPPTXは人間がレイアウトを確認するサンプルです。[Release・CIからの取得とローカル生成](examples/gallery/README.md)に対応します。
 新しい資料を作る生成AIには渡さず、内容・文言・ページ順の参考資料にも使用しません。
+追跡対象と公開履歴の扱いは[ギャラリー配布方針](docs/gallery-distribution.md)を参照してください。
 
 テストや開発ツールはリポジトリルートからmoduleとして実行します。
 単体実行例は`python -m tests.test_check_layout`、ギャラリー生成は
 `python -m tools.gallery.generate_patterns out/pattern_gallery.pptx`です。
+全件実行は失敗後も最後まで続け、各モジュールの成功・失敗・所要時間と、明示された任意検証の
+skip理由を表示します。詳細ログは`out/test-results.json`へ保存します。
+保存先は`python -m tests --report out/test-results-next.json`で変更できます。
+assertを使用する既存テストの最適化実行は拒否します。新規テストには標準のunittestを使い、
+既存テストは対象機能の変更時にモジュール単位でTestCaseへ移行します。
+各モジュールの`python -m tests.test_xxx`入口とプロセス分離は維持します。
 通常のJSON生成・検証は従来のファイル実行とmodule実行の両方に対応します。
 
 ## ライセンス

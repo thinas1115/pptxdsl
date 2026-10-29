@@ -215,6 +215,7 @@ def test_libreoffice_backend_smoke() -> None:
         assert os.environ.get("PPTXDSL_REQUIRE_LIBREOFFICE") != "1", (
             f"LibreOffice backendを検出できません: {details}"
         )
+        print("SKIP: test_libreoffice_backend_smoke: LibreOffice backendなし")
         return
 
     with tempfile.TemporaryDirectory(prefix="pptxdsl-libreoffice-e2e-") as temp_name:

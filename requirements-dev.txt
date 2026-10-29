@@ -1,0 +1,3 @@
+# 素材取得と静的検査を含む全開発ツール用。テスト・配布ビルド自体に追加依存はない。
+-r requirements-assets.txt
+-r requirements-quality.txt

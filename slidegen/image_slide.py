@@ -2,13 +2,15 @@
 from PIL import Image
 from pptx.oxml import parse_xml
 from pptx.oxml.ns import nsdecls, qn
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 
 from slidegen.asset_paths import resolve_image_path
 from slidegen.generate import (
-    ACCENT, BODY_W, GRAY, LIGHT, ZEBRA, add_rect, add_text, header,
+    BODY_W, NAVY, RULE, add_rect, add_text, header,
 )
 from slidegen.layout_fit import select_fit, stepped
+from slidegen.layout_fit import FitError
+from slidegen.textfit import text_width_in, wrap_natural
 
 FRAME_X = 0.72
 FRAME_W = BODY_W - 0.34
@@ -20,6 +22,9 @@ COMPARE_LEFT = 0.76
 COMPARE_PANEL_W = (11.82 - COMPARE_GAP) / 2
 MIN_COMPARE_IMAGE_H = 2.00
 COMPARE_PICTURE_NAME = "ComparisonImage"
+COMPARE_LABEL_SPACING = 1.6
+COMPARE_LABEL_RULE_GAP = 0.08
+COMPARE_RULE_H = 0.008
 
 
 def fit_image_layout(available):
@@ -109,22 +114,44 @@ def s_image(slide, spec, page):
         spec.get("shadow", False))
 
 
-def fit_image_compare_layout(available):
+def _comparison_label_lines(label, size):
+    # 明示改行は意味の区切りとして保持し、各行の中だけ自然に折り返す。
+    return [line for paragraph in label.split("\n")
+            for line in wrap_natural(paragraph, COMPARE_PANEL_W, size, "bold")]
+
+
+def fit_image_compare_layout(available, labels=("BEFORE", "AFTER")):
     """左右パネル共通の帯余白・画像最小高さを標準→圧縮→縮小の順で評価する。"""
     candidates = []
 
-    def add(stage, top_pad, marker_h, mid_gap, bottom_pad, min_image_h):
+    def add(stage, top_pad, mid_gap, bottom_pad, min_image_h, label_size=13):
+        wrapped = [_comparison_label_lines(label, label_size) for label in labels]
+        # 倍率行送りはフォント固有の行高へ掛かり、size×倍率では予測できない。
+        # 游ゴシック13ptの2行は旧計算33.8ptに対してPowerPointでは39.11pt。
+        # 行送りを固定ptへ揃え、最終行の字形にも収まる1.6emを確保する。
+        line_pitch = label_size * COMPARE_LABEL_SPACING
+        marker_h = max(len(lines) for lines in wrapped) * line_pitch / 72
+        if any(text_width_in(line, label_size, "bold") > COMPARE_PANEL_W + 0.01
+               for lines in wrapped for line in lines) or max(map(len, wrapped)) > 3:
+            return
         values = {
             "top_pad": top_pad, "marker_h": marker_h, "mid_gap": mid_gap,
             "bottom_pad": bottom_pad, "min_image_h": min_image_h,
+            "label_size": label_size,
+            "line_pitch": line_pitch,
         }
-        used = top_pad + marker_h + mid_gap + min_image_h + bottom_pad
+        used = (top_pad + marker_h + COMPARE_LABEL_RULE_GAP + COMPARE_RULE_H
+                + mid_gap + min_image_h + bottom_pad)
         candidates.append((stage, values, used))
 
-    add("standard", 0.24, 0.30, 0.16, 0.20, 3.00)
-    add("gap", 0.14, 0.30, 0.10, 0.12, 2.70)
+    add("standard", 0.24, 0.16, 0.20, 3.00)
+    add("gap", 0.14, 0.10, 0.12, 2.70)
     for min_image_h in stepped(2.60, MIN_COMPARE_IMAGE_H, 0.10):
-        add("element", 0.10, 0.30, 0.08, 0.10, min_image_h)
+        add("element", 0.10, 0.08, 0.10, min_image_h)
+    for size in stepped(12.5, 11, 0.5):
+        add("element", 0.10, 0.08, 0.10, MIN_COMPARE_IMAGE_H, size)
+    if not candidates:
+        raise FitError("image_compare.label: 最小設定でもラベルが収まりません。3行以内になるよう文言を短くしてください。")
     return select_fit(
         "image_compare", available, candidates,
         guidance=("leadを短くするか、片方の画像だけのimageスライドへ分割してください。"),
@@ -142,27 +169,35 @@ def s_image_compare(slide, spec, page):
                 f"画像 {panel['image']!r} がassets内にありません")
         paths.append(path)
 
-    fitted = fit_image_compare_layout(area.height)
+    labels = [panel.get("label", "BEFORE" if i == 0 else "AFTER")
+              for i, panel in enumerate(panels)]
+    fitted = fit_image_compare_layout(area.height, labels)
     v = fitted.values
-    panel_h = v["top_pad"] + v["marker_h"] + v["mid_gap"] \
-        + v["min_image_h"] + v["bottom_pad"]
     top = area.top
     fit = spec.get("fit", "contain")
     shadow = spec.get("shadow", False)
 
     for i, (panel, path) in enumerate(zip(panels, paths)):
         x = COMPARE_LEFT + i * (COMPARE_PANEL_W + COMPARE_GAP)
-        fill = ZEBRA if i == 0 else LIGHT
-        marker = GRAY if i == 0 else ACCENT
-        add_rect(slide, x, top, COMPARE_PANEL_W, panel_h, fill)
-        add_text(slide, x + 0.30, top + v["top_pad"],
-                 COMPARE_PANEL_W - 0.60, v["marker_h"],
-                 panel.get("label", "BEFORE" if i == 0 else "AFTER"), 9.5,
-                 bold=True, color=marker)
-        image_top = top + v["top_pad"] + v["marker_h"] + v["mid_gap"]
-        image_h = panel_h - v["top_pad"] - v["marker_h"] - v["mid_gap"] \
-            - v["bottom_pad"]
+        lines = _comparison_label_lines(labels[i], v["label_size"])
+        label = add_text(slide, x, top + v["top_pad"],
+                         COMPARE_PANEL_W, v["marker_h"], "\n".join(lines),
+                         v["label_size"], bold=True, color=NAVY,
+                         spacing=Pt(v["line_pitch"]),
+                         wrap=False)
+        label.name = f"image-compare:label:{i}"
+        for paragraph in label.text_frame.paragraphs:
+            paragraph.space_before = paragraph.space_after = Pt(0)
+        rule_top = top + v["top_pad"] + v["marker_h"] + COMPARE_LABEL_RULE_GAP
+        rule = add_rect(slide, x, rule_top, COMPARE_PANEL_W, COMPARE_RULE_H, RULE)
+        rule.name = f"image-compare:rule:{i}"
+        image_top = rule_top + COMPARE_RULE_H + v["mid_gap"]
+        image_h = area.bottom - image_top - v["bottom_pad"]
+        if fit == "cover":
+            image_h = min(image_h, COMPARE_PANEL_W / 1.6)
         picture = _add_picture(
-            slide, path, x + 0.20, image_top, COMPARE_PANEL_W - 0.40,
+            slide, path, x, image_top, COMPARE_PANEL_W,
             image_h, fit, panel.get("alt"), shadow)
         picture.name = COMPARE_PICTURE_NAME
+        # contain時も画像上端を合わせ、異なる縦横比で視線の基準をずらさない。
+        picture.top = Inches(image_top)

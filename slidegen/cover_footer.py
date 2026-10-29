@@ -1,13 +1,12 @@
-"""表紙とフッターの設定・描画。
+"""本文背景・表紙とフッターの設定・描画。
 
-本文rendererから独立した範囲だけをユーザー設定可能にする。座標は公開せず、
-設定JSONでは文言、表示項目、色、表紙背景画像だけを扱う。
+座標は公開せず、設定JSONでは文言、表示項目、色、背景画像だけを扱う。
 """
 import json
 import re
 from copy import deepcopy
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PureWindowsPath, PurePosixPath
 from string import Formatter
 
 from PIL import Image, UnidentifiedImageError
@@ -30,6 +29,7 @@ _TEMPLATE_FIELDS = {
     "title", "footer", "date", "organization", "author", "page", "total",
 }
 COVER_BACKGROUND_NAME = "Cover Background"
+SLIDE_BACKGROUND_NAME = "Slide Background"
 _DEFAULT_BACKGROUND_IMAGE = (
     Path(__file__).resolve().parent / "assets" / "cover" /
     "cover-background.png"
@@ -42,6 +42,13 @@ _FOOTER_KEYS = {
     "text", "show_divider", "show_text", "show_page_number", "show_total",
     "text_color", "page_color", "divider_color",
 }
+_SLIDE_KEYS = {"background_color", "background_image"}
+
+
+@dataclass(frozen=True)
+class SlideConfig:
+    background_color: RGBColor = RGBColor(0xF7, 0xF5, 0xEF)
+    background_image: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -79,9 +86,11 @@ class FooterConfig:
 class CoverFooterConfig:
     cover: CoverConfig
     footer: FooterConfig
+    slide: SlideConfig = SlideConfig()
 
 
 _DEFAULT_DATA = {
+    "slide": {"background_color": "F7F5EF", "background_image": None},
     "cover": {
         "eyebrow": "",
         "show_date": False,
@@ -136,19 +145,19 @@ def _expect_optional_image(value, path, *, base_dir):
     value = _expect_text(value, path, max_length=500).strip()
     if not value:
         raise ValueError(f"{path} は画像ファイルのパスまたは null にしてください")
-    source = Path(value).expanduser()
+    source = Path(value)
     if not source.is_absolute():
         source = base_dir / source
     source = source.resolve()
     if source.suffix.lower() not in {".png", ".jpg", ".jpeg"}:
-        raise ValueError(f"{path} はPNGまたはJPEGを指定してください: {value}")
+        raise ValueError(f"{path} はPNGまたはJPEGを指定してください")
     if not source.is_file():
-        raise ValueError(f"{path} の画像が見つかりません: {value}")
+        raise ValueError(f"{path} の画像が見つかりません。設定JSONからの相対パスを確認してください")
     try:
         with Image.open(source) as image:
             image.verify()
     except (OSError, UnidentifiedImageError) as e:
-        raise ValueError(f"{path} を画像として読み込めません: {value}") from e
+        raise ValueError(f"{path} を画像として読み込めません。PNG/JPEGとして保存し直してください") from e
     return source
 
 
@@ -181,13 +190,13 @@ def _reject_unknown(data, allowed, path):
 def _merge_data(data):
     if not isinstance(data, dict):
         raise ValueError("設定JSONのトップレベルはオブジェクトにしてください")
-    _reject_unknown(data, {"cover", "footer"}, "トップレベル")
+    _reject_unknown(data, {"cover", "footer", "slide"}, "トップレベル")
     merged = {section: dict(values) for section, values in _DEFAULT_DATA.items()}
-    for section in ("cover", "footer"):
+    for section in ("cover", "footer", "slide"):
         override = data.get(section, {})
         if not isinstance(override, dict):
             raise ValueError(f"{section} はオブジェクトにしてください")
-        allowed = _COVER_KEYS if section == "cover" else _FOOTER_KEYS
+        allowed = {"cover": _COVER_KEYS, "footer": _FOOTER_KEYS, "slide": _SLIDE_KEYS}[section]
         _reject_unknown(override, allowed, section)
         merged[section].update(override)
     return merged
@@ -197,6 +206,16 @@ def parse_cover_footer_config(data, *, base_dir=None):
     """設定dictを検証し、描画用の不変オブジェクトへ変換する。"""
     base_dir = Path.cwd() if base_dir is None else Path(base_dir)
     merged = _merge_data(data)
+    for section in ("cover", "slide"):
+        image_override = data.get(section, {}).get("background_image")
+        if isinstance(image_override, str):
+            image_override = image_override.strip()
+        if isinstance(image_override, str) and (
+                PurePosixPath(image_override).is_absolute()
+                or PureWindowsPath(image_override).drive
+                or PureWindowsPath(image_override).root
+                or image_override.startswith("~")):
+            raise ValueError(f"{section}.background_image は設定JSONからの相対パスにしてください。絶対パス・ホーム展開は公開設定へ持ち込めません")
     cover = merged["cover"]
     footer = merged["footer"]
 
@@ -231,6 +250,11 @@ def parse_cover_footer_config(data, *, base_dir=None):
             "にしてください")
 
     return CoverFooterConfig(
+        slide=SlideConfig(
+            background_color=_expect_color(merged["slide"]["background_color"], "slide.background_color"),
+            background_image=_expect_optional_image(
+                merged["slide"]["background_image"], "slide.background_image", base_dir=base_dir),
+        ),
         cover=CoverConfig(
             eyebrow=_validate_template(
                 cover["eyebrow"], "cover.eyebrow", max_length=48),
@@ -271,12 +295,14 @@ def load_cover_footer_config(path=None):
     try:
         data = json.loads(source.read_text(encoding="utf-8"))
     except FileNotFoundError as e:
-        raise ValueError(f"設定ファイルが見つかりません: {source}") from e
+        raise ValueError("設定ファイルが見つかりません。--cover-footer-configの指定を確認してください") from e
     except json.JSONDecodeError as e:
         raise ValueError(
-            f"設定JSONが不正です: {source} ({e.lineno}行{e.colno}列)") from e
+            f"設定JSONが不正です ({e.lineno}行{e.colno}列)。括弧・カンマ・引用符を確認してください") from e
     except UnicodeDecodeError as e:
-        raise ValueError(f"設定JSONはUTF-8で保存してください: {source}") from e
+        raise ValueError("設定JSONはUTF-8で保存してください") from e
+    except OSError as e:
+        raise ValueError("設定JSONを読み取れません。ファイル種別と読み取り権限を確認してください") from e
     return parse_cover_footer_config(data, base_dir=source.parent.resolve())
 
 
@@ -322,7 +348,7 @@ def _rail_value_layout(text, *, field, max_lines):
         f"{field} の展開後の文字列が{max_lines}行以内に収まりません: {text}")
 
 
-def _add_cover_background_image(slide, source):
+def _add_cover_background_image(slide, source, *, name=COVER_BACKGROUND_NAME):
     """画像比率を維持し、中央を基準にスライド全面へトリミングする。"""
     with Image.open(source) as image:
         image_width, image_height = image.size
@@ -333,7 +359,7 @@ def _add_cover_background_image(slide, source):
         str(source), Inches(0), Inches(0),
         width=Inches(slide_width), height=Inches(slide_height),
     )
-    picture.name = COVER_BACKGROUND_NAME
+    picture.name = name
     if image_ratio > slide_ratio:
         crop = (1 - slide_ratio / image_ratio) / 2
         picture.crop_left = picture.crop_right = crop
@@ -373,7 +399,9 @@ def render_cover(slide, spec, meta, total, config, *, add_text, add_rect,
             label_size = _single_line_size(
                 label, 2.25, 8.8, 7,
                 field=f"cover.rail[{idx}].label", weight="bold")
-            max_lines = 3 if label.strip().upper() in {
+            fields = {name for _, name, _, _ in Formatter().parse(item.value) if name}
+            # 表示ラベルの言語に依存させない。固定値を使う従来英語設定も維持する。
+            max_lines = 3 if fields & {"organization", "author"} or label.strip().upper() in {
                 "ORG", "ORGANIZATION", "AUTHOR", "OWNER"
             } else 1
             value_size, value_lines, value_h = _rail_value_layout(

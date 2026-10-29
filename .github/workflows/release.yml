@@ -89,7 +89,7 @@ jobs:
           $tag = $env:GITHUB_REF_NAME
           gh release create $tag `
             "out/release/pptxdsl-skill-$tag.zip#Skill版（自己完結型）" `
-            "out/release/pptxdsl-plugin-$tag.zip#Plugin版（自己完結型）" `
+            "out/release/pptxdsl-plugin-$tag.zip#Codex・Claude Code Plugin版（自己完結型）" `
             "out/release/pattern_gallery.pptx#PowerPoint出力例" `
             "out/release/SHA256SUMS.txt#SHA-256チェックサム" `
             --verify-tag `

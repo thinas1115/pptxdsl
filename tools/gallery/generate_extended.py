@@ -1,11 +1,10 @@
 """基本デッキに表現力検証スライドを加えた拡張サンプルを生成する。"""
 import argparse
+import json
 from pathlib import Path
 
-from pptx import Presentation
-from pptx.util import Inches
-
 from slidegen import generate
+from slidegen.generate_from_json import build_presentation
 from tests.fixtures.gallery.content import DECK
 from tests.fixtures.gallery.content_ext import EXTRA_SLIDES
 from slidegen.org_layout import s_org
@@ -38,20 +37,12 @@ def main(out_path, cover_footer_config=None):
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        generate.configure_cover_footer(cover_footer_config)
+        slides = DECK["slides"] + EXTRA_SLIDES
+        fixture = json.loads(json.dumps({**DECK, "slides": slides}, ensure_ascii=False))
+        prs = build_presentation(fixture, cover_footer_config,
+                                 renderers=RENDER_EXTENDED, allow_sample_content=True)
     except ValueError as e:
-        raise SystemExit(f"NG: 表紙・フッター設定: {e}") from e
-    prs = Presentation()
-    prs.slide_width = Inches(generate.SLIDE_W)
-    prs.slide_height = Inches(generate.SLIDE_H)
-    blank = prs.slide_layouts[6]
-    slides = DECK["slides"] + EXTRA_SLIDES
-    generate.DECK = {**DECK, "slides": slides}
-    for idx, spec in enumerate(slides, 1):
-        slide = prs.slides.add_slide(blank)
-        generate.render_slide(RENDER_EXTENDED[spec["type"]], slide, spec, idx)
-        if spec["type"] != "title":
-            generate.footer(slide, idx)
+        raise SystemExit(f"NG: 拡張ギャラリー: {e}") from None
     prs.save(out_path)
     print(f"saved: {out_path} ({len(slides)} slides)")
 

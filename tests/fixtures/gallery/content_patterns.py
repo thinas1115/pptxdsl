@@ -16,7 +16,7 @@ PATTERN_DECK = {
         {
             "type": "title",
             "title": "社内スライド\nパターンライブラリ",
-            "subtitle": "意思決定から技術研修まで、27のTypeを37枚で検証",
+            "subtitle": "意思決定から技術研修まで",
         },
         {
             "type": "section_divider",
@@ -64,6 +64,7 @@ PATTERN_DECK = {
             "style": "metrics",
             "kicker": "KPIスナップショット",
             "title": "KPIは数値を主役にし、判断材料を添える",
+            "footnote": {"label": "架空データ", "text": "数値と効果の説明は表示検証用のサンプルであり、実績や測定結果ではありません。"},
             "cards": [
                 {"heading": "作成時間", "value": "-72%",
                  "body": "週次報告の作成時間が平均45分から13分に短縮。下書き作成の自動化が主因。",
@@ -167,16 +168,16 @@ PATTERN_DECK = {
             "kicker": "画面比較",
             "title": "変更前後のスクリーンショットを左右で比較する",
             "left": {
-                "image": "images/pptxdsl-repository.png",
+                "image": "images/request-list-before.png",
                 "label": "変更前",
-                "alt": "GitHubで公開されているpptxdslリポジトリのトップ画面",
+                "alt": "架空の申請一覧画面。すべての申請を同じ文字階層で表示した変更前のサンプル",
             },
             "right": {
-                "image": "cover/cover-background.png",
+                "image": "images/request-list-after.png",
                 "label": "変更後",
-                "alt": "濃紺のグラデーションに幾何学的な線を重ねた背景素材",
+                "alt": "同じ申請一覧の条件表示・申請名・状態を強調した変更後のサンプル",
             },
-            "fit": "cover",
+            "fit": "contain",
             "shadow": True,
         },
         {
@@ -554,9 +555,10 @@ PATTERN_DECK = {
             "kicker": "言葉の定義",
             "title": "RTOは、障害発生から業務再開までの目標時間を表す",
             "term": "RTO",
-            "definition": "Recovery Time Objectiveの略です。障害が起きてから、業務やサービスを再開するまでに許容する目標時間を定めます。",
+            "definition": "障害発生から、業務やサービスの再開までに許容する目標時間です。",
             "icon": "icons/fluent/clock.png",
             "points": [
+                {"label": "名称", "text": "Recovery Time Objectiveの略。"},
                 {"label": "起点", "text": "業務やサービスへ影響する障害が発生した時点。"},
                 {"label": "終点", "text": "利用者が必要な業務を再開できる状態へ戻った時点。"},
                 {"label": "設計への反映", "text": "復旧手順、冗長化、バックアップ方式の要求へ落とし込む。"},
@@ -857,6 +859,17 @@ PATTERN_DECK = {
             ],
         },
         {
+            "type": "agenda",
+            "kicker": "目次",
+            "title": "検討会のアジェンダ",
+            "items": [
+                {"title": "現状と課題", "detail": "利用状況と制約の確認", "page": 3},
+                {"title": "比較と評価", "detail": "選択肢と判断材料の整理", "page": 7},
+                {"title": "導入計画", "detail": "実施工程と体制の確認", "page": 16},
+                {"title": "運用設計", "detail": "対応手順と担当範囲の確認", "page": 25},
+            ],
+        },
+        {
             "type": "references",
             "kicker": "参考資料",
             "title": "確認に使用した情報源",
@@ -883,3 +896,7 @@ PATTERN_DECK = {
         },
     ],
 }
+
+PATTERN_DECK["slides"][0]["subtitle"] = (
+    f"意思決定から技術研修まで、{len({slide['type'] for slide in PATTERN_DECK['slides']})}のTypeを"
+    f"{len(PATTERN_DECK['slides'])}枚で検証")
