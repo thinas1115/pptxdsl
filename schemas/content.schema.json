@@ -44,6 +44,9 @@
             "$ref": "#/$defs/slide_section_divider"
           },
           {
+            "$ref": "#/$defs/slide_agenda"
+          },
+          {
             "$ref": "#/$defs/slide_bullets"
           },
           {
@@ -1789,6 +1792,66 @@
         "type",
         "title",
         "kicker"
+      ],
+      "additionalProperties": false
+    },
+    "slide_agenda": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "agenda"
+        },
+        "title": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "kicker": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "footnote": {
+          "$ref": "#/$defs/footnote"
+        },
+        "title_nominal_review": {
+          "$ref": "#/$defs/title_nominal_review"
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "detail": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9999
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 7
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "kicker",
+        "items"
       ],
       "additionalProperties": false
     },

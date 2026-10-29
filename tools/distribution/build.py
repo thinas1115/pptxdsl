@@ -31,6 +31,7 @@ PROJECT_FILES = (
     "docs/macos.md",
     "docs/generation-api.md",
     "examples/cover_footer.ja.json",
+    "examples/cover_footer.json",
     "requirements.txt", "render.ps1", "contact_sheet.py",
     "LICENSE", "THIRD_PARTY_NOTICES.md",
 )

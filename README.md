@@ -9,7 +9,7 @@
 
 ## 出力例
 
-対応する27種類のtypeを、37枚の出力例で確認できます。
+対応する28種類のtypeを、38枚の出力例で確認できます。
 
 ![TYPE別パターンギャラリー](docs/pattern-gallery-by-type.png)
 
@@ -138,6 +138,11 @@ OpenAI公式の基本仕様は[Skills](https://developers.openai.com/docs/build-
 [Pluginパッケージ](https://developers.openai.com/plugins/build/plugins)を参照してください。
 
 ## CLIで直接使う
+
+目次・発表順は`agenda`を使います。生成画像による概念説明は
+[画像生成から取込・QAまでの手順](.agents/skills/pptxdsl/references/generated-images.md)を参照してください。
+手元の画像は`--asset-dir assets`で利用でき、Plugin本体の書き換えは不要です。
+背景とフッターを合わせる設定は[テンプレート設定](docs/cover-footer-customization.md)から1コマンドで雛形を作れます。
 
 AIエージェントを使わず、自分で`content.json`を作成して生成・検証する場合の手順です。
 

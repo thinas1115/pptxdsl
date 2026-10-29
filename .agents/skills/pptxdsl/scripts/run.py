@@ -21,10 +21,19 @@ def main() -> int:
     for command in ("validate", "check", "sheet"):
         entry = commands.add_parser(command)
         entry.add_argument("input")
+        if command == "validate":
+            entry.add_argument("--asset-dir")
     generate = commands.add_parser("generate")
     generate.add_argument("content")
     generate.add_argument("output")
-    generate.add_argument("--cover-footer-config")
+    generate.add_argument("--cover-footer-config", "--template-config")
+    generate.add_argument("--asset-dir")
+    template = commands.add_parser("template")
+    template.add_argument("output")
+    template.add_argument("--background-color", default="F7F5EF")
+    template.add_argument("--background-image")
+    template.add_argument("--cover-background-image")
+    template.add_argument("--footer-text", default="{footer}")
     render = commands.add_parser("render")
     render.add_argument("pptx")
     render.add_argument("output")
@@ -52,12 +61,19 @@ def main() -> int:
         "probe": Path(__file__).with_name("render_preview.py"),
         "fonts": root / "slidegen/font_config.py",
         "raster": root / "slidegen/raster_qa.py",
+        "template": root / "slidegen/template_config.py",
     }
     command = [sys.executable, str(scripts[args.command])]
     if args.command == "generate":
         command.extend([args.content, args.output])
         if args.cover_footer_config:
             command.extend(["--cover-footer-config", args.cover_footer_config])
+    elif args.command == "template":
+        command.extend([args.output, "--background-color", args.background_color,
+                        "--footer-text", args.footer_text])
+        for option in ("background_image", "cover_background_image"):
+            if getattr(args, option):
+                command.extend(["--" + option.replace("_", "-"), getattr(args, option)])
     elif args.command == "render":
         command.extend([args.pptx, args.output, "--backend", args.backend,
                         "--width", str(args.width)])
@@ -69,6 +85,8 @@ def main() -> int:
         command.extend([args.manifest, args.png_dir, "--report", args.report])
     elif args.command != "fonts":
         command.append(args.input)
+    if args.command in ("validate", "generate") and args.asset_dir:
+        command.extend(["--asset-dir", args.asset_dir])
     # 入出力は呼び出し元の作業領域。インストール先へのchdirはしない。
     return subprocess.run(command, check=False).returncode
 

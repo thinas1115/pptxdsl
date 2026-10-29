@@ -20,7 +20,7 @@ class StaticQualityConfigTests(unittest.TestCase):
         self.assertIn("requirements-quality.txt", workflow)
         self.assertEqual(len(static_commands()), 3)
         self.assertIn("slidegen", static_commands()[0])
-        self.assertEqual(set(FORMATTED), {"slidegen/chart_model.py", "slidegen/layout_fit.py",
+        self.assertEqual(set(FORMATTED), {"slidegen/agenda_renderer.py", "slidegen/chart_model.py", "slidegen/layout_fit.py",
                                          "slidegen/layout_settings.py", "slidegen/network_layout.py",
                                          "slidegen/swimlane_layout.py", "slidegen/protocol_state_layout.py",
                                          "slidegen/timeline_layout.py", "slidegen/diagram_contract.py",

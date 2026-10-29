@@ -7,6 +7,7 @@
 見た目ではなく、読み手が追う関係で選ぶ。
 
 - 資料の表紙は`title`、章の区切りは`section_divider`。章番号や章ラベルは`kicker`へ明示する。
+- 資料の章立てや発表順の一覧は`agenda`。章名、任意の補足・開始ページを揃える。
 - 文字中心の列挙は`bullets`。独立した根拠、選択肢、事例、KPIの比較は`cards`。
 - 同じ評価軸で一覧するなら`table`。2案を行単位で対応させるなら`paired_comparison`。2つの状態や観点を大きく対比するなら`two_column`。
 - 直線・分岐・差戻しを含む工程は`process`。担当レーンも必要なら`swimlane_flow`。関係者や機器間の送受信順が主役なら`message_sequence`。

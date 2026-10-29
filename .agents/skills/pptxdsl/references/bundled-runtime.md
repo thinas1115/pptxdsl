@@ -22,7 +22,10 @@ python <Skill>/scripts/run.py sheet out/png
 ```
 
 `generate`の出力先、`render`のPNG保存先は省略できない。`render`は`--backend`、`--width`、
-`--slides`を、`generate`は`--cover-footer-config`を受け付ける。
+`--slides`を、`generate`は`--cover-footer-config`または`--template-config`を受け付ける。
+`validate`と`generate`には`--asset-dir assets`を渡せる。
+`python <Skill>/scripts/run.py template out/template.json --footer-text "社内限定"`で設定雛形を作れる。
+本文背景・表紙背景は`--background-image`・`--cover-background-image`、本文単色背景は`--background-color`で指定する。
 回帰用PNG検査仕様がある場合は、`python <Skill>/scripts/run.py raster out/raster-checks.json out/png --report out/raster-report.json`も使える。
 合否・目視・人の承認は[PNGの合否基準](visual-acceptance.md)に従って別々に記録する。
 
@@ -47,7 +50,7 @@ Python実行ができない通常チャットやレンダリング手段のな�
 PNG化できなければ目視QAを完了扱いにせず、不足と調査結果を報告する。
 代替backendではPowerPointとの描画差が残る可能性を報告する。
 
-追加画像や独自の配色が必要な場合は、利用者の作業領域へSkill全体をコピーし、コピー側の
-`project/slidegen/assets/`とクレジットを更新して、コピー側の`run.py`を使用する。
-インストールされた正本は変更しない。画像パスは引き続き同梱assets内の相対パスで指定する。
+追加画像は利用者の`assets/`へ保存し、`--asset-dir assets`で指定する。
+生成画像のプロンプト・採用前QA・記録は[生成画像の利用](generated-images.md)に従う。
+背景やフッターは利用者側の設定JSONを渡す。インストールされた正本や同梱assetsを変更しない。
 情報源の確認、全ページ一覧と原寸での目視QA、修正後の再確認は通常のSkill手順と同じ。

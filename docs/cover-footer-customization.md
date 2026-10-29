@@ -1,7 +1,29 @@
-# 表紙・フッター設定
+# テンプレート設定（本文背景・表紙・フッター）
 
-表紙とフッターだけをユーザーごとに変更する場合は、`content.json` とは別の設定JSONを使う。
-本文renderer、構成図レイアウト、本文領域の座標は変更されない。
+利用者のスライドテンプレートへ合わせる場合は、`content.json`とは別の設定JSONに本文背景、表紙背景、
+フッター文字と色をまとめる。本文領域の座標や図解の構造は変更しない。
+既存の`--cover-footer-config`と設定JSONはそのまま使える。新しい`--template-config`は同じ指定の別名。
+
+## 雛形を1コマンドで作る
+
+```text
+python -m slidegen.template_config out/template.json --background-color FFFFFF --footer-text "社内限定"
+python slidegen/generate_from_json.py content.json out/deck.pptx --template-config out/template.json
+```
+
+背景画像を使う場合は、文字を含まないPNG/JPEGを用意して指定する。配置場所を固定せず、
+設定ファイルからの相対参照を自動で作る。既存ファイルは上書きしない。
+
+```text
+python -m slidegen.template_config out/template.json --background-image assets/body.png --cover-background-image assets/cover.png --footer-text "{organization} / {footer}"
+```
+
+生成したJSONの`slide`、`cover`、`footer`を一か所で編集し、別のデッキにも再利用できる。
+個人設定と素材は利用者の作業領域へ置く。Pluginの同梱コードや画像を差し替える必要はない。
+これはPPTX/POTXのマスター・自由配置を丸ごと取り込む機能ではない。背景に本文やフッター文字を焼き込むと
+生成テキストと二重になるため、背景素材からは除く。
+Release配布のSkill/Pluginでは、同梱の`run.py template out/template.json`で雛形を作り、
+`run.py generate content.json out/deck.pptx --template-config out/template.json`で適用する。
 
 ## 実行方法
 
@@ -49,6 +71,18 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 分離することで、同じ `content.json` を利用者別の表紙・フッターで再生成できる。
 
 ## 設定項目
+
+### slide
+
+| 項目 | 型 | 既定値 / 説明 |
+|---|---|---|
+| `background_color` | string | 本文・章扉の背景色。6桁HEX、既定`F7F5EF` |
+| `background_image` | string / null | 本文・章扉の背景PNG/JPEG。設定JSONからの相対パス。既定`null` |
+
+表紙には`cover`の設定を使う。画像は縦横比を保って中央基準で全面へトリミングし、PPTXへ埋め込む。
+既存の紺色文字・図形を読み取れる明るい背景を使い、本文・図形を覆わないよう背景の模様やロゴ位置を確認する。
+背景色の変更は本文の文字色・全図形の配色を自動変換しない。暗い本文背景の全面テーマ変換は対象外。
+背景画像内部のコントラストは機械検査で保証できないため、全ページPNGで文字と線を確認する。
 
 ### cover
 

@@ -33,6 +33,7 @@ CATEGORY_ORDER = ("Common", "NW")
 TYPE_ORDER = (
     "title",
     "section_divider",
+    "agenda",
     "bullets",
     "cards",
     "table",
@@ -62,6 +63,7 @@ TYPE_ORDER = (
 TYPE_CATEGORIES = {
     "title": "Common",
     "section_divider": "Common",
+    "agenda": "Common",
     "bullets": "Common",
     "cards": "Common",
     "table": "Common",

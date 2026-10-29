@@ -1,4 +1,5 @@
 """content.jsonの構造と意味を分けて検証し、生成前に日本語で修正箇所を返す。"""
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -10,6 +11,7 @@ from slidegen.input_io import load_content_json
 from slidegen.sample_content_guard import sample_reuse_paths
 from slidegen.schema_validation import SLIDE_SCHEMAS, envelope_errors, slide_errors
 from slidegen.semantic_validation import validate_semantics
+from slidegen.asset_paths import image_assets
 
 _PLACEHOLDER = re.compile(r"^<[^<>]+>$")
 _UNRESOLVED = re.compile(r"^(?:TBD|TODO|要確認|未定|仮入力|仮文言)$", re.IGNORECASE)
@@ -150,7 +152,12 @@ def _migration_errors(s):
         s.err("旧org形式は廃止しました。org.nodes / org.levels / org.edges へ移行してください")
 
 
-def validate(deck, *, allow_sample_content=False):
+def validate(deck, *, allow_sample_content=False, asset_dir=None):
+    with image_assets(asset_dir):
+        return _validate(deck, allow_sample_content=allow_sample_content)
+
+
+def _validate(deck, *, allow_sample_content=False):
     """構造が壊れたスライドでは意味検証を行わない。入力は変更しない。"""
     errors = envelope_errors(deck)
     if not isinstance(deck, dict):
@@ -184,9 +191,9 @@ def validate(deck, *, allow_sample_content=False):
     return errors
 
 
-def main(json_path):
+def main(json_path, asset_dir=None):
     deck = load_content_json(json_path)
-    errors = validate(deck)
+    errors = validate(deck, asset_dir=asset_dir)
     for message in validation_warnings(deck):
         print(f"警告: {message}", file=sys.stderr)
     if errors:
@@ -198,4 +205,11 @@ def main(json_path):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "content.json")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("json_path", nargs="?", default="content.json")
+    parser.add_argument("--asset-dir", help="利用者の画像素材ディレクトリ")
+    args = parser.parse_args()
+    try:
+        main(args.json_path, args.asset_dir)
+    except ValueError as error:
+        raise SystemExit(f"NG: {error}") from None

@@ -21,6 +21,10 @@ presentation.save("out/deck.pptx")
 `cover_footer_config`は設定JSONのパス、または検証済み`CoverFooterConfig`を受け取る。
 省略時は毎回標準設定となり、以前の呼び出しの設定を引き継がない。
 `renderers`は開発時のrenderer辞書の差し替え用であり、通常利用では省略する。
+`asset_dir="assets"`を渡すと、画像typeは利用者の素材ルートを優先して参照する。
+`validate(deck, asset_dir="assets")`にも同じ指定を渡す。素材ルートは呼出し内だけで有効になり、
+並列・入れ子生成や例外後に他のデッキへ漏れない。
+背景・フッターは[テンプレート設定](cover-footer-customization.md)で調整できる。
 回帰ギャラリー以外で`allow_sample_content=True`を指定してはならない。
 
 入力・設定が不正な場合は`ValueError`、収容できない場合はその派生の`FitError`を返す。

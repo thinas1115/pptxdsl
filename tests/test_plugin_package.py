@@ -115,6 +115,19 @@ def _check_archive_and_runtime() -> None:
         assert fonts["regular"]["style"] == "Regular" and fonts["bold"]["style"] == "Bold"
         assert all("path" not in face for face in fonts.values())
         assert len(Presentation(task / "out/deck.pptx").slides) == len(deck["slides"])
+        assets = task / "assets"
+        assets.mkdir()
+        Image.new("RGB", (800, 400), "#dfeae7").save(assets / "concept.png")
+        custom = {"meta": {"title": "概念の説明"}, "slides": [
+            {"type": "agenda", "kicker": "目次", "title": "説明の構成", "items": [{"title": "概念", "page": 2}]},
+            {"type": "image", "kicker": "概念", "title": "概念のイメージ", "image": "concept.png"}]}
+        (task / "custom.json").write_text(json.dumps(custom, ensure_ascii=False), encoding="utf-8")
+        _run(runner, task, "template", "out/template.json", "--background-color", "FFFFFF", "--footer-text", "説明資料")
+        _run(runner, task, "validate", "custom.json", "--asset-dir", "assets")
+        _run(runner, task, "generate", "custom.json", "out/custom.pptx", "--asset-dir", "assets",
+             "--template-config", "out/template.json")
+        _run(runner, task, "check", "out/custom.pptx")
+        assert len(Presentation(task / "out/custom.pptx").slides) == 2
         details = json.loads(_run(runner, task, "probe").stdout)
         # Windowsの一時ディレクトリは短縮名・長い名前のどちらでも同じ場所を指す。
         assert Path(details["powerpoint"]["render_script"]).resolve() == (project / "render.ps1").resolve()

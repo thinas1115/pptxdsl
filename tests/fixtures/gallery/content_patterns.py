@@ -859,6 +859,17 @@ PATTERN_DECK = {
             ],
         },
         {
+            "type": "agenda",
+            "kicker": "目次",
+            "title": "検討会のアジェンダ",
+            "items": [
+                {"title": "現状と課題", "detail": "利用状況と制約の確認", "page": 3},
+                {"title": "比較と評価", "detail": "選択肢と判断材料の整理", "page": 7},
+                {"title": "導入計画", "detail": "実施工程と体制の確認", "page": 16},
+                {"title": "運用設計", "detail": "対応手順と担当範囲の確認", "page": 25},
+            ],
+        },
+        {
             "type": "references",
             "kicker": "参考資料",
             "title": "確認に使用した情報源",

@@ -353,6 +353,18 @@ def _slide_definitions() -> Schema:
     definitions = {
         "title": obj({"subtitle": TEXT}),
         "section_divider": obj({}),
+        "agenda": obj(
+            {
+                "items": array(
+                    obj(
+                        {"title": TEXT},
+                        {"detail": TEXT, "page": {**INTEGER, "minimum": 1, "maximum": 9999}},
+                    ),
+                    1,
+                    7,
+                )
+            }
+        ),
         "bullets": obj(
             {"bullets": array(ref("bullet"), 1, 6)},
             {

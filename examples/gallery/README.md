@@ -1,6 +1,6 @@
 # サンプルスライドギャラリー
 
-対応する27種類のtypeを、37枚の出力例で比較できます。Gitには下の縮小一覧を置き、
+対応する28種類のtypeを、38枚の出力例で比較できます。Gitには下の縮小一覧を置き、
 PowerPointで編集できるPPTXはRelease・CI成果物として配布します。
 
 ![TYPE別パターンギャラリー](../../docs/pattern-gallery-by-type.png)

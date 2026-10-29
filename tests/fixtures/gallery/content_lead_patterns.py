@@ -6,6 +6,7 @@ from tests.fixtures.gallery.content_patterns import PATTERN_DECK
 
 
 LEADS = {
+    "agenda": "説明する章と確認事項を、進行順に一覧します。",
     "section_divider": "章の対象範囲と、本文で確認する判断点を示します。",
     "bullets": "結論を先に示し、その根拠を読み順に沿って確認します。",
     "cards": "各項目を比較し、意思決定に必要な差分を整理します。",

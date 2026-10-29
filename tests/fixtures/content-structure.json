@@ -10,6 +10,16 @@
     "kicker": "構造試験専用"
   },
   {
+    "type": "agenda",
+    "title": "構造試験専用",
+    "kicker": "構造試験専用",
+    "items": [
+      {
+        "title": "構造試験専用"
+      }
+    ]
+  },
+  {
     "type": "bullets",
     "title": "構造試験専用",
     "kicker": "構造試験専用",

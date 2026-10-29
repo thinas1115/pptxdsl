@@ -10,7 +10,7 @@
 
 | category | type |
 |---|---|
-| Common | `title`, `section_divider`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check`, `references` |
+| Common | `title`, `section_divider`, `agenda`, `bullets`, `cards`, `table`, `two_column`, `chart`, `image`, `image_compare`, `process`, `program_roadmap`, `matrix`, `org`, `diagram`, `scope_boundary`, `paired_comparison`, `relationship_map`, `swimlane_flow`, `message_sequence`, `concept`, `config_lab`, `knowledge_check`, `references` |
 | NW | `aws_vpc_layout`, `nw_topology`, `nw_protocol_flow`, `nw_frame_anatomy` |
 
 ## 参照情報の役割
@@ -39,6 +39,7 @@
 |---|---|---|---|
 | `title` | 表紙 | 章扉・中扉、本文の見出しだけを強調したい | `section_divider`、通常スライドの`title` |
 | `section_divider` | 章扉・中扉。章ラベル、章タイトル、任意のleadだけを置く | 表紙、本文の見出し、章の根拠や工程を説明する | `title`、通常スライドの`title` |
+| `agenda` | 1〜7章の目次・発表順。任意の補足と開始ページを揃える | 本文の論点や工程の説明、関係図 | `section_divider`、`bullets`、`process` |
 | `bullets` | 手順、順序を持たない要点、完了状態付きタスクを文字中心で示す | 数値比較、工程、階層を表す | `table`、`process`、`org` |
 | `cards` | 同格な複数の選択肢、事例、判断材料、KPIを比較する | 1つの用語の定義と要点、読み順のある要点、工程や図の要素を並べる | `concept`、`bullets`、`process`、`diagram` |
 | `table` | 同じ評価軸で複数項目を比較・一覧する | 時系列の推移や関係を見せる | `chart`、`program_roadmap` |

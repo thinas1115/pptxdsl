@@ -10,7 +10,8 @@ rendererと共通部品の範囲に閉じ込めやすい。
 
 表紙とフッターだけは `--cover-footer-config` でユーザー別の設定JSONを選択できる。
 詳細は [`docs/cover-footer-customization.md`](docs/cover-footer-customization.md) を参照する。
-本文を含むテーマ全体を実行時に切り替える仕組みはなく、デザインはPythonコード内の単一テーマとして
+本文背景の色・画像も同じ設定JSONの`slide`で切り替えられる。`python -m slidegen.template_config`で
+雛形を作れる。本文の文字・図形の配色を含むテーマ全体を実行時に切り替える仕組みはなく、デザインはPythonコード内の単一テーマとして
 定義されているため、「テーマA / テーマBを切り替える」には別途テーマ層の実装が必要になる。
 
 ## 変更規模と難易度

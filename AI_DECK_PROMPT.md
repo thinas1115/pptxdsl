@@ -152,6 +152,12 @@
 
 ## 実行コマンド
 
+章立てを一覧するページが必要なら`agenda`を選ぶ。
+概念をイメージで説明する場合はPPTX作成Skillの`references/generated-images.md`に従い、
+cloneでは`.agents/skills/pptxdsl/`、配布版では実際のSkillフォルダを起点に読む。
+シンプルさを具体的な構図・色数・線・装飾の条件にして生成し、採用前QAを行う。
+外部画像は検証・生成の両方へ`--asset-dir assets`を渡す。正確な構造・数値を画像生成で捏造しない。
+
 生成されたJSONを `content.json` として保存してから実行する。
 
 ```powershell

@@ -6,6 +6,7 @@
 |---|---|
 | `title` | `subtitle` |
 | `section_divider` | なし（条件付き項目は構造契約を参照） |
+| `agenda` | `items` |
 | `bullets` | `bullets` |
 | `cards` | `cards` |
 | `table` | `columns`, `rows` |

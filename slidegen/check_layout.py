@@ -28,7 +28,7 @@ from pptx import Presentation
 from pptx.enum.dml import MSO_FILL_TYPE
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.oxml.ns import qn
-from slidegen.cover_footer import COVER_BACKGROUND_NAME
+from slidegen.cover_footer import COVER_BACKGROUND_NAME, SLIDE_BACKGROUND_NAME
 from slidegen.quality_markers import (
     MIN_SURFACE_CONTRAST,
     MIN_SURFACE_EDGE_CONTRAST,
@@ -238,7 +238,7 @@ def check(path):
             if is_oob(bounds, slide_w, slide_h):
                 findings.append((si, "OOB", sh.name, ""))
             if st == MSO_SHAPE_TYPE.PICTURE:
-                if sh.name != COVER_BACKGROUND_NAME:
+                if sh.name not in (COVER_BACKGROUND_NAME, SLIDE_BACKGROUND_NAME):
                     pics.append((bounds, sh.name))
             elif st in (MSO_SHAPE_TYPE.AUTO_SHAPE,):
                 if sh.name.startswith(SURFACE_ON_CANVAS_PREFIX):

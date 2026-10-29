@@ -9,6 +9,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 FORMATTED = (
+    "slidegen/agenda_renderer.py",
     "slidegen/chart_model.py",
     "slidegen/layout_fit.py",
     "slidegen/layout_settings.py",

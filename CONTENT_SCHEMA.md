@@ -52,6 +52,26 @@ typeの選び方は[type選択ガイド](docs/type-selection-guide.md)、入力�
 | `title_nominal_review.reason` | 必須 | 空でない文字列 |
 | `lead` | 任意 | 空でない文字列 |
 
+## agenda
+
+| フィールド | 指定 | 構造 |
+|---|---|---|
+| `type` | 必須 | 固定値 `agenda` |
+| `title` | 必須 | 空でない文字列 |
+| `kicker` | 必須 | 空でない文字列 |
+| `footnote` | 任意 | オブジェクト |
+| `footnote.text` | 必須 | 空でない文字列 |
+| `footnote.label` | 任意 | 空でない文字列 |
+| `title_nominal_review` | 任意 | オブジェクト |
+| `title_nominal_review.title` | 必須 | 空でない文字列 |
+| `title_nominal_review.reason` | 必須 | 空でない文字列 |
+| `lead` | 任意 | 空でない文字列 |
+| `items` | 必須 | 配列、1〜7件 |
+| `items[]` | 各要素 | オブジェクト |
+| `items[].title` | 必須 | 空でない文字列 |
+| `items[].detail` | 任意 | 空でない文字列 |
+| `items[].page` | 任意 | 整数、1〜9999 |
+
 ## bullets
 
 | フィールド | 指定 | 構造 |

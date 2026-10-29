@@ -26,6 +26,7 @@ from slidegen.diagrams2 import s_matrix, s_process, s_program_roadmap
 from slidegen.diagram_layout import render_diagram
 from slidegen.image_slide import s_image, s_image_compare
 from slidegen.reference_renderer import s_references
+from slidegen.agenda_renderer import s_agenda
 from slidegen.candidate_renderers import (
     s_mapping, s_paired_comparison, s_scope, s_sequence, s_swimlane,
 )
@@ -37,6 +38,7 @@ from slidegen.font_config import FontConfigError, font_faces
 from slidegen.validate_content import validate, validation_warnings
 from slidegen.generation_context import bind_context, make_context
 from slidegen.layout_fit import FitError
+from slidegen.asset_paths import image_assets
 
 
 def s_diagram(slide, spec, page):
@@ -64,13 +66,22 @@ RENDER = dict(generate.RENDER,
               nw_frame_anatomy=s_protocol_anatomy,
               config_lab=s_code_lab, knowledge_check=s_knowledge_check)
 RENDER["references"] = s_references
+RENDER["agenda"] = s_agenda
 
 
 def build_presentation(deck, cover_footer_config=None, *, renderers=None,
-                       allow_sample_content=False):
+                       allow_sample_content=False, asset_dir=None):
+    with image_assets(asset_dir):
+        return _build_presentation(deck, cover_footer_config, renderers=renderers,
+                                   allow_sample_content=allow_sample_content,
+                                   asset_dir=asset_dir)
+
+
+def _build_presentation(deck, cover_footer_config=None, *, renderers=None,
+                        allow_sample_content=False, asset_dir=None):
     """入力を独立コピーして検証・生成する。保存やモジュール状態の書換えはしない。"""
     snapshot = deepcopy(deck)
-    errors = validate(snapshot, allow_sample_content=allow_sample_content)
+    errors = validate(snapshot, allow_sample_content=allow_sample_content, asset_dir=asset_dir)
     if errors:
         raise ValueError("入力に問題があります:\n  - " + "\n  - ".join(errors))
     context = make_context(snapshot, cover_footer_config)
@@ -90,11 +101,11 @@ def build_presentation(deck, cover_footer_config=None, *, renderers=None,
     return prs
 
 
-def main(json_path, out_path, cover_footer_config=None):
+def main(json_path, out_path, cover_footer_config=None, asset_dir=None):
     source = Path(json_path)
     display_name = source.name
     deck = load_content_json(source)
-    errors = validate(deck)
+    errors = validate(deck, asset_dir=asset_dir)
     for message in validation_warnings(deck):
         print(f"警告: {message}", file=sys.stderr)
     if errors:
@@ -108,7 +119,7 @@ def main(json_path, out_path, cover_footer_config=None):
     except FontConfigError as error:
         raise SystemExit(f"NG: フォント設定: {error}") from None
     try:
-        prs = build_presentation(deck, cover_footer_config)
+        prs = build_presentation(deck, cover_footer_config, asset_dir=asset_dir)
     except ValueError as e:
         raise SystemExit(f"NG: {e}") from None
     out_path = Path(out_path)
@@ -122,7 +133,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("json_path", nargs="?", default=project_root / "content.json")
     parser.add_argument("out_path", nargs="?", default=project_root / "out" / "from_json.pptx")
-    parser.add_argument("--cover-footer-config", metavar="PATH",
-                        help="表紙・フッター設定JSON")
+    parser.add_argument("--cover-footer-config", "--template-config", metavar="PATH",
+                        help="表紙・本文背景・フッター設定JSON")
+    parser.add_argument("--asset-dir", help="利用者の画像素材ディレクトリ")
     args = parser.parse_args()
-    main(args.json_path, args.out_path, args.cover_footer_config)
+    try:
+        main(args.json_path, args.out_path, args.cover_footer_config, args.asset_dir)
+    except ValueError as error:
+        raise SystemExit(f"NG: {error}") from None

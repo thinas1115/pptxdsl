@@ -19,7 +19,9 @@
 - 表紙が必要な場合だけ`title`を使う。typeは同梱のschemaにあるものだけを選び、ギャラリーのページ順やtype順を流用しない。
 - 章区切りは`section_divider`を使い、章番号・章ラベルを`kicker`に書く。自動採番を前提にしない。
 - システムやネットワーク図のノード・エッジには意味だけを書き、配置はrendererへ任せる。存在しないアイコン名を発明しない。
-- 画像typeでは、実在して利用可能なリポジトリ相対パスだけを書く。追加素材の出典とライセンスは`slidegen/assets/CREDITS.md`へ記録する。
+- 画像typeでは、同梱assetsまたは`--asset-dir`で指定した素材ルート内の相対パスを書く。
+  生成画像は[生成と取り込み](generated-images.md)に従い、利用者の作業領域で管理する。
+  リポジトリへ同梱する追加素材の出典とライセンスは`slidegen/assets/CREDITS.md`へ記録する。
 - `tests/fixtures/gallery/content*.py`と`tests/fixtures/gallery/diagram_specs.py`から題材、文言、数値、ページ構成をコピーしない。
 
 ## 収容エラーの直し方

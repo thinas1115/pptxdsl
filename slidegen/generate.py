@@ -13,7 +13,9 @@ from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
-from slidegen.cover_footer import render_cover, render_footer
+from slidegen.cover_footer import (
+    SLIDE_BACKGROUND_NAME, _add_cover_background_image, render_cover, render_footer,
+)
 from slidegen.layout_fit import (
     FitError,
     fit_text_or_raise,
@@ -113,8 +115,15 @@ def add_rect(slide, x, y, w, h, fill, *, line=None, round_=False):
     return sp
 
 
+def slide_background(slide):
+    config = current_context().cover_footer.slide
+    add_rect(slide, 0, 0, SLIDE_W, SLIDE_H, config.background_color)
+    if config.background_image is not None:
+        _add_cover_background_image(slide, config.background_image, name=SLIDE_BACKGROUND_NAME)
+
+
 def header(slide, kicker, title, lead=None):
-    add_rect(slide, 0, 0, SLIDE_W, SLIDE_H, CANVAS)
+    slide_background(slide)
     kicker_size, _ = fit_text_or_raise(
         "header", "kicker", kicker, 4.8, 0.32, 11.5,
         min_pt=9, weight="bold", spacing=1.1)
@@ -269,7 +278,7 @@ def _section_divider_candidate_values(spec):
 
 def s_section_divider(slide, spec, page):
     """章ラベル、章タイトル、任意leadだけの控えめな中扉。"""
-    add_rect(slide, 0, 0, SLIDE_W, SLIDE_H, CANVAS)
+    slide_background(slide)
     available = min(SECTION_DIVIDER_BOTTOM, current_context().content_bottom) - SECTION_DIVIDER_TOP
     fit = select_fit(
         "section_divider", available,
@@ -765,6 +774,13 @@ def render_slide(renderer, slide, spec, idx):
 def _render_slide(renderer, slide, spec, idx, layout):
     try:
         renderer(slide, spec, idx)
+        # 背景色を替えたときは線ラベル等のキャンバス色マスクも揃える。
+        # 文字色・通常の面色は変えず、デッキ間で共有する定数も変更しない。
+        canvas = current_context().cover_footer.slide.background_color
+        if spec["type"] != "title" and canvas != CANVAS:
+            for color in slide._element.xpath(".//p:spPr//a:solidFill/a:srgbClr"):
+                if color.get("val") == str(CANVAS):
+                    color.set("val", str(canvas))
         if layout:
             y = current_context().content_bottom + 0.12
             if spec["type"] == "title":
