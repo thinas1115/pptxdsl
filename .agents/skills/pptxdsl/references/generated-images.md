@@ -10,14 +10,14 @@
 
 画像ごとに「シンプル」「AIっぽくなく」と依頼するだけでは統一できない。
 生成前に、テンプレートと利用者の意図に合う共通スタイルを一度決める。
-全画像で背景、色数・色値、線・塗り、文字、余白、禁止装飾を固定し、変えるのは説明内容だけにする。
+背景はPPTX生成と同じConfigの`slide`から読み込む。画像用JSONへ背景色を複写しない。
+全画像で、解決した背景条件、色数・色値、線・塗り、文字、余白、禁止装飾を共通化し、変えるのは説明内容だけにする。
 スタイルは`content.json`の外に保存する。利用者が指定した表現を優先し、全資料へ同じ絵柄を強制しない。
 
-`image-style.json`の例（色は実際のテンプレートに合わせる）:
+`image-style.json`の例（文字・輪郭色は実際の背景に対して読める配色にする）:
 
 ```json
 {
-  "background": "単色 #F7F5EF。グラデーションや周辺減光を入れない",
   "palette": "主線と文字 #182C43、強調 #0D7870、補助 #D1CFC8。色を追加しない",
   "drawing": "フラットな説明図。均一な細めの輪郭線、単色塗り。全図で同じ線とアイコンの描き方",
   "lettering": "日本語ゴシック、紺色。ラベルの文字量と太さを揃え、指定の文字だけを描く",
@@ -44,10 +44,21 @@
 `<Skill>`は実際のSkillフォルダへ置き換える。cloneでは`.agents/skills/pptxdsl`。
 
 ```text
-python <Skill>/scripts/build_image_prompts.py --style image-style.json --briefs image-briefs.json --output image-prompts.json
+python <Skill>/scripts/build_image_prompts.py --style image-style.json --briefs image-briefs.json --template-config template.json --output image-prompts.json
 ```
 
 出力の`prompts[*].prompt`を省略せず画像生成へ渡す。共通指定とそのSHA-256も記録される。
+`--template-config`にはPPTX生成と同じファイルを渡す。省略時はPPTXと共通の標準設定を読み込む。
+本文の背景色を使い、表紙用の`cover.background_color`は使わない。
+
+- 単色背景では`slide.background_color`をプロンプトへ自動反映する。
+- `slide.background_image`がある場合は透過PNGを指定する。出力の`transparent_background: true`を
+  生成ツールの透過設定にも反映し、採用PNGのアルファ透過を確認する。市松模様を描いた画像は透過ではない。
+  透過出力に対応しない環境では、その制約を伝え、固定色で塗りつぶして完了扱いにしない。
+
+Configを変更したらプロンプトを組み直し、背景・文字のコントラストを再確認する。
+旧背景色を焼き込んだ画像は新Configへ追従しないため、その画像は再生成が必要。
+旧背景と矛盾する参照画像を使い回さず、新背景に合う最初の画像を採用してから後続の参照にする。
 これはプロンプトを整形するだけで、画像生成APIを呼んだり、生成済みと判定したりする機能ではない。
 絵柄を変更するときは共通スタイルを更新し、影響する全画像へ適用する。1枚だけ別の絵柄へ差し替えない。
 
@@ -96,7 +107,7 @@ PPTXの再生成時は採用済みPNGを再利用し、画像生成を毎回や�
 
 ```text
 python slidegen/validate_content.py content.json --asset-dir assets
-python slidegen/generate_from_json.py content.json out/deck.pptx --asset-dir assets
+python slidegen/generate_from_json.py content.json out/deck.pptx --asset-dir assets --template-config template.json
 python slidegen/check_layout.py out/deck.pptx
 ```
 
@@ -104,7 +115,7 @@ Release版は利用者の作業領域から次のように実行する。`<Skill
 
 ```text
 python <Skill>/scripts/run.py validate content.json --asset-dir assets
-python <Skill>/scripts/run.py generate content.json out/deck.pptx --asset-dir assets
+python <Skill>/scripts/run.py generate content.json out/deck.pptx --asset-dir assets --template-config template.json
 python <Skill>/scripts/run.py check out/deck.pptx
 ```
 
