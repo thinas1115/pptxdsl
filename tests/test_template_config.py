@@ -3,6 +3,8 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -24,6 +26,19 @@ def deck():
 
 
 class TemplateConfigTests(unittest.TestCase):
+    def test_skill_template_uses_only_explicit_company_text(self):
+        script = Path(__file__).resolve().parents[1] / '.agents/skills/pptxdsl/scripts/run.py'
+        with tempfile.TemporaryDirectory() as directory:
+            for index, text in enumerate(('', '© Example Company')):
+                output = Path(directory) / f'template{index}.json'
+                command = [sys.executable, str(script), 'template', str(output)]
+                if text:
+                    command.extend(['--footer-text', text])
+                result = subprocess.run(command, capture_output=True,
+                                        env={**os.environ, 'PYTHONIOENCODING': 'utf-8'})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(json.loads(output.read_text(encoding='utf-8'))['footer']['text'], text)
+
     def test_defaults_and_legacy_config_match(self):
         default = build_presentation(deck())
         legacy = build_presentation(deck(), parse_cover_footer_config({"footer": {"text": ""}}))

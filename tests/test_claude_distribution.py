@@ -19,7 +19,9 @@ class ClaudeDistributionTests(unittest.TestCase):
             package, archive = build_plugin(Path(directory))
             manifests = [json.loads((package / relative).read_text(encoding="utf-8"))
                          for relative in ("plugin.json", ".codex-plugin/plugin.json", ".claude-plugin/plugin.json")]
-            self.assertEqual({(item["name"], item["version"]) for item in manifests}, {("pptxdsl", "1.0.2")})
+            source = _manifest(ROOT)
+            self.assertEqual({(item["name"], item["version"]) for item in manifests},
+                             {(source["name"], source["version"])})
             self.assertEqual(manifests[0]["extensions"]["com.openai"]["interface"], manifests[1]["interface"])
             self.assertNotIn("skills", manifests[2])
             self.assertTrue((package / "skills/pptxdsl/SKILL.md").is_file())
@@ -40,7 +42,7 @@ class ClaudeDistributionTests(unittest.TestCase):
                 shutil.copyfile(ROOT / f"plugins/pptxdsl/.{host}-plugin/plugin.json", target)
             target = root / "plugins/pptxdsl/.claude-plugin/plugin.json"
             original = json.loads(target.read_text(encoding="utf-8"))
-            for key, value in (("name", "other"), ("version", "1.0.3")):
+            for key, value in (("name", "other"), ("version", original["version"] + "-different")):
                 with self.subTest(key=key):
                     target.write_text(json.dumps(dict(original, **{key: value})), encoding="utf-8")
                     with self.assertRaisesRegex(ValueError, "一致しません"):
