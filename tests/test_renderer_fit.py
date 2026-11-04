@@ -212,7 +212,9 @@ def main():
 
     dense_aws = _base("aws_vpc_layout")
     dense_aws.update(
-        lead="長いリード文" * 20,
+        # lead自身の過密停止ではなく、本文のサブネット収容限界を検証する。
+        lead="リード文の領域を除き、サブネットの収容限界を確認します。\n"
+             "最小設定でも収まらない入力は、本文のエラーとして停止します。",
         vpc={"label": "VPC", "cidr": "10.0.0.0/16"},
         azs=[
             {"id": f"az{i}", "label": f"AZ-{i}", "subnets": [
