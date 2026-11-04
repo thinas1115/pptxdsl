@@ -7,7 +7,7 @@
 ## 雛形を1コマンドで作る
 
 ```text
-python -m slidegen.template_config out/template.json --background-color FFFFFF --footer-text "社内限定"
+python -m slidegen.template_config out/template.json --background-color FFFFFF --footer-text "© Example Company"
 python slidegen/generate_from_json.py content.json out/deck.pptx --template-config out/template.json
 ```
 
@@ -60,7 +60,7 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 | 項目 | 用途 |
 |---|---|
 | `meta.title` | 必須。資料名。フッター設定の `{title}` から参照できる |
-| `meta.footer` | 任意。資料固有のフッター文言。`{footer}` から参照できる |
+| `meta.footer` | 旧入力の互換用。標準では表示しない。会社文言として再利用する場合だけ設定の`text: "{footer}"`から参照する |
 | `meta.date` | 任意。標準表紙の`DATE`と `{date}` |
 | `meta.organization` | 任意。標準表紙の`ORGANIZATION`と `{organization}` |
 | `meta.author` | 任意。標準表紙の`AUTHOR`と `{author}` |
@@ -102,16 +102,18 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 
 | 項目 | 型 | 既定値 / 説明 |
 |---|---|---|
-| `text` | string | 左側の文言。最大100文字 |
-| `show_divider` | boolean | 本文との境界線を表示する |
+| `text` | string | 左側の会社コピーライト等。既定は空文字。最大100文字。ページ番号と同じ高さの1行 |
+| `show_divider` | boolean | 旧設定の読込互換のみ。指定しても境界線は表示しない |
 | `show_text` | boolean | 左側の文言を表示する |
 | `show_page_number` | boolean | 現在ページを表示する |
 | `show_total` | boolean | 総ページ数も表示する |
 | `text_color` | string | 左側文言・総ページ数の6桁HEX色 |
 | `page_color` | string | 現在ページの6桁HEX色 |
-| `divider_color` | string | 境界線の6桁HEX色 |
+| `divider_color` | string | 旧設定の読込互換のみ。描画には使わない |
 
 設定JSONは部分指定できる。省略した項目には標準設定が使われる。
+共通フッターの罫線・補足帯は廃止した。会社文言を省略した場合、ページ番号だけを表示する。
+会社文言はページ番号と同じ上端・高さに揃え、通常11pt、長い場合も8.2pt未満には縮小しない。
 個人パスを公開設定へ混入させないため、背景画像の絶対パス、ドライブ相対パス、
 ホーム展開はOSにかかわらず拒否する。既存設定は画像を設定JSONの近くへ配置し、
 その場所からの相対パスへ移行する。設定JSON自体のCLI引数には絶対パスを使用できる。

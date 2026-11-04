@@ -247,6 +247,21 @@ def build_release(output_dir: Path, *, tag: str | None = None,
     return ReleaseAssets(skill_target, plugin_target, gallery_target, checksums)
 
 
+def validate_marketplace_pin(plugin_archive: Path, source_root: Path = ROOT) -> None:
+    """公開直前にMarketplaceのURLと実アーカイブの固定SHAを照合する。"""
+    marketplace = json.loads((source_root / ".claude-plugin/marketplace.json").read_text(encoding="utf-8"))
+    release_version = version(source_root)
+    expected = {
+        "source": "archive",
+        "url": ("https://github.com/thinas1115/pptxdsl/releases/download/"
+                f"v{release_version}/{plugin_archive.name}"),
+        "sha256": _sha256(plugin_archive),
+    }
+    if (marketplace["metadata"]["version"] != release_version
+            or marketplace["plugins"][0]["source"] != expected):
+        raise ValueError("公開前にMarketplaceのバージョン・URL・SHA256を配布アーカイブへ揃えてください")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=Path("out/release"))
@@ -254,6 +269,8 @@ def main() -> None:
     args = parser.parse_args()
     try:
         assets = build_release(args.output_dir, tag=args.tag)
+        if args.tag:
+            validate_marketplace_pin(assets.plugin)
     except ValueError as error:
         raise SystemExit(f"NG: {error}") from None
     except (OSError, subprocess.CalledProcessError):

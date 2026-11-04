@@ -12,7 +12,7 @@ from slidegen.cover_footer import parse_cover_footer_config
 
 
 def create_template(path, *, background_color="F7F5EF", background_image=None,
-                    cover_background_image=None, footer_text="{footer}"):
+                    cover_background_image=None, footer_text=""):
     destination = Path(path)
     if destination.exists():
         raise ValueError("設定ファイルは既にあります。既存設定を編集するか別の出力名を指定してください")
@@ -47,7 +47,7 @@ def main():
     parser.add_argument("--background-color", default="F7F5EF", help="本文背景の6桁HEX色")
     parser.add_argument("--background-image", type=Path, help="文字なしの本文背景PNG/JPEG")
     parser.add_argument("--cover-background-image", type=Path, help="文字なしの表紙背景PNG/JPEG")
-    parser.add_argument("--footer-text", default="{footer}", help="フッター文字または{footer}等の参照")
+    parser.add_argument("--footer-text", default="", help="会社のコピーライト等。省略時は表示しない")
     args = parser.parse_args()
     try:
         path = create_template(args.output, background_color=args.background_color,

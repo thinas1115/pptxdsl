@@ -49,7 +49,7 @@ def main():
     with Image.open(default.cover.background_image) as image:
         assert image.format == "PNG"
         assert image.width / image.height > 1.7
-    assert default.footer.text == "{footer}"
+    assert default.footer.text == ""
     assert default.footer.show_total is True
 
     fixture_prs = Presentation()

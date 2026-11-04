@@ -24,10 +24,10 @@ from slidegen.layout_fit import (
     stepped,
 )
 from slidegen.textfit import line_height_in, text_width_in, wrap_natural, wrap_text
-from slidegen.slide_footnote import fit_footnote
+from slidegen.layout_settings import PAGE
 from slidegen.text_roles import set_text_role
 from slidegen.font_config import font_family
-from slidegen.generation_context import STANDARD_THEME, bind_context, current_context
+from slidegen.generation_context import STANDARD_THEME, current_context
 
 # ---- テーマ ----
 NAVY, ACCENT, CORAL = STANDARD_THEME.NAVY, STANDARD_THEME.ACCENT, STANDARD_THEME.CORAL
@@ -38,7 +38,7 @@ SLIDE_W, SLIDE_H = STANDARD_THEME.SLIDE_W, STANDARD_THEME.SLIDE_H
 MARGIN = STANDARD_THEME.MARGIN
 BODY_W = SLIDE_W - MARGIN * 2
 BODY_TOP, BODY_BOTTOM = STANDARD_THEME.BODY_TOP, STANDARD_THEME.BODY_BOTTOM
-LEAD_Y, LEAD_MAX_H = 1.58, 0.56
+LEAD_Y, LEAD_MAX_H = PAGE.content_top, 0.64
 TABLE_HEADER_H = 0.72
 TABLE_TOP_GAP = 0.38
 TABLE_BOTTOM_GAP = 0.15
@@ -47,7 +47,7 @@ TABLE_NOTE_H = 0.30
 
 @dataclass(frozen=True)
 class ContentArea:
-    """ヘッダー下のrenderer描画領域。leadなしでは従来値を保持する。"""
+    """実際の本文領域。固定構図は従来のBODY_TOP座標系から写像する。"""
 
     top: float = BODY_TOP
     bottom: float = BODY_BOTTOM
@@ -58,7 +58,7 @@ class ContentArea:
         return self.bottom - self.top
 
     def map_y(self, y):
-        """固定構図の従来Y座標を、lead指定時の本文領域へ写像する。"""
+        """固定構図の従来Y座標を、共通ヘッダー下の本文領域へ写像する。"""
         if not self.shifted:
             return y
         scale = self.height / (BODY_BOTTOM - BODY_TOP)
@@ -124,33 +124,38 @@ def slide_background(slide):
 
 def header(slide, kicker, title, lead=None):
     slide_background(slide)
-    kicker_size, _ = fit_text_or_raise(
-        "header", "kicker", kicker, 4.8, 0.32, 11.5,
-        min_pt=9, weight="bold", spacing=1.1)
-    add_text(slide, 0.72, 0.27, 4.8, 0.32, kicker, kicker_size,
-             bold=True, color=ACCENT)
+    # kickerは既存入力の分類情報として受け付けるが、本文スライドへ描画しない。
     size = 27
-    lines = wrap_natural(title, 11.9, size, "bold")
+    lines = wrap_natural(title, BODY_W, size, "bold")
     while len(lines) > 1 and size > 18:
         size -= 0.5
-        lines = wrap_natural(title, 11.9, size, "bold")
+        lines = wrap_natural(title, BODY_W, size, "bold")
     if len(lines) > 1:
         size, lines = fit_text_or_raise(
-            "header", "title", title, 11.9, 0.86, 18,
-            min_pt=16, weight="bold", spacing=1.12)
-    add_text(slide, 0.72, 0.67, 11.9, 0.86, "\n".join(lines), size,
-             bold=True, color=NAVY, spacing=1.12)
+            "header", "title", title, BODY_W, 0.86, 18,
+            min_pt=16, weight="bold", spacing=1.6)
+    title_pitch = size * 1.6
+    title_h = len(lines) * title_pitch / 72
+    title_shape = add_text(slide, MARGIN, PAGE.title_top, BODY_W, title_h,
+                           "\n".join(lines), size, bold=True, color=NAVY,
+                           spacing=Pt(title_pitch))
+    title_shape.name = "slide-header:title"
+    content_top = max(PAGE.content_top, PAGE.title_top + title_h + 0.12)
     if not lead:
         bottom = current_context().content_bottom
-        return ContentArea(bottom=bottom, shifted=bottom != BODY_BOTTOM)
+        return ContentArea(top=content_top, bottom=bottom,
+                           shifted=content_top != BODY_TOP or bottom != BODY_BOTTOM)
 
     lead_size, lead_lines = fit_text_or_raise(
-        "header", "lead", lead, 11.9, LEAD_MAX_H, 14,
-        min_pt=11.5, spacing=1.18)
-    lead_h = len(lead_lines) * line_height_in(lead_size, 1.18) + 0.03
-    add_text(slide, 0.72, LEAD_Y, 11.9, lead_h, "\n".join(lead_lines),
-             lead_size, color=GRAY, spacing=1.18)
-    return ContentArea(top=LEAD_Y + lead_h + 0.17,
+        "header", "lead", lead, BODY_W, LEAD_MAX_H, 14,
+        min_pt=11.5, spacing=1.6)
+    lead_pitch = lead_size * 1.6
+    lead_h = len(lead_lines) * lead_pitch / 72
+    lead_shape = add_text(slide, MARGIN, content_top, BODY_W, lead_h,
+                          "\n".join(lead_lines), lead_size, color=TEXT,
+                          spacing=Pt(lead_pitch))
+    lead_shape.name = "slide-header:lead"
+    return ContentArea(top=content_top + lead_h + 0.14,
                        bottom=current_context().content_bottom, shifted=True)
 
 
@@ -758,20 +763,6 @@ RENDER = {"title": s_title, "section_divider": s_section_divider,
 
 def render_slide(renderer, slide, spec, idx):
     """rendererの収容エラーをスライド位置つきの運用メッセージへ変換する。"""
-    context = current_context()
-    footnote = spec.get("footnote")
-    try:
-        layout = fit_footnote(footnote, BODY_W) if footnote else None
-    except ValueError as error:
-        raise FitError(f"slides[{idx - 1}] (type={spec['type']}) の生成に失敗:\n  {error}") from error
-    if layout:
-        reserve = layout.height + layout.padding * 2 + 0.12
-        context = context.with_bottom(context.content_bottom - reserve)
-    with bind_context(context):
-        return _render_slide(renderer, slide, spec, idx, layout)
-
-
-def _render_slide(renderer, slide, spec, idx, layout):
     try:
         renderer(slide, spec, idx)
         # 背景色を替えたときは線ラベル等のキャンバス色マスクも揃える。
@@ -781,26 +772,14 @@ def _render_slide(renderer, slide, spec, idx, layout):
             for color in slide._element.xpath(".//p:spPr//a:solidFill/a:srgbClr"):
                 if color.get("val") == str(CANVAS):
                     color.set("val", str(canvas))
-        if layout:
-            y = current_context().content_bottom + 0.12
-            if spec["type"] == "title":
-                panel = add_rect(slide, MARGIN - 0.08, y - 0.04,
-                                 BODY_W + 0.16, BODY_BOTTOM - y + 0.08, CANVAS)
-                panel.name = "slide-footnote:surface"
-            rule = add_rect(slide, MARGIN, y, BODY_W, 0.01, RULE)
-            rule.name = "slide-footnote:rule"
-            text_y = y + layout.padding
-            if layout.label_lines:
-                label = add_text(slide, MARGIN, text_y, layout.label_width - 0.16,
-                                 layout.height, "\n".join(layout.label_lines),
-                                 layout.label_size, bold=True, color=CORAL,
-                                 spacing=1.12)
-                label.name = "slide-footnote:label"
-            text = add_text(slide, MARGIN + layout.label_width, text_y,
-                            BODY_W - layout.label_width, layout.height,
-                            "\n".join(layout.lines), layout.size,
-                            color=TEXT, spacing=1.12)
-            text.name = "slide-footnote:text"
+        footnote = spec.get("footnote")
+        if footnote:
+            # 旧入力の情報は保存するが、補足帯やそのための本文予約領域は作らない。
+            frame = slide.notes_slide.notes_text_frame
+            if frame is not None:
+                heading = "補足" + (f"（{footnote['label']}）" if footnote.get("label") else "")
+                existing = frame.text.rstrip()
+                frame.text = "\n".join(filter(None, (existing, heading, footnote["text"])))
     except (ValueError, FileNotFoundError) as e:
         raise FitError(
             f"slides[{idx - 1}] (type={spec['type']}) の生成に失敗:\n"

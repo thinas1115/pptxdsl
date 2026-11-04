@@ -22,6 +22,9 @@ class PageSettings:
     width: float = 13.333
     height: float = 7.5
     margin: float = 0.55
+    title_top: float = 0.32
+    content_top: float = 1.10
+    # 固定構図をContentAreaへ写像する際の従来座標系。実際の上端はcontent_top。
     body_top: float = 1.58
     body_bottom: float = 6.85
 

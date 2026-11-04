@@ -4,9 +4,10 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
-from tools.distribution.build import ROOT, build_release, version
+from tools.distribution.build import ROOT, build_release, validate_marketplace_pin, version
 from tools.gallery.generate_patterns import main as generate_gallery
 
 
@@ -62,12 +63,30 @@ def _check_release_assets() -> None:
         assert len(marketplace["plugins"]) == 1
         entry = marketplace["plugins"][0]
         assert entry["name"] == "pptxdsl"
-        assert entry["source"] == {
-            "source": "archive",
-            "url": ("https://github.com/thinas1115/pptxdsl/releases/download/"
-                    f"{VERSION}/{first.plugin.name}"),
-            "sha256": _sha256(first.plugin),
-        }
+        # 開発途中のソースZIPと公開済みZIPは別物。公開済みpinを書き換えない。
+        assert entry["source"]["source"] == "archive"
+        assert entry["source"]["url"] == (
+            "https://github.com/thinas1115/pptxdsl/releases/download/"
+            f"{VERSION}/{first.plugin.name}")
+        digest = entry["source"]["sha256"]
+        assert len(digest) == 64 and all(char in '0123456789abcdef' for char in digest)
+        # 公開コマンド側では、生成アーカイブとpinの実体一致を必須とする。
+        release_version = version()
+        manifest = {"metadata": {"version": release_version}, "plugins": [{"source": {
+            "source": "archive", "url": entry["source"]["url"], "sha256": _sha256(first.plugin)}}]}
+        with patch('tools.distribution.build.json.loads', return_value=manifest), \
+                patch('tools.distribution.build.version', return_value=release_version):
+            validate_marketplace_pin(first.plugin)
+            for field in ('url', 'sha256'):
+                original = manifest['plugins'][0]['source'][field]
+                manifest['plugins'][0]['source'][field] = '不一致'
+                try:
+                    validate_marketplace_pin(first.plugin)
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError('不正なMarketplace pinを拒否しませんでした')
+                manifest['plugins'][0]['source'][field] = original
 
         checksums = {}
         for line in first.checksums.read_text(encoding="utf-8").splitlines():

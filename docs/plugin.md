@@ -128,8 +128,11 @@ PPTX・PNG・一覧画像が生成されることを確認する。
 リポジトリ直下の`.claude-plugin/marketplace.json`はReleaseのPlugin ZIPを
 HTTPS URLとSHA-256で固定する。URLの版が未公開ならインストールできない。
 開発中の版は上記のローカル読み込みで確認し、未公開URLを導入成功として扱わない。
-更新時はRelease候補を再生成し、MarketplaceのSHA-256も合わせて更新する。
-整合性は`python -m tests.test_release_package`で検査する。
+開発途中は公開済みURLとSHA-256を変更しない。公開を準備するときにRelease候補を再生成し、
+Marketplaceの版・URL・SHA-256を揃える。
+`python -m tests.test_release_package`は配布の再現性と不正pinの拒否を検査する。
+公開用の`python -m tools.distribution.build --tag vX.Y.Z --output-dir out/release`は
+実アーカイブとMarketplaceのURL・SHA-256を照合し、一致しなければ公開前に停止する。
 
 Skillだけを使う場合は、Skill ZIPを展開し、`pptxdsl/`をClaude Codeの個人Skillディレクトリ
 またはプロジェクトの`.claude/skills/`へ配置する。既存の同名Skillは上書きせず、

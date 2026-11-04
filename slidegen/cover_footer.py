@@ -107,8 +107,8 @@ _DEFAULT_DATA = {
         "secondary_color": "DFEBE8",
     },
     "footer": {
-        "text": "{footer}",
-        "show_divider": True,
+        "text": "",
+        "show_divider": False,
         "show_text": True,
         "show_page_number": True,
         "show_total": True,
@@ -465,28 +465,28 @@ def render_footer(slide, page, meta, total, config, *, add_text, add_rect):
     """本文領域を変えずに、設定済みのフッターだけを描画する。"""
     footer = config.footer
     digits = max(2, len(str(total)))
-    if footer.show_divider:
-        add_rect(slide, 0.72, 6.92, 11.9, 0.01, footer.divider_color)
+    # show_divider/divider_colorは旧設定の読込互換だけを残し、罫線は描画しない。
+    footer_y, footer_h = 6.98, 0.28
     if footer.show_text:
         footer_text = _format(footer.text, meta, page=page, total=total)
         if footer_text.strip():
-            default_text = footer.text == _DEFAULT_DATA["footer"]["text"]
-            footer_size = 8.2
-            if not default_text:
-                footer_size = _single_line_size(
-                    footer_text, 7.8, 8.2, 6.5, field="footer.text")
-            add_text(slide, 0.72, 7.01, 7.8, 0.25,
-                     footer_text, footer_size, color=footer.text_color,
-                     anchor=MSO_ANCHOR.MIDDLE, wrap=default_text)
+            footer_size = _single_line_size(
+                footer_text, 10.4, 11, 8.2, field="footer.text")
+            watermark = add_text(slide, 0.55, footer_y, 10.4, footer_h,
+                                 footer_text, footer_size, color=footer.text_color,
+                                 anchor=MSO_ANCHOR.MIDDLE, wrap=False)
+            if watermark is not None:
+                watermark.name = "slide-footer:watermark"
     if footer.show_page_number:
         if footer.show_total:
             page_text = f"{page:0{digits}d}"
             total_text = f" / {total:0{digits}d}"
             marker = add_text(
-                slide, 11.38, 6.98, 1.24, 0.28,
+                slide, 11.38, footer_y, 1.24, footer_h,
                 page_text + total_text, 8.2, color=footer.text_color,
                 align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE, wrap=False)
             if marker is not None:
+                marker.name = "slide-footer:page"
                 paragraph = marker.text_frame.paragraphs[0]
                 page_run = paragraph.runs[0]
                 total_style = deepcopy(page_run._r.get_or_add_rPr())
@@ -500,6 +500,9 @@ def render_footer(slide, page, meta, total, config, *, add_text, add_rect):
                 total_run._r.insert(0, total_style)
                 total_run.text = total_text
         else:
-            add_text(slide, 11.78, 6.98, 0.84, 0.28,
-                     f"{page:0{digits}d}", 11, bold=True,
-                     color=footer.page_color, align=PP_ALIGN.RIGHT)
+            marker = add_text(slide, 11.78, footer_y, 0.84, footer_h,
+                              f"{page:0{digits}d}", 11, bold=True,
+                              color=footer.page_color, align=PP_ALIGN.RIGHT,
+                              anchor=MSO_ANCHOR.MIDDLE)
+            if marker is not None:
+                marker.name = "slide-footer:page"
