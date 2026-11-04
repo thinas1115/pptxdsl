@@ -8,7 +8,6 @@ from pptx.util import Inches, Pt
 
 from slidegen import generate
 from slidegen.candidate_renderers import (
-    ACCENT,
     RULE,
     SWIMLANE_ACCENT,
     SWIMLANE_LIGHT,
@@ -446,13 +445,11 @@ def _assert_swimlane_header_and_stage_divider():
         if spec["type"] == "swimlane_flow" and "標準" in spec["kicker"]
     ))
     slide = _render(_presentation(), spec)
-    kicker = next(
-        shape for shape in slide.shapes
-        if getattr(shape, "has_text_frame", False)
-        and shape.text.strip() == spec["kicker"]
-    )
-    assert abs(kicker.left - Inches(0.72)) <= Inches(0.01)
-    assert abs(kicker.top - Inches(0.27)) <= Inches(0.01)
+    assert not any(getattr(shape, "has_text_frame", False)
+                   and shape.text.strip() == spec["kicker"] for shape in slide.shapes)
+    title = next(shape for shape in slide.shapes if shape.name == "slide-header:title")
+    assert abs(title.left - Inches(generate.MARGIN)) <= Inches(0.01)
+    assert abs(title.top - Inches(generate.PAGE.title_top)) <= Inches(0.01)
 
     old_header_rules = [
         shape for shape in slide.shapes

@@ -26,7 +26,7 @@ def deck():
 class TemplateConfigTests(unittest.TestCase):
     def test_defaults_and_legacy_config_match(self):
         default = build_presentation(deck())
-        legacy = build_presentation(deck(), parse_cover_footer_config({"footer": {"text": "{footer}"}}))
+        legacy = build_presentation(deck(), parse_cover_footer_config({"footer": {"text": ""}}))
         self.assertEqual([s._element.xml for s in default.slides], [s._element.xml for s in legacy.slides])
 
     def test_create_and_apply_all_sections_without_overwrite(self):

@@ -30,7 +30,7 @@ class ConceptExampleTests(unittest.TestCase):
             points = {point["label"]: point["text"] for point in spec["points"]}
             self.assertIn("Recovery Time Objective", points["名称"])
             self.assertEqual(set(points), {"名称", "起点", "終点", "設計への反映"})
-            self.assertIn("事前に合意する目標値", spec["footnote"]["text"])
+            self.assertIn("事前に合意する目標値", spec.get("footnote", {}).get("text", spec.get("lead", "")))
             self.assertFalse(validate({"meta": {"title": "分担例"}, "slides": [spec]}, allow_sample_content=True))
             prs = Presentation()
             prs.slide_width, prs.slide_height = Inches(generate.SLIDE_W), Inches(generate.SLIDE_H)
@@ -43,7 +43,13 @@ class ConceptExampleTests(unittest.TestCase):
                 text = "\n".join(shape.text for shape in Presentation(path).slides[0].shapes
                                  if shape.has_text_frame)
                 self.assertIn("Recovery Time Objective", text)
-                self.assertIn("誤解しやすい点", text)
+                self.assertNotIn("誤解しやすい点", text)
+                if "footnote" in spec:
+                    notes = Presentation(path).slides[0].notes_slide.notes_text_frame.text
+                    self.assertIn("誤解しやすい点", notes)
+                    self.assertIn(spec["footnote"]["text"], notes)
+                else:
+                    self.assertIn("事前に合意する目標値", text)
 
 
 if __name__ == "__main__":

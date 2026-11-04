@@ -12,8 +12,8 @@ from slidegen.layout_fit import select_fit, stepped
 from slidegen.layout_fit import FitError
 from slidegen.textfit import text_width_in, wrap_natural
 
-FRAME_X = 0.72
-FRAME_W = BODY_W - 0.34
+FRAME_X = 0.55
+FRAME_W = BODY_W
 MIN_IMAGE_H = 2.40
 PICTURE_NAME = "ContentImage"
 

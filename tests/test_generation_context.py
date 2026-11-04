@@ -55,10 +55,7 @@ class GenerationContextTests(unittest.TestCase):
         def delayed(slide, spec, page):
             before = current_context()
             if page == 2:
-                if before.metadata["title"] == "資料乙":
-                    self.assertLess(before.content_bottom, generate.BODY_BOTTOM)
-                else:
-                    self.assertEqual(before.content_bottom, generate.BODY_BOTTOM)
+                self.assertEqual(before.content_bottom, generate.BODY_BOTTOM)
                 barrier.wait()
             original(slide, spec, page)
             self.assertIs(current_context(), before)
@@ -84,7 +81,7 @@ class GenerationContextTests(unittest.TestCase):
 
         def nested(slide, spec, page):
             outer = current_context()
-            self.assertLess(outer.content_bottom, generate.BODY_BOTTOM)
+            self.assertEqual(outer.content_bottom, generate.BODY_BOTTOM)
             inner.append(build_presentation(deck("別資料", 3), config("内側設定")))
             self.assertIs(current_context(), outer)
             RENDER["bullets"](slide, spec, page)
@@ -144,12 +141,13 @@ class GenerationContextTests(unittest.TestCase):
             build_presentation(deck("資料甲"), renderers={})
         self.assertIs(current_context(), original)
 
-    def test_overfull_footnote_reports_position_and_restores_context(self):
+    def test_long_legacy_footnote_uses_notes_and_restores_context(self):
         original = current_context()
         source = deck("資料甲")
         source["slides"][1]["footnote"] = {"text": "補足条件" * 120}
-        with self.assertRaisesRegex(FitError, r"slides\[1\].*bullets"):
-            build_presentation(source)
+        built = build_presentation(source)
+        self.assertIn(source["slides"][1]["footnote"]["text"],
+                      built.slides[1].notes_slide.notes_text_frame.text)
         self.assertIs(current_context(), original)
 
     def test_explicit_low_level_context_restores_after_exception(self):

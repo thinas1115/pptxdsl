@@ -46,9 +46,9 @@ class CardRoadmapDesignTests(unittest.TestCase):
                                     if shape.text.replace("\n", "") == card["body"])
                         self.assertAlmostEqual(heading.left.inches - number.left.inches, .72)
                         self.assertAlmostEqual(body.left.inches, heading.left.inches)
-                        self.assertAlmostEqual(body.top.inches - heading.top.inches, .58)
+                        self.assertAlmostEqual(body.top.inches - heading.top.inches, .58, places=5)
                         for shape, minimum in ((heading, 13), (body, 11)):
-                            self.assertGreaterEqual(shape.top.inches, generate.BODY_TOP)
+                            self.assertGreaterEqual(shape.top.inches, generate.PAGE.content_top)
                             self.assertLessEqual((shape.top + shape.height) / 914400,
                                                  generate.BODY_BOTTOM)
                             self.assertGreaterEqual(shape.text_frame.paragraphs[0].runs[0].font.size.pt, minimum)

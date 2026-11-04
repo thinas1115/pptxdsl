@@ -15,7 +15,7 @@ from tests.fixtures.gallery.content_lead_patterns import LEAD_PATTERN_DECK
 
 
 class GalleryDisclosureTests(unittest.TestCase):
-    def test_metrics_disclosure_is_visible_on_both_variants(self):
+    def test_metrics_disclosure_is_preserved_in_notes_on_both_variants(self):
         for deck in (PATTERN_DECK, LEAD_PATTERN_DECK):
             metrics = [spec for spec in deck["slides"]
                        if spec["type"] == "cards" and spec.get("style") == "metrics"]
@@ -36,8 +36,13 @@ class GalleryDisclosureTests(unittest.TestCase):
                     prs.save(output)
                     saved = Presentation(output).slides[0]
                     shapes = {shape.name: shape for shape in saved.shapes}
-                    self.assertEqual(shapes["slide-footnote:label"].text, "架空データ")
-                    self.assertEqual(shapes["slide-footnote:text"].text, spec["footnote"]["text"])
+                    self.assertFalse(any(name.startswith("slide-footnote:") for name in shapes))
+                    notes = saved.notes_slide.notes_text_frame.text
+                    self.assertIn("補足（架空データ）", notes)
+                    self.assertIn(spec["footnote"]["text"], notes)
+                    self.assertTrue(any(shape.has_text_frame
+                                        and spec["lead"] in shape.text.replace("\n", "")
+                                        for shape in saved.shapes))
                     self.assertFalse(check(output))
 
 

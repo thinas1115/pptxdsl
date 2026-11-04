@@ -56,10 +56,13 @@ class TableAlignmentTests(unittest.TestCase):
         with self.assertRaises(FitError):
             generate.s_table(slide, spec, 1)
 
-    def test_six_rows_with_lead_require_page_split(self):
+    def test_six_rows_fit_but_overcrowded_lead_table_stops(self):
         spec = make_deck()["slides"][4]
         spec["lead"] = "説明を置く分だけ、表の利用可能な高さが減ります。"
         prs = Presentation()
+        slide = prs.slides.add_slide(prs.slide_layouts[6])
+        generate.s_table(slide, spec, 1)
+        spec["rows"] = spec["rows"] * 2
         slide = prs.slides.add_slide(prs.slide_layouts[6])
         with self.assertRaises(FitError):
             generate.s_table(slide, spec, 1)

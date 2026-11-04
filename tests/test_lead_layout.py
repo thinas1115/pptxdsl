@@ -20,12 +20,12 @@ def _slide():
 
 def main():
     default_area = generate.header(_slide(), "分類", "タイトル")
-    assert default_area.top == generate.BODY_TOP
-    assert not default_area.shifted
+    assert default_area.top == generate.PAGE.content_top
+    assert default_area.shifted
 
     lead_area = generate.header(
         _slide(), "分類", "タイトル", "結論を先に示してから本文を説明します。")
-    assert lead_area.top > generate.BODY_TOP
+    assert lead_area.top > default_area.top
     assert lead_area.bottom == generate.BODY_BOTTOM
     assert lead_area.shifted
 
@@ -60,10 +60,13 @@ def main():
         if spec["type"] == "diagram"
     ))
     dense["lead"] = LEADS["diagram"]
-    dense["diagram"]["rows"].append("overflow")
-    overflow = deepcopy(next(iter(dense["diagram"]["nodes"].values())))
-    overflow.update(row="overflow", title="追加ノード", sub="追加説明")
-    dense["diagram"]["nodes"]["overflow"] = overflow
+    # ヘッダー簡素化で1行増は収容可能。最小値を超える3行追加で停止を確認する。
+    for index in range(3):
+        key = f"overflow{index}"
+        dense["diagram"]["rows"].append(key)
+        overflow = deepcopy(next(iter(dense["diagram"]["nodes"].values())))
+        overflow.update(row=key, title="追加ノード", sub="追加説明")
+        dense["diagram"]["nodes"][key] = overflow
     try:
         RENDER["diagram"](_slide(), dense, 1)
     except FitError as e:

@@ -76,7 +76,7 @@ def main():
         generate.s_bullets(bullet_slides[style], spec, 1)
         body = _text_shape(bullet_slides[style], items[0]["text"])
         body_top = body.top / Inches(1)
-        assert generate.BODY_TOP + 0.31 <= body_top <= generate.BODY_TOP + 0.33
+        assert generate.PAGE.content_top + 0.26 <= body_top <= generate.PAGE.content_top + 0.28
         assert body.text_frame.paragraphs[0].runs[0].font.size.pt >= 22
     assert _text_shape(bullet_slides["numbered"], "01")
     assert any(shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
@@ -240,7 +240,7 @@ def main():
     }
     process_slide = _slide()
     s_process(process_slide, dict(_base("process"), flow=flow), 1)
-    _assert_process_natural_top(process_slide, flow, generate.BODY_TOP)
+    _assert_process_natural_top(process_slide, flow, generate.PAGE.content_top)
 
     lead = "審査結果と次の対応を先に説明します。"
     lead_probe = _slide()

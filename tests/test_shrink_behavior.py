@@ -82,6 +82,8 @@ def main():
     aws_spec = STRESS_PATTERN_DECK["slides"][2]
     aws_area = generate.header(
         _slide(), aws_spec["kicker"], aws_spec["title"], aws_spec["lead"])
+    # 共通ヘッダーの省スペース化後は標準サイズで入る。狭い領域でも縮小契約を検証する。
+    aws_area = generate.ContentArea(aws_area.top, aws_area.bottom - 0.55, shifted=True)
     aws_layout = Layout(deepcopy(LARGE_AWS_DIAGRAM), content_area=aws_area)
     assert len(LARGE_AWS_DIAGRAM["nodes"]) >= 16
     assert len(LARGE_AWS_DIAGRAM["containers"]) >= 3

@@ -64,6 +64,7 @@ PATTERN_DECK = {
             "style": "metrics",
             "kicker": "KPIスナップショット",
             "title": "KPIは数値を主役にし、判断材料を添える",
+            "lead": "数値と効果の説明は表示検証用のサンプルであり、実績や測定結果ではありません。",
             "footnote": {"label": "架空データ", "text": "数値と効果の説明は表示検証用のサンプルであり、実績や測定結果ではありません。"},
             "cards": [
                 {"heading": "作成時間", "value": "-72%",
@@ -554,6 +555,7 @@ PATTERN_DECK = {
             "type": "concept",
             "kicker": "言葉の定義",
             "title": "RTOは、障害発生から業務再開までの目標時間を表す",
+            "lead": "実際に要した復旧時間の実績値ではなく、事前に合意する目標値です。",
             "term": "RTO",
             "definition": "障害発生から、業務やサービスの再開までに許容する目標時間です。",
             "icon": "icons/fluent/clock.png",
