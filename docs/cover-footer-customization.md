@@ -103,16 +103,17 @@ python slidegen/generate_from_json.py content.json out/deck.pptx --cover-footer-
 | 項目 | 型 | 既定値 / 説明 |
 |---|---|---|
 | `text` | string | 左側の会社コピーライト等。既定は空文字。最大100文字。ページ番号と同じ高さの1行 |
-| `show_divider` | boolean | 旧設定の読込互換のみ。指定しても境界線は表示しない |
+| `show_divider` | boolean | 本文との境界線を表示する。既定は`true` |
 | `show_text` | boolean | 左側の文言を表示する |
 | `show_page_number` | boolean | 現在ページを表示する |
 | `show_total` | boolean | 総ページ数も表示する |
 | `text_color` | string | 左側文言・総ページ数の6桁HEX色 |
 | `page_color` | string | 現在ページの6桁HEX色 |
-| `divider_color` | string | 旧設定の読込互換のみ。描画には使わない |
+| `divider_color` | string | 境界線の6桁HEX色 |
 
 設定JSONは部分指定できる。省略した項目には標準設定が使われる。
-共通フッターの罫線・補足帯は廃止した。会社文言を省略した場合、ページ番号だけを表示する。
+共通の補足帯は廃止した。フッター上の細い罫線は残し、`show_divider: false`で非表示にできる。
+会社文言を省略した場合は、罫線とページ番号だけを表示する。
 会社文言はページ番号と同じ上端・高さに揃え、通常11pt、長い場合も8.2pt未満には縮小しない。
 個人パスを公開設定へ混入させないため、背景画像の絶対パス、ドライブ相対パス、
 ホーム展開はOSにかかわらず拒否する。既存設定は画像を設定JSONの近くへ配置し、

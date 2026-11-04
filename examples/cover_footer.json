@@ -16,7 +16,7 @@
   },
   "footer": {
     "text": "{footer}",
-    "show_divider": false,
+    "show_divider": true,
     "show_text": true,
     "show_page_number": true,
     "show_total": true,

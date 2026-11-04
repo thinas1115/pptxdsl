@@ -108,7 +108,7 @@ _DEFAULT_DATA = {
     },
     "footer": {
         "text": "",
-        "show_divider": False,
+        "show_divider": True,
         "show_text": True,
         "show_page_number": True,
         "show_total": True,
@@ -465,7 +465,10 @@ def render_footer(slide, page, meta, total, config, *, add_text, add_rect):
     """本文領域を変えずに、設定済みのフッターだけを描画する。"""
     footer = config.footer
     digits = max(2, len(str(total)))
-    # show_divider/divider_colorは旧設定の読込互換だけを残し、罫線は描画しない。
+    if footer.show_divider:
+        rule = add_rect(slide, 0.72, 6.92, 11.9, 0.01, footer.divider_color)
+        if rule is not None:
+            rule.name = "slide-footer:rule"
     footer_y, footer_h = 6.98, 0.28
     if footer.show_text:
         footer_text = _format(footer.text, meta, page=page, total=total)

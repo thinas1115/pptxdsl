@@ -35,11 +35,23 @@ class CleanSlideFrameTests(unittest.TestCase):
         lead = next(s for s in slide.shapes if s.name == 'slide-header:lead')
         paragraph = lead.text_frame.paragraphs[0]
         self.assertEqual(paragraph.runs[0].font.color.rgb, generate.TEXT)
-        self.assertAlmostEqual(paragraph.line_spacing.pt, 22.4)
+        self.assertEqual(paragraph.runs[0].font.size.pt, 18)
+        self.assertAlmostEqual(paragraph.line_spacing.pt, 25.2)
         self.assertLessEqual(lead.top + lead.height, Inches(area.top))
         self.assertLess(area.top, 1.7)
 
-    def test_watermark_and_page_share_vertical_geometry_without_rule(self):
+    def test_two_line_lead_keeps_readable_size_and_overfull_lead_stops(self):
+        slide = new_slide()
+        area = generate.header(slide, '分類', '資料の構成',
+                               '説明文の意味と読みやすさを確認します。\n資料全体で文字の大きさを揃えます。')
+        lead = next(s for s in slide.shapes if s.name == 'slide-header:lead')
+        self.assertEqual(len(lead.text_frame.paragraphs), 2)
+        self.assertTrue(all(p.runs[0].font.size.pt == 18 for p in lead.text_frame.paragraphs))
+        self.assertLessEqual(lead.top + lead.height, Inches(area.top))
+        with self.assertRaises(FitError):
+            generate.header(new_slide(), '分類', '資料の構成', '説明文が長すぎます。' * 200)
+
+    def test_watermark_and_page_share_vertical_geometry_below_rule(self):
         for show_total in (False, True):
             with self.subTest(show_total=show_total):
                 slide = new_slide()
@@ -47,12 +59,22 @@ class CleanSlideFrameTests(unittest.TestCase):
                     'text': '© Example Company', 'show_divider': True, 'show_total': show_total}})
                 render_footer(slide, 2, {}, 4, config,
                               add_text=generate.add_text, add_rect=generate.add_rect)
-                self.assertEqual(len(slide.shapes), 2)
+                self.assertEqual(len(slide.shapes), 3)
                 shapes = {s.name: s for s in slide.shapes}
                 watermark, page = shapes['slide-footer:watermark'], shapes['slide-footer:page']
+                rule = shapes['slide-footer:rule']
+                self.assertEqual((rule.left, rule.top, rule.width, rule.height),
+                                 tuple(Inches(value) for value in (.72, 6.92, 11.9, .01)))
+                self.assertLess(rule.top + rule.height, watermark.top)
                 self.assertEqual((watermark.top, watermark.height), (page.top, page.height))
                 self.assertEqual(watermark.text_frame.paragraphs[0].runs[0].font.size.pt, 11)
                 self.assertFalse(watermark.text_frame.word_wrap)
+
+    def test_rule_can_be_hidden_from_config(self):
+        slide = new_slide()
+        render_footer(slide, 1, {}, 4, parse_cover_footer_config({'footer': {'show_divider': False}}),
+                      add_text=generate.add_text, add_rect=generate.add_rect)
+        self.assertEqual([s.name for s in slide.shapes], ['slide-footer:page'])
 
     def test_two_line_title_and_lead_do_not_overlap_and_overfull_title_stops(self):
         slide = new_slide()
@@ -70,7 +92,7 @@ class CleanSlideFrameTests(unittest.TestCase):
         slide = new_slide()
         render_footer(slide, 1, {'footer': '旧フッターの説明文'}, 4, parse_cover_footer_config({}),
                       add_text=generate.add_text, add_rect=generate.add_rect)
-        self.assertEqual([s.name for s in slide.shapes], ['slide-footer:page'])
+        self.assertEqual([s.name for s in slide.shapes], ['slide-footer:rule', 'slide-footer:page'])
 
 
 if __name__ == '__main__':

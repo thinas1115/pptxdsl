@@ -38,7 +38,7 @@ SLIDE_W, SLIDE_H = STANDARD_THEME.SLIDE_W, STANDARD_THEME.SLIDE_H
 MARGIN = STANDARD_THEME.MARGIN
 BODY_W = SLIDE_W - MARGIN * 2
 BODY_TOP, BODY_BOTTOM = STANDARD_THEME.BODY_TOP, STANDARD_THEME.BODY_BOTTOM
-LEAD_Y, LEAD_MAX_H = PAGE.content_top, 0.64
+LEAD_Y, LEAD_MAX_H = PAGE.content_top, 0.78
 TABLE_HEADER_H = 0.72
 TABLE_TOP_GAP = 0.38
 TABLE_BOTTOM_GAP = 0.15
@@ -147,9 +147,9 @@ def header(slide, kicker, title, lead=None):
                            shifted=content_top != BODY_TOP or bottom != BODY_BOTTOM)
 
     lead_size, lead_lines = fit_text_or_raise(
-        "header", "lead", lead, BODY_W, LEAD_MAX_H, 14,
-        min_pt=11.5, spacing=1.6)
-    lead_pitch = lead_size * 1.6
+        "header", "lead", lead, BODY_W, LEAD_MAX_H, 18,
+        min_pt=16, spacing=1.4)
+    lead_pitch = lead_size * 1.4
     lead_h = len(lead_lines) * lead_pitch / 72
     lead_shape = add_text(slide, MARGIN, content_top, BODY_W, lead_h,
                           "\n".join(lead_lines), lead_size, color=TEXT,
