@@ -33,7 +33,7 @@ def main() -> int:
     template.add_argument("--background-color", default="F7F5EF")
     template.add_argument("--background-image")
     template.add_argument("--cover-background-image")
-    template.add_argument("--footer-text", default="{footer}")
+    template.add_argument("--footer-text", default="")
     render = commands.add_parser("render")
     render.add_argument("pptx")
     render.add_argument("output")
