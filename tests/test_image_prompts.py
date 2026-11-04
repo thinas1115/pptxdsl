@@ -1,6 +1,7 @@
 """共通画像プロンプトの結合と安全なCLIを確認する。"""
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import runpy
 import subprocess
@@ -80,7 +81,8 @@ class ImagePromptTests(unittest.TestCase):
                 (root / f'{name}.json').write_text(json.dumps(data), encoding='utf-8')
             command = [sys.executable, str(SCRIPT), '--style', str(root / 'style.json'),
                        '--briefs', str(root / 'briefs.json'), '--output', str(root / 'prompts.json')]
-            first = subprocess.run(command, capture_output=True)
+            first = subprocess.run(command, capture_output=True,
+                                   env={**os.environ, 'PYTHONIOENCODING': 'cp1252'})
             self.assertEqual(first.returncode, 0, first.stderr)
             original = (root / 'prompts.json').read_bytes()
             second = subprocess.run(command, capture_output=True)
