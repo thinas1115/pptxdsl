@@ -684,29 +684,27 @@ def s_twocol(slide, spec, page):
         standard_gap=0.18,
         min_gap=0.10,
         gap_step=0.02,
-        fixed_height=1.63,
+        fixed_height=1.28,
         guidance="左右の箇条書きを減らすか文言を短くしてください。",
     )
     size, row_gap = fitted.size, fitted.gap
     rows = fitted.stacks
-    panel_h = max(2.72, fitted.used)
+    panel_h = max(2.37, fitted.used)
     top = area.top + 0.30
     for i, p in enumerate(panels):
         x = left + i * (cw + gap)
         fill = ZEBRA if i == 0 else LIGHT
         marker = GRAY if i == 0 else ACCENT
         add_rect(slide, x, top, cw, panel_h, fill)
-        add_text(slide, x + 0.38, top + 0.29, cw - 0.76, 0.22,
-                 p.get("label", "BEFORE" if i == 0 else "AFTER"), 9.5,
-                 bold=True, color=marker)
+        # 旧labelは入力互換だけ残し、見出しはheadingに一本化する。
         heading_size, _ = fit_text_or_raise(
             "two_column", f"{'left' if i == 0 else 'right'}.heading",
             p["heading"], cw - 0.76, 0.42, 18,
             min_pt=14, weight="bold", spacing=1.1)
-        add_text(slide, x + 0.38, top + 0.64, cw - 0.76, 0.42,
+        add_text(slide, x + 0.38, top + 0.29, cw - 0.76, 0.42,
                  p["heading"], heading_size, bold=True, color=NAVY)
-        add_rect(slide, x + 0.38, top + 1.16, cw - 0.76, 0.01, RULE)
-        y = top + 1.34
+        add_rect(slide, x + 0.38, top + 0.81, cw - 0.76, 0.01, RULE)
+        y = top + 0.99
         for row_index, (bullet, row_h) in enumerate(zip(p["bullets"], rows[i])):
             add_text(slide, x + 0.38, y + 0.01, 0.34, 0.24,
                      f"{row_index + 1:02d}", 9.5, bold=True, color=marker)

@@ -42,6 +42,7 @@ AWSサービスは対応するAWS公式アイコンを無改変で使う。機�
 |---|---|
 | bullets | `checked`はchecklistだけ。旧`[本文, null]`は1.xで受理するが非推奨で、2.0.0で終了する |
 | cards | metricsでは`value`が必須で、`emphasis`もmetricsだけ。editorialは独立した項目の説明に使う |
+| two_column | 左右の見出しは`heading`だけを表示する。旧`label`は入力互換のため受理するが非表示。新規入力では省略する |
 | table | 各行はcolumnsと同じセル数。空セルは許可。note_linkにはnoteも必要で、URLは認証情報・空白のない完全なHTTPS URL |
 | chart | 各系列の値はcategoriesと同数。真偽値・NaN・Infinityは数値として受理しない。合計から百分率を推測せず、単位はnumber_formatで明示する |
 | matrix | quadrantsを省く場合はtarget_labelが必須。象限ラベルの順序は左下・右下・左上・右上 |
