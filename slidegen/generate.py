@@ -662,7 +662,7 @@ def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=Fals
 
 
 def s_twocol(slide, spec, page):
-    """Render a purposeful before/after comparison, not generic cards."""
+    """左右を色面で囲まず、見出しと本文で比較する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     gap = 0.42
     left = 0.76
@@ -689,13 +689,9 @@ def s_twocol(slide, spec, page):
     )
     size, row_gap = fitted.size, fitted.gap
     rows = fitted.stacks
-    panel_h = max(2.37, fitted.used)
     top = area.top + 0.30
     for i, p in enumerate(panels):
         x = left + i * (cw + gap)
-        fill = ZEBRA if i == 0 else LIGHT
-        marker = GRAY if i == 0 else ACCENT
-        add_rect(slide, x, top, cw, panel_h, fill)
         # 旧labelは入力互換だけ残し、見出しはheadingに一本化する。
         heading_size, _ = fit_text_or_raise(
             "two_column", f"{'left' if i == 0 else 'right'}.heading",
@@ -707,13 +703,11 @@ def s_twocol(slide, spec, page):
         y = top + 0.99
         for row_index, (bullet, row_h) in enumerate(zip(p["bullets"], rows[i])):
             add_text(slide, x + 0.38, y + 0.01, 0.34, 0.24,
-                     f"{row_index + 1:02d}", 9.5, bold=True, color=marker)
+                     f"{row_index + 1:02d}", 9.5, bold=True, color=GRAY)
             add_text(slide, x + 0.82, y, text_w, row_h, bullet, size,
                      color=TEXT, spacing=1.18)
             y += row_h
             if row_index < len(rows[i]) - 1:
-                add_rect(slide, x + 0.82, y + row_gap / 2,
-                         text_w, 0.008, RULE)
                 y += row_gap
 
 

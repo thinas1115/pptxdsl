@@ -1,4 +1,4 @@
-"""2カラムの見出し一本化と、その分だけ詰めた配置を検証する。"""
+"""2カラムの無地の構成、見出し一本化と収容契約を検証する。"""
 from copy import deepcopy
 import unittest
 from unittest.mock import patch
@@ -61,13 +61,34 @@ class TwoColumnHeaderTests(unittest.TestCase):
                     data['lead'] = lead
                 slide = render(data)
                 texts = {s.text: s for s in slide.shapes if s.has_text_frame}
-                panel = next(s for s in slide.shapes if abs(s.left - Inches(.76)) < 2)
+                area_top = generate.PAGE.content_top
+                if lead:
+                    area_top = (texts[lead].top + texts[lead].height) / Inches(1) + .14
+                top = area_top + .30
                 self.assertFalse({'現状', '目標状態', 'BEFORE', 'AFTER'} & texts.keys())
                 for key, body in [('導入前', data['left']['bullets'][0]), ('導入後', data['right']['bullets'][0])]:
-                    self.assertAlmostEqual((texts[key].top - panel.top) / Inches(1), .29, places=5)
-                    self.assertAlmostEqual((texts[body].top - panel.top) / Inches(1), .99, places=5)
+                    self.assertAlmostEqual(texts[key].top / Inches(1) - top, .29, places=5)
+                    self.assertAlmostEqual(texts[body].top / Inches(1) - top, .99, places=5)
                     self.assertLess(texts[key].top + texts[key].height, texts[body].top)
-                    self.assertLessEqual(texts[body].top + texts[body].height, panel.top + panel.height)
+                    self.assertLessEqual(texts[body].top + texts[body].height, Inches(generate.BODY_BOTTOM))
+
+    def test_no_colored_panels_or_repeated_row_rules(self):
+        data = spec()
+        for side in ('left', 'right'):
+            data[side]['bullets'] *= 3
+        slide = render(data)
+        # 色面と行ごとの線を置かず、左右それぞれの見出し下の罫線だけ残す。
+        rectangles = [s for s in slide.shapes
+                      if (not s.has_text_frame or not s.text)
+                      and s.width != Inches(generate.SLIDE_W)]
+        self.assertEqual(len(rectangles), 2)
+        for shape in rectangles:
+            self.assertAlmostEqual(shape.height / Inches(1), .01, places=5)
+            self.assertEqual(shape.fill.fore_color.rgb, generate.RULE)
+        numbers = [s for s in slide.shapes if s.has_text_frame and s.text in {'01', '02', '03'}]
+        self.assertEqual(len(numbers), 6)
+        for number in numbers:
+            self.assertEqual(number.text_frame.paragraphs[0].runs[0].font.color.rgb, generate.GRAY)
 
     def test_legacy_labels_do_not_change_output_and_no_fallback_is_added(self):
         data = spec()
