@@ -25,6 +25,7 @@ from slidegen.layout_fit import (
 )
 from slidegen.textfit import line_height_in, text_width_in, wrap_natural, wrap_text
 from slidegen.layout_settings import PAGE
+from slidegen.quality_markers import SURFACE_ON_CANVAS_PREFIX
 from slidegen.text_roles import set_text_role
 from slidegen.font_config import font_family
 from slidegen.generation_context import STANDARD_THEME, current_context
@@ -662,49 +663,53 @@ def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=Fals
 
 
 def s_twocol(slide, spec, page):
-    """左右を色面で囲まず、見出しと本文で比較する。"""
+    """左右の見出しを一本の帯でそろえ、本文は無地に置く。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    gap = 0.42
-    left = 0.76
-    cw = (11.82 - gap) / 2
-    panels = [spec["left"], spec["right"]]
-    text_w = cw - 1.10
+    top_gap, bottom_gap = 0.20, 0.16
+    band_h, body_gap = 0.66, 0.24
+    col_w = BODY_W / 2
+    inset, indent = 0.26, 0.42
+    columns = [spec["left"], spec["right"]]
+    text_w = col_w - 2 * inset - indent
 
     fitted = fit_vertical_stacks(
-        "two_column", area.height - 0.42,
-        [panel["bullets"] for panel in panels],
+        "two_column", area.height - top_gap - bottom_gap,
+        [column["bullets"] for column in columns],
         lambda bullet, size: max(
             0.42,
             len(wrap_text(bullet, text_w, size))
             * line_height_in(size, 1.18) + 0.06,
         ),
-        standard_size=14,
+        standard_size=16,
         min_size=11,
         font_step=0.5,
         standard_gap=0.18,
         min_gap=0.10,
         gap_step=0.02,
-        fixed_height=1.28,
+        fixed_height=band_h + body_gap,
         guidance="左右の箇条書きを減らすか文言を短くしてください。",
     )
     size, row_gap = fitted.size, fitted.gap
     rows = fitted.stacks
-    top = area.top + 0.30
-    for i, p in enumerate(panels):
-        x = left + i * (cw + gap)
+    top = area.top + top_gap
+    band = add_rect(slide, MARGIN, top, BODY_W, band_h, NAVY)
+    band.name = f"{SURFACE_ON_CANVAS_PREFIX}two-column-heading"
+    add_rect(slide, MARGIN + col_w - 0.005, top + 0.14, 0.01, band_h - 0.28, RULE)
+    for i, column in enumerate(columns):
+        x = MARGIN + i * col_w + inset
         # 旧labelは入力互換だけ残し、見出しはheadingに一本化する。
-        heading_size, _ = fit_text_or_raise(
+        heading_size, lines = fit_text_or_raise(
             "two_column", f"{'left' if i == 0 else 'right'}.heading",
-            p["heading"], cw - 0.76, 0.42, 18,
+            column["heading"], col_w - 2 * inset, band_h - 0.16, 22,
             min_pt=14, weight="bold", spacing=1.1)
-        add_text(slide, x + 0.38, top + 0.29, cw - 0.76, 0.42,
-                 p["heading"], heading_size, bold=True, color=NAVY)
-        add_rect(slide, x + 0.38, top + 0.81, cw - 0.76, 0.01, RULE)
-        y = top + 0.99
-        for row_index, (bullet, row_h) in enumerate(zip(p["bullets"], rows[i])):
-            add_text(slide, x + 0.38, y + 0.01, 0.34, 0.24,
-                     f"{row_index + 1:02d}", 9.5, bold=True, color=GRAY)
-            add_text(slide, x + 0.82, y, text_w, row_h, bullet, size,
+        add_text(slide, x, top + 0.08, col_w - 2 * inset, band_h - 0.16,
+                 "\n".join(lines), heading_size, bold=True, color=WHITE,
+                 anchor=MSO_ANCHOR.MIDDLE, spacing=1.1, wrap=False)
+        y = top + band_h + body_gap
+        for row_index, (bullet, row_h) in enumerate(zip(column["bullets"], rows[i])):
+            add_text(slide, x, y + 0.025, 0.32, 0.24,
+                     f"{row_index + 1:02d}", 10.5, bold=True, color=GRAY)
+            add_text(slide, x + indent, y, text_w, row_h, bullet, size,
                      color=TEXT, spacing=1.18)
             y += row_h
             if row_index < len(rows[i]) - 1:
