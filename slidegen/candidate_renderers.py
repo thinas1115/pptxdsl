@@ -1,7 +1,7 @@
 """採用判断用に追加した業務スライドrenderer群。"""
 
-from collections import defaultdict
 from itertools import permutations
+from math import hypot
 
 from pptx.dml.color import RGBColor
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
@@ -337,25 +337,26 @@ def _mapping_items_by_min_crossings(left_items, right_items, links):
 
 
 def _mapping_ports(left_y, right_y, row_h, links):
-    """相手側の並び順に端点を分散し、同じ項目への複数線を識別する。"""
-    ports = [{}, {}]
-    for side, (own, other, key, other_key) in enumerate((
-            (left_y, right_y, "from", "to"),
-            (right_y, left_y, "to", "from"))):
-        grouped = defaultdict(list)
-        for index, link in enumerate(links):
-            grouped[link[key]].append(index)
-        for item_id, indices in grouped.items():
-            indices.sort(key=lambda index: (other[links[index][other_key]], index))
-            span = min(0.42, row_h - 0.20) if len(indices) > 1 else 0.0
-            if len(indices) > 1 and span / (len(indices) - 1) < 0.055:
-                raise FitError("relationship_map: 接続端点の間隔を確保できません。"
-                               "関係線を減らすか、複数スライドへ分割してください。")
-            for rank, index in enumerate(indices):
-                ports[side][index] = own[item_id] + row_h / 2 + (
-                    -span / 2 + rank * span / (len(indices) - 1)
-                    if len(indices) > 1 else 0.0)
-    return [(ports[0][index], ports[1][index]) for index in range(len(links))]
+    """分岐・合流は項目中央の共通端点を使い、同じ段は水平に結ぶ。"""
+    return [(left_y[link['from']] + row_h / 2,
+             right_y[link['to']] + row_h / 2) for link in links]
+
+
+def _mapping_crossing_segments(left, right, endpoints, index):
+    """無関係な線が交差する局所だけを分離し、分岐・合流は欠かさない。"""
+    sy, ty = endpoints[index]
+    slope = ty - sy
+    half = .045 / hypot(right - left, slope)
+    for previous, (previous_sy, previous_ty) in enumerate(endpoints[:index]):
+        denominator = slope - (previous_ty - previous_sy)
+        if abs(denominator) < 1e-9:
+            continue
+        fraction = (previous_sy - sy) / denominator
+        if half < fraction < 1 - half:
+            yield previous, (left + (fraction - half) * (right - left),
+                             sy + (fraction - half) * slope,
+                             left + (fraction + half) * (right - left),
+                             sy + (fraction + half) * slope)
 
 
 def s_mapping(slide, spec, page):
@@ -420,10 +421,6 @@ def s_mapping(slide, spec, page):
             except FitError as error:
                 raise FitError(f"{error} 関係を論点ごとに分割してください。") from None
             text.name = f"mapping:text:{side}:{item['id']}"
-            if index < len(items) - 1:
-                plain_line(slide, text_x, y + values["row_h"],
-                           x + width - 0.18 if side == "left" else marker_x - 0.34,
-                           y + values["row_h"], color=RULE, width=0.45)
 
     gap_left = left_x + left_w
     gap_right = right_x
@@ -433,21 +430,26 @@ def s_mapping(slide, spec, page):
     for index, (link, (sy, ty)) in enumerate(zip(links, endpoints)):
         color = ACCENT if link.get("emphasis") else GRAY
         width = 1.4 if link.get("emphasis") else 1.0
-        # 後から描く線の下へ背景色の縁を置き、交点で線が連結して見える
-        # 誤読を防ぐ。端点は項目描画後に置き直す。
-        mask = plain_line(slide, gap_left, sy, gap_right, ty,
-                          color=CANVAS, width=3.6)
-        mask.name = f"mapping:crossing-mask:{index}"
+        for previous, segment in _mapping_crossing_segments(gap_left, gap_right, endpoints, index):
+            mask = plain_line(slide, *segment, color=CANVAS, width=3.6)
+            mask.name = f"mapping:crossing-mask:{index}:{previous}"
         arrow = add_arrow(slide, gap_left, sy, gap_right, ty,
                           color=color, width=width)
         arrow.name = f"mapping:link:{index}"
     draw_items(left_items, left_y, left_x, left_w, "left")
     draw_items(right_items, right_y, right_x, right_w, "right")
-    for index, (link, (sy, ty)) in enumerate(zip(links, endpoints)):
+    drawn_ports = set()
+    for index in sorted(range(len(links)), key=lambda i: not links[i].get("emphasis", False)):
+        link, (sy, ty) = links[index], endpoints[index]
         color = ACCENT if link.get("emphasis") else GRAY
-        for side, x, y in (("left", gap_left, sy), ("right", gap_right, ty)):
+        for side, item_id, x, y in (("left", link["from"], gap_left, sy),
+                                    ("right", link["to"], gap_right, ty)):
+            key = (side, item_id)
+            if key in drawn_ports:
+                continue
+            drawn_ports.add(key)
             dot = _dot(slide, x, y, color, 0.06)
-            dot.name = f"mapping:port:{side}:{index}"
+            dot.name = f"mapping:port:{side}:{item_id}"
 def _swimlane_step_rects(spec, x0, y0, stage_w, lane_h):
     return _swimlane_layout.step_rects(spec, x0, y0, stage_w, lane_h)
 
