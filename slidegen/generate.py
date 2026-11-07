@@ -8,6 +8,7 @@ import math
 import re
 from dataclasses import dataclass
 
+from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.oxml.ns import qn
@@ -25,7 +26,6 @@ from slidegen.layout_fit import (
 )
 from slidegen.textfit import line_height_in, text_width_in, wrap_natural, wrap_text
 from slidegen.layout_settings import PAGE
-from slidegen.quality_markers import SURFACE_ON_CANVAS_PREFIX
 from slidegen.text_roles import set_text_role
 from slidegen.font_config import font_family
 from slidegen.generation_context import STANDARD_THEME, current_context
@@ -663,14 +663,17 @@ def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=Fals
 
 
 def s_twocol(slide, spec, page):
-    """左右の見出しを一本の帯でそろえ、本文は無地に置く。"""
+    """背景設定はそのままに、灰色と赤茶の見出しで左右を比較する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    top_gap, bottom_gap = 0.20, 0.16
-    band_h, body_gap = 0.66, 0.24
-    col_w = BODY_W / 2
-    inset, indent = 0.26, 0.42
+    top_gap, bottom_gap = 0.50, 0.16
+    heading_h, body_gap = 0.625, 0.42
+    col_gap, indent = 2 / 3, 7 / 12
+    col_w = (BODY_W - col_gap) / 2
     columns = [spec["left"], spec["right"]]
-    text_w = col_w - 2 * inset - indent
+    text_w = col_w - indent
+    # 選択された2カラム案だけの色。共通テーマと背景Configは変更しない。
+    heading_colors = (RGBColor.from_string("666660"), RGBColor.from_string("973F2B"))
+    body_color = RGBColor.from_string("252522")
 
     fitted = fit_vertical_stacks(
         "two_column", area.height - top_gap - bottom_gap,
@@ -678,39 +681,38 @@ def s_twocol(slide, spec, page):
         lambda bullet, size: max(
             0.42,
             len(wrap_text(bullet, text_w, size))
-            * line_height_in(size, 1.18) + 0.06,
+            * line_height_in(size, 1.25) + 0.06,
         ),
-        standard_size=16,
+        standard_size=18.75,
         min_size=11,
         font_step=0.5,
-        standard_gap=0.18,
+        standard_gap=0.60,
         min_gap=0.10,
         gap_step=0.02,
-        fixed_height=band_h + body_gap,
+        fixed_height=heading_h + body_gap,
         guidance="左右の箇条書きを減らすか文言を短くしてください。",
     )
     size, row_gap = fitted.size, fitted.gap
     rows = fitted.stacks
     top = area.top + top_gap
-    band = add_rect(slide, MARGIN, top, BODY_W, band_h, NAVY)
-    band.name = f"{SURFACE_ON_CANVAS_PREFIX}two-column-heading"
-    add_rect(slide, MARGIN + col_w - 0.005, top + 0.14, 0.01, band_h - 0.28, RULE)
     for i, column in enumerate(columns):
-        x = MARGIN + i * col_w + inset
+        x = MARGIN + i * (col_w + col_gap)
         # 旧labelは入力互換だけ残し、見出しはheadingに一本化する。
         heading_size, lines = fit_text_or_raise(
             "two_column", f"{'left' if i == 0 else 'right'}.heading",
-            column["heading"], col_w - 2 * inset, band_h - 0.16, 22,
+            column["heading"], col_w, heading_h, 31.5,
             min_pt=14, weight="bold", spacing=1.1)
-        add_text(slide, x, top + 0.08, col_w - 2 * inset, band_h - 0.16,
-                 "\n".join(lines), heading_size, bold=True, color=WHITE,
-                 anchor=MSO_ANCHOR.MIDDLE, spacing=1.1, wrap=False)
-        y = top + band_h + body_gap
+        add_text(slide, x, top, col_w, heading_h,
+                 "\n".join(lines), heading_size, bold=True, color=heading_colors[i],
+                 spacing=1.1, wrap=False)
+        y = top + heading_h + body_gap
         for row_index, (bullet, row_h) in enumerate(zip(column["bullets"], rows[i])):
-            add_text(slide, x, y + 0.025, 0.32, 0.24,
-                     f"{row_index + 1:02d}", 10.5, bold=True, color=GRAY)
-            add_text(slide, x + indent, y, text_w, row_h, bullet, size,
-                     color=TEXT, spacing=1.18)
+            add_text(slide, x, y + 0.025, 0.42, 0.34,
+                     f"{row_index + 1:02d}", min(17.25, size * 0.92),
+                     bold=True, color=heading_colors[i])
+            add_text(slide, x + indent, y, text_w, row_h,
+                     "\n".join(wrap_text(bullet, text_w, size)), size,
+                     color=body_color, spacing=1.25, wrap=False)
             y += row_h
             if row_index < len(rows[i]) - 1:
                 y += row_gap
