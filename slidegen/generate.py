@@ -8,6 +8,7 @@ import math
 import re
 from dataclasses import dataclass
 
+from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.oxml.ns import qn
@@ -662,60 +663,61 @@ def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=Fals
 
 
 def s_twocol(slide, spec, page):
-    """Render a purposeful before/after comparison, not generic cards."""
+    """背景設定はそのままに、小見出しと細い罫線で左右を比較する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
-    gap = 0.42
-    left = 0.76
-    cw = (11.82 - gap) / 2
-    panels = [spec["left"], spec["right"]]
-    text_w = cw - 1.10
+    top_gap, bottom_gap = 0.50, 0.16
+    heading_h, body_gap = 0.50, 0.545
+    outer_inset, col_gap, indent = 0.10, 2 / 3, 0.50
+    col_w = (BODY_W - 2 * outer_inset - col_gap) / 2
+    columns = [spec["left"], spec["right"]]
+    text_w = col_w - indent
+    # 選択された2カラム案だけの色。共通テーマと背景Configは変更しない。
+    heading_colors = (RGBColor.from_string("666660"), RGBColor.from_string("973F2B"))
+    rule_colors = (RGBColor.from_string("C9C6BE"), heading_colors[1])
+    body_color = RGBColor.from_string("252522")
 
     fitted = fit_vertical_stacks(
-        "two_column", area.height - 0.42,
-        [panel["bullets"] for panel in panels],
+        "two_column", area.height - top_gap - bottom_gap,
+        [column["bullets"] for column in columns],
         lambda bullet, size: max(
             0.42,
             len(wrap_text(bullet, text_w, size))
-            * line_height_in(size, 1.18) + 0.06,
+            * line_height_in(size, 1.25) + 0.06,
         ),
-        standard_size=14,
+        standard_size=18,
         min_size=11,
         font_step=0.5,
-        standard_gap=0.18,
+        standard_gap=0.60,
         min_gap=0.10,
         gap_step=0.02,
-        fixed_height=1.63,
+        fixed_height=heading_h + body_gap,
         guidance="左右の箇条書きを減らすか文言を短くしてください。",
     )
     size, row_gap = fitted.size, fitted.gap
     rows = fitted.stacks
-    panel_h = max(2.72, fitted.used)
-    top = area.top + 0.30
-    for i, p in enumerate(panels):
-        x = left + i * (cw + gap)
-        fill = ZEBRA if i == 0 else LIGHT
-        marker = GRAY if i == 0 else ACCENT
-        add_rect(slide, x, top, cw, panel_h, fill)
-        add_text(slide, x + 0.38, top + 0.29, cw - 0.76, 0.22,
-                 p.get("label", "BEFORE" if i == 0 else "AFTER"), 9.5,
-                 bold=True, color=marker)
-        heading_size, _ = fit_text_or_raise(
+    top = area.top + top_gap
+    for i, column in enumerate(columns):
+        x = MARGIN + outer_inset + i * (col_w + col_gap)
+        # 旧labelは入力互換だけ残し、見出しはheadingに一本化する。
+        heading_size, lines = fit_text_or_raise(
             "two_column", f"{'left' if i == 0 else 'right'}.heading",
-            p["heading"], cw - 0.76, 0.42, 18,
+            column["heading"], col_w, heading_h, 21,
             min_pt=14, weight="bold", spacing=1.1)
-        add_text(slide, x + 0.38, top + 0.64, cw - 0.76, 0.42,
-                 p["heading"], heading_size, bold=True, color=NAVY)
-        add_rect(slide, x + 0.38, top + 1.16, cw - 0.76, 0.01, RULE)
-        y = top + 1.34
-        for row_index, (bullet, row_h) in enumerate(zip(p["bullets"], rows[i])):
-            add_text(slide, x + 0.38, y + 0.01, 0.34, 0.24,
-                     f"{row_index + 1:02d}", 9.5, bold=True, color=marker)
-            add_text(slide, x + 0.82, y, text_w, row_h, bullet, size,
-                     color=TEXT, spacing=1.18)
+        add_text(slide, x, top, col_w, heading_h,
+                 "\n".join(lines), heading_size, bold=True, color=heading_colors[i],
+                 spacing=1.1, wrap=False)
+        rule = add_rect(slide, x, top + 7 / 12, col_w, 1 / 96, rule_colors[i])
+        rule.name = f"two-column:heading-rule:{'left' if i == 0 else 'right'}"
+        y = top + heading_h + body_gap
+        for row_index, (bullet, row_h) in enumerate(zip(column["bullets"], rows[i])):
+            add_text(slide, x, y + 0.025, 0.375, 0.34,
+                     f"{row_index + 1:02d}", max(9.5, min(13.5, size * 0.75)),
+                     bold=True, color=heading_colors[i])
+            add_text(slide, x + indent, y, text_w, row_h,
+                     "\n".join(wrap_text(bullet, text_w, size)), size,
+                     color=body_color, spacing=1.25, wrap=False)
             y += row_h
             if row_index < len(rows[i]) - 1:
-                add_rect(slide, x + 0.82, y + row_gap / 2,
-                         text_w, 0.008, RULE)
                 y += row_gap
 
 

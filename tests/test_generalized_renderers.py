@@ -193,7 +193,8 @@ def main():
     generate.s_twocol(comparison_slide, comparison, 1)
     texts = {shape.text_frame.text for shape in comparison_slide.shapes
              if shape.has_text_frame}
-    assert {"現状", "目標"} <= texts
+    assert {"現在", "将来"} <= texts
+    assert not {"現状", "目標", "BEFORE", "AFTER"} & texts
 
     for kind in ("bar", "column", "line", "stacked_bar", "stacked_column"):
         chart = dict(
