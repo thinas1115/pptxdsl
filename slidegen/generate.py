@@ -663,16 +663,17 @@ def _cell(cell, text, size, *, bold=False, color=TEXT, fill=SURFACE, center=Fals
 
 
 def s_twocol(slide, spec, page):
-    """背景設定はそのままに、灰色と赤茶の見出しで左右を比較する。"""
+    """背景設定はそのままに、小見出しと細い罫線で左右を比較する。"""
     area = header(slide, spec["kicker"], spec["title"], spec.get("lead"))
     top_gap, bottom_gap = 0.50, 0.16
-    heading_h, body_gap = 0.625, 0.42
-    col_gap, indent = 2 / 3, 7 / 12
-    col_w = (BODY_W - col_gap) / 2
+    heading_h, body_gap = 0.50, 0.545
+    outer_inset, col_gap, indent = 0.10, 2 / 3, 0.50
+    col_w = (BODY_W - 2 * outer_inset - col_gap) / 2
     columns = [spec["left"], spec["right"]]
     text_w = col_w - indent
     # 選択された2カラム案だけの色。共通テーマと背景Configは変更しない。
     heading_colors = (RGBColor.from_string("666660"), RGBColor.from_string("973F2B"))
+    rule_colors = (RGBColor.from_string("C9C6BE"), heading_colors[1])
     body_color = RGBColor.from_string("252522")
 
     fitted = fit_vertical_stacks(
@@ -683,7 +684,7 @@ def s_twocol(slide, spec, page):
             len(wrap_text(bullet, text_w, size))
             * line_height_in(size, 1.25) + 0.06,
         ),
-        standard_size=18.75,
+        standard_size=18,
         min_size=11,
         font_step=0.5,
         standard_gap=0.60,
@@ -696,19 +697,21 @@ def s_twocol(slide, spec, page):
     rows = fitted.stacks
     top = area.top + top_gap
     for i, column in enumerate(columns):
-        x = MARGIN + i * (col_w + col_gap)
+        x = MARGIN + outer_inset + i * (col_w + col_gap)
         # 旧labelは入力互換だけ残し、見出しはheadingに一本化する。
         heading_size, lines = fit_text_or_raise(
             "two_column", f"{'left' if i == 0 else 'right'}.heading",
-            column["heading"], col_w, heading_h, 31.5,
+            column["heading"], col_w, heading_h, 21,
             min_pt=14, weight="bold", spacing=1.1)
         add_text(slide, x, top, col_w, heading_h,
                  "\n".join(lines), heading_size, bold=True, color=heading_colors[i],
                  spacing=1.1, wrap=False)
+        rule = add_rect(slide, x, top + 7 / 12, col_w, 1 / 96, rule_colors[i])
+        rule.name = f"two-column:heading-rule:{'left' if i == 0 else 'right'}"
         y = top + heading_h + body_gap
         for row_index, (bullet, row_h) in enumerate(zip(column["bullets"], rows[i])):
-            add_text(slide, x, y + 0.025, 0.42, 0.34,
-                     f"{row_index + 1:02d}", min(17.25, size * 0.92),
+            add_text(slide, x, y + 0.025, 0.375, 0.34,
+                     f"{row_index + 1:02d}", max(9.5, min(13.5, size * 0.75)),
                      bold=True, color=heading_colors[i])
             add_text(slide, x + indent, y, text_w, row_h,
                      "\n".join(wrap_text(bullet, text_w, size)), size,

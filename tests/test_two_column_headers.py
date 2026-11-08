@@ -37,9 +37,9 @@ class TwoColumnHeaderTests(unittest.TestCase):
         bullet = '比較する本文の説明を確認します。' * 4
         for side in ('left', 'right'):
             data[side]['bullets'] = [bullet] * 6
-        text_w = (generate.BODY_W - 2 / 3) / 2 - 7 / 12
-        height = max(.42, len(generate.wrap_text(bullet, text_w, 18.75))
-                     * generate.line_height_in(18.75, 1.25) + .06)
+        text_w = (generate.BODY_W - .20 - 2 / 3) / 2 - .50
+        height = max(.42, len(generate.wrap_text(bullet, text_w, 18))
+                     * generate.line_height_in(18, 1.25) + .06)
         standard_used = 1.045 + 6 * height + 5 * .60
         actual_fit = generate.fit_vertical_stacks
         for expected, available in [('standard', standard_used + .01),
@@ -76,26 +76,37 @@ class TwoColumnHeaderTests(unittest.TestCase):
                 for key, body in [('導入前', data['left']['bullets'][0]), ('導入後', data['right']['bullets'][0])]:
                     self.assertAlmostEqual(texts[key].top / Inches(1) - top, 0, places=5)
                     self.assertAlmostEqual(texts[body].top / Inches(1) - top, 1.045, places=5)
-                    self.assertEqual(texts[key].text_frame.paragraphs[0].runs[0].font.size.pt, 31.5)
-                    self.assertEqual(texts[body].text_frame.paragraphs[0].runs[0].font.size.pt, 18.75)
+                    self.assertEqual(texts[key].text_frame.paragraphs[0].runs[0].font.size.pt, 21)
+                    self.assertEqual(texts[body].text_frame.paragraphs[0].runs[0].font.size.pt, 18)
                     self.assertLess(texts[key].top + texts[key].height, texts[body].top)
                     self.assertLessEqual(texts[body].top + texts[body].height, Inches(generate.BODY_BOTTOM))
 
-    def test_selected_heading_colors_and_no_panels_bands_or_rules(self):
+    def test_slide04_heading_rules_and_discreet_numbers_without_panels(self):
         data = spec()
         for side in ('left', 'right'):
             data[side]['bullets'] *= 3
         slide = render(data)
-        # 共通headerの背景以外には、帯・色面・罫線を追加しない。
+        # 見出し下の細い罫線だけを置き、帯・パネル・行ごとの線は置かない。
         rectangles = [s for s in slide.shapes
                       if (not s.has_text_frame or not s.text)
                       and s.width != Inches(generate.SLIDE_W)]
-        self.assertEqual(len(rectangles), 0)
+        self.assertEqual(len(rectangles), 2)
+        for rule, color, heading in zip(rectangles, ('C9C6BE', '973F2B'), ('導入前', '導入後')):
+            label = next(s for s in slide.shapes if s.has_text_frame and s.text == heading)
+            self.assertEqual(rule.left, label.left)
+            self.assertEqual(rule.width, label.width)
+            self.assertAlmostEqual(rule.height / Inches(1), 1 / 96, places=5)
+            self.assertAlmostEqual((rule.top - label.top) / Inches(1), 7 / 12, places=5)
+            self.assertLess(label.top + label.height, rule.top)
+            self.assertEqual(str(rule.fill.fore_color.rgb), color)
+            self.assertNotIn('outerShdw', rule._element.xml)
         for heading, color in [('導入前', '666660'), ('導入後', '973F2B')]:
             shape = next(s for s in slide.shapes if s.has_text_frame and s.text == heading)
             self.assertEqual(str(shape.text_frame.paragraphs[0].runs[0].font.color.rgb), color)
         numbers = [s for s in slide.shapes if s.has_text_frame and s.text in {'01', '02', '03'}]
         self.assertEqual(len(numbers), 6)
+        for number in numbers:
+            self.assertEqual(number.text_frame.paragraphs[0].runs[0].font.size.pt, 13.5)
         for color in ('666660', '973F2B'):
             self.assertEqual(sum(str(s.text_frame.paragraphs[0].runs[0].font.color.rgb) == color
                                  for s in numbers), 3)
@@ -118,6 +129,7 @@ class TwoColumnHeaderTests(unittest.TestCase):
                     # 背景画像も2カラムの色面で覆わない。
                     self.assertFalse(any(s.has_text_frame and not s.text
                                          and s.width != Inches(generate.SLIDE_W)
+                                         and not s.name.startswith('two-column:heading-rule:')
                                          for s in slide.shapes))
 
     def test_legacy_labels_do_not_change_output_and_no_fallback_is_added(self):
@@ -135,8 +147,8 @@ class TwoColumnHeaderTests(unittest.TestCase):
         slide = render(data)
         shape = next(s for s in slide.shapes
                      if s.has_text_frame and s.text.replace('\n', '') == body)
-        width = (generate.BODY_W - 2 / 3) / 2 - 7 / 12
-        self.assertEqual(shape.text.split('\n'), generate.wrap_text(body, width, 18.75))
+        width = (generate.BODY_W - .20 - 2 / 3) / 2 - .50
+        self.assertEqual(shape.text.split('\n'), generate.wrap_text(body, width, 18))
         self.assertFalse(shape.text_frame.word_wrap)
 
     def test_overfull_body_still_stops(self):
