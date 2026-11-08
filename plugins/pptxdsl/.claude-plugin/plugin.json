@@ -1,7 +1,7 @@
 {
   "name": "pptxdsl",
   "displayName": "pptxdsl",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "資料要件からPPTX生成・機械検証・PNG目視QAまで行うpptxdsl Plugin",
   "author": {"name": "pptxdsl"},
   "homepage": "https://github.com/thinas1115/pptxdsl",
