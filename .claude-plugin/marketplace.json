@@ -3,15 +3,15 @@
   "owner": {"name": "pptxdsl"},
   "metadata": {
     "description": "pptxdslのClaude Code向けPlugin配布元",
-    "version": "1.0.3"
+    "version": "1.0.4"
   },
   "plugins": [{
     "name": "pptxdsl",
     "description": "資料要件からPPTX生成・機械検証・PNG目視QAまで行うPlugin",
     "source": {
       "source": "archive",
-      "url": "https://github.com/thinas1115/pptxdsl/releases/download/v1.0.3/pptxdsl-plugin-v1.0.3.zip",
-      "sha256": "d7b168513dd295abeb87208ff44aad5b9e3dc47a3c1d826d4982a51aabf75581"
+      "url": "https://github.com/thinas1115/pptxdsl/releases/download/v1.0.4/pptxdsl-plugin-v1.0.4.zip",
+      "sha256": "d39519f05962922e24add89af55f462df21abd93c4a4c3533820ddf8112eadce"
     }
   }]
 }
